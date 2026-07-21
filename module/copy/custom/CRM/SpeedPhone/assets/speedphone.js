@@ -2,78 +2,170 @@
     'use strict';
 
     const root = document.querySelector('.speedphone');
-    const form = document.getElementById('speedphone-form');
     const message = document.getElementById('speedphone-message');
-    if (!root || !form || !message) {
+    const workspace = document.getElementById('speedphone-workspace');
+    if (!root || !message || !workspace) {
         return;
     }
 
-    const heartbeatTimer = window.setInterval(refreshLock, 60000);
+    let heartbeatTimer = null;
+    startHeartbeat();
+
     document.addEventListener('visibilitychange', function () {
         if (document.visibilityState === 'visible') {
             refreshLock();
         }
     });
 
-    form.addEventListener('submit', async function (event) {
+    root.addEventListener('submit', async function (event) {
+        const form = event.target.closest('#speedphone-form');
+        if (!form) {
+            return;
+        }
         event.preventDefault();
+
         const button = event.submitter;
         if (!button || !button.value) {
             return;
         }
 
-        if (button.value === 'callback' && !form.elements.callback_at.value) {
-            showMessage('Für den Rückruf müssen Datum und Uhrzeit eingetragen werden.', true);
-            form.elements.callback_at.focus();
+        if (button.value === 'blocked'
+            && !window.confirm('Diesen Kontakt dauerhaft für weitere Anrufe sperren?')) {
+            return;
+        }
+
+        const needsCallback = button.value === 'callback' || button.value === 'email_callback';
+        if (needsCallback && !form.elements.callback_date.value) {
+            showMessage('Für den Rückruf muss ein Datum eingetragen werden.', true);
+            form.elements.callback_date.focus();
+            return;
+        }
+        if (button.value === 'email_callback' && !form.elements.new_email.value) {
+            showMessage('Für „E-Mail jetzt senden + wieder anrufen“ ist eine E-Mail-Adresse erforderlich.', true);
+            form.elements.new_email.focus();
             return;
         }
 
         const data = new FormData(form);
         data.set('result', button.value);
         data.set('csrf', root.dataset.csrf);
-        setBusy(true);
+        button.dataset.submitting = 'true';
+        setBusy(form, true);
 
         try {
-            const response = await fetch(root.dataset.apiUrl, {
-                method: 'POST',
-                body: data,
-                credentials: 'same-origin',
-                headers: {'X-Requested-With': 'XMLHttpRequest'}
-            });
-            const payload = await response.json();
-            if (!response.ok || !payload.success) {
-                throw new Error(payload.error || 'Das Ergebnis konnte nicht gespeichert werden.');
-            }
+            const payload = await request(data);
             const emailResult = payload.data.email;
-            const emailMessage = emailResult && emailResult.message
-                ? ' ' + payload.data.email.message
-                : '';
+            const emailMessage = emailResult && emailResult.message ? ' ' + emailResult.message : '';
             const emailFailed = emailResult && emailResult.sent === false;
             showMessage(payload.data.message + emailMessage, emailFailed);
-            window.clearInterval(heartbeatTimer);
-            window.setTimeout(function () { window.location.reload(); }, emailFailed ? 3500 : 650);
+            stopHeartbeat();
+            await loadNextCandidate();
         } catch (error) {
             showMessage(error.message || String(error), true);
-            setBusy(false);
+            if (document.body.contains(form)) {
+                setBusy(form, false);
+                delete button.dataset.submitting;
+            }
         }
     });
 
-    function setBusy(busy) {
+    root.addEventListener('click', async function (event) {
+        const button = event.target.closest('[data-speedphone-retry]');
+        if (!button) {
+            return;
+        }
+        button.disabled = true;
+        try {
+            await loadNextCandidate();
+            showMessage('Der nächste Kontakt wurde geladen.', false);
+        } catch (error) {
+            button.disabled = false;
+            showMessage(error.message || String(error), true);
+        }
+    });
+
+    async function loadNextCandidate() {
+        const data = new FormData();
+        data.set('operation', 'next');
+        data.set('csrf', root.dataset.csrf);
+
+        try {
+            const payload = await request(data);
+            workspace.innerHTML = payload.data.workspace_html;
+            updateStatistics(payload.data.statistics || {});
+            startHeartbeat();
+            const candidateName = workspace.querySelector('.candidate-name');
+            if (candidateName) {
+                candidateName.focus({preventScroll: true});
+            }
+        } catch (error) {
+            workspace.innerHTML = '<section class="empty empty--error">'
+                + '<h2>Der nächste Kontakt konnte nicht geladen werden</h2>'
+                + '<p>Das vorherige Ergebnis wurde bereits gespeichert.</p>'
+                + '<button type="button" class="button" data-speedphone-retry>Nächsten Kontakt erneut laden</button>'
+                + '</section>';
+            throw error;
+        }
+    }
+
+    async function request(data) {
+        const response = await fetch(root.dataset.apiUrl, {
+            method: 'POST',
+            body: data,
+            credentials: 'same-origin',
+            headers: {'X-Requested-With': 'XMLHttpRequest'}
+        });
+        const payload = await response.json();
+        if (!response.ok || !payload.success) {
+            throw new Error(payload.error || 'Die Anfrage konnte nicht verarbeitet werden.');
+        }
+
+        return payload;
+    }
+
+    function updateStatistics(statistics) {
+        Object.keys(statistics).forEach(function (key) {
+            const target = root.querySelector('[data-stat="' + key + '"]');
+            if (target) {
+                target.textContent = String(statistics[key]);
+            }
+        });
+    }
+
+    function setBusy(form, busy) {
         Array.from(form.querySelectorAll('button, input, textarea')).forEach(function (element) {
             element.disabled = busy;
         });
         form.classList.toggle('is-busy', busy);
+        form.setAttribute('aria-busy', busy ? 'true' : 'false');
     }
 
     function showMessage(text, isError) {
         message.textContent = text;
         message.hidden = false;
         message.classList.toggle('message--error', isError);
+        message.setAttribute('role', isError ? 'alert' : 'status');
         message.scrollIntoView({behavior: 'smooth', block: 'nearest'});
     }
 
+    function startHeartbeat() {
+        stopHeartbeat();
+        if (document.getElementById('speedphone-form')) {
+            heartbeatTimer = window.setInterval(refreshLock, 60000);
+        }
+    }
+
+    function stopHeartbeat() {
+        if (heartbeatTimer !== null) {
+            window.clearInterval(heartbeatTimer);
+            heartbeatTimer = null;
+        }
+    }
+
     async function refreshLock() {
-        if (!form.elements.prospect_id || !form.elements.lock_token) {
+        const form = document.getElementById('speedphone-form');
+        if (!form || !form.elements.prospect_id || !form.elements.lock_token) {
+            stopHeartbeat();
             return;
         }
 
@@ -84,20 +176,11 @@
         data.set('csrf', root.dataset.csrf);
 
         try {
-            const response = await fetch(root.dataset.apiUrl, {
-                method: 'POST',
-                body: data,
-                credentials: 'same-origin',
-                headers: {'X-Requested-With': 'XMLHttpRequest'}
-            });
-            if (!response.ok) {
-                const payload = await response.json();
-                window.clearInterval(heartbeatTimer);
-                showMessage(payload.error || 'Die Kontaktreservierung ist abgelaufen. Bitte neu laden.', true);
-                setBusy(true);
-            }
+            await request(data);
         } catch (error) {
-            // Ein kurzer Netzausfall darf ein laufendes Gespräch nicht unterbrechen.
+            stopHeartbeat();
+            showMessage(error.message || 'Die Kontaktreservierung ist abgelaufen. Bitte den nächsten Kontakt laden.', true);
+            setBusy(form, true);
         }
     }
 }());

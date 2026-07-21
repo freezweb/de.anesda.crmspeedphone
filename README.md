@@ -6,15 +6,19 @@ CRM SpeedPhone ist eine schnelle, abarbeitbare Telefonakquise-Warteschlange für
 
 - priorisierte Telefonliste aus einer bestehenden SuiteCRM-Zielkontaktliste
 - native Ansicht innerhalb der SuiteCRM-Kopfzeile und Modulnavigation
+- automatisch eingeblendete Dashboard-Kachel „SpeedPhone starten“
 - gemeinsamer Callcenter-Pool für mehrere gleichzeitig telefonierende Benutzer
 - atomare UUID-Reservierung: ein Zielkontakt kann nie gleichzeitig bei zwei Mitarbeitern erscheinen
 - automatische Verlängerung während der Bearbeitung und Freigabe nach dem Ergebnis
 - automatische Freigabe abgelaufener Reservierungen nach konfigurierbarer Zeit
 - vorhandene Kampagnensignale wie Link-Klick und E-Mail-Öffnung als nachvollziehbare Priorisierung
+- chronologische Liste gesendeter Direkt- und Kampagnenmails mit Datum, Uhrzeit, Empfängeradresse und Betreff direkt am aktuellen Kontakt
+- Kontaktwechsel und aktualisierte Kennzahlen per AJAX ohne vollständiges Neuladen der Seite
 - Schnellaktionen für „nicht erreicht“, „Rückruf“, „kein Interesse“, „Interesse“, „falsche Nummer“ und „nicht mehr kontaktieren“
+- eigene Aktion „E-Mail jetzt senden + wieder anrufen“, die den Kontakt offen lässt und keinen Interessentenstatus setzt
 - jeder Kontaktversuch wird als regulärer SuiteCRM-Anruf protokolliert
 - automatische Wiedervorlage mit zunehmenden Abständen
-- Rückrufe werden zusätzlich als geplanter SuiteCRM-Anruf gespeichert
+- Tageswiedervorlagen werden ohne Uhrzeit wieder in die Liste eingereiht; nur ausdrücklich vereinbarte Uhrzeiten erzeugen zusätzlich einen geplanten SuiteCRM-Anruf
 - optionale Aktualisierung der primären E-Mail-Adresse
 - optionaler Versand einer konfigurierten SuiteCRM-E-Mail-Vorlage bei bekundetem Interesse
 - konfigurierbare Ausschlussmuster, etwa für Branchen oder Organisationstypen
@@ -34,7 +38,7 @@ CRM SpeedPhone ist eine schnelle, abarbeitbare Telefonakquise-Warteschlange für
 2. Die erzeugte ZIP-Datei aus `dist/` in SuiteCRM unter **Administration → Module Loader** hochladen.
 3. Paket installieren und anschließend einmal **Quick Repair and Rebuild** ausführen, falls der Installer dies nicht automatisch erledigt hat.
 4. `custom/CRM/SpeedPhone/config.local.php.example` nach `config.local.php` kopieren und mindestens `source_list_name` konfigurieren.
-5. Im Zielkontakte-Menü **CRM SpeedPhone** öffnen. Die Warteschlange erscheint innerhalb der normalen SuiteCRM-Oberfläche.
+5. Auf dem Dashboard **SpeedPhone starten** oder im Zielkontakte-Menü **CRM SpeedPhone** öffnen.
 
 ## Konfiguration
 
@@ -60,6 +64,7 @@ Diese Datei wird bei Updates nicht überschrieben und ist nicht Teil des veröff
 - `allowed_usernames`: optionale Benutzerfreigabe
 - `restrict_to_assigned_user`: optional wieder auf ausschließlich zugewiesene Zielkontakte begrenzen; für einen Callcenter-Pool `false`
 - `lock_minutes`: Laufzeit einer Reservierung ohne erfolgreiche Verlängerung
+- `default_callback_days`: Vorbelegung des änderbaren Rückrufdatums ohne Uhrzeit, standardmäßig `7` Tage; eine optionale Uhrzeit erzeugt zusätzlich einen festen CRM-Termin
 
 ## Datenmodell
 

@@ -22,7 +22,7 @@ final class ActionService
         $action = $validator->action((string) ($input['result'] ?? ''));
         $newEmail = $validator->email((string) ($input['new_email'] ?? ''));
         $note = trim((string) ($input['note'] ?? ''));
-        $emailRequested = !empty($input['email_requested']);
+        $emailRequested = !empty($input['email_requested']) || $action === 'email_callback';
 
         if (!$this->queue->canEditProspect($prospectId) || !\ACLController::checkAccess('Prospects', 'edit', true)) {
             throw new \RuntimeException('Kein Zugriff auf diesen Zielkontakt.');
@@ -42,12 +42,19 @@ final class ActionService
         $now = new \DateTimeImmutable('now', new \DateTimeZone('UTC'));
         $attempts = (int) ($prospect->speedphone_attempts_c ?? 0);
         $nextCall = null;
+        $callbackHasExactTime = false;
         $status = '';
         $message = '';
 
         // Erst vollständig validieren, bevor ein regulärer CRM-Anruf angelegt wird.
-        if ($action === 'callback') {
-            $nextCall = $this->parseCallback((string) ($input['callback_at'] ?? ''));
+        if ($action === 'callback' || $action === 'email_callback') {
+            $callback = $this->parseCallback(
+                (string) ($input['callback_date'] ?? ''),
+                (string) ($input['callback_time'] ?? ''),
+                (string) ($input['callback_at'] ?? '')
+            );
+            $nextCall = $callback['when'];
+            $callbackHasExactTime = $callback['has_exact_time'];
         }
 
         if ($action !== 'later') {
@@ -72,8 +79,22 @@ final class ActionService
 
             case 'callback':
                 $status = 'callback';
-                $this->createPlannedCallback($prospect, $note, $nextCall);
-                $message = 'Rückruf wurde als geplanter Anruf gespeichert.';
+                if ($callbackHasExactTime) {
+                    $this->createPlannedCallback($prospect, $note, $nextCall);
+                    $message = 'Rückruf wurde mit der vereinbarten Uhrzeit als geplanter Anruf gespeichert.';
+                } else {
+                    $message = 'Der Kontakt wurde am gewählten Tag wieder in die Telefonliste eingereiht.';
+                }
+                break;
+
+            case 'email_callback':
+                $status = 'callback';
+                if ($callbackHasExactTime) {
+                    $this->createPlannedCallback($prospect, $note, $nextCall);
+                    $message = 'Der Kontakt bleibt offen; der Rückruf wurde mit Uhrzeit gespeichert.';
+                } else {
+                    $message = 'Der Kontakt bleibt offen und wird am gewählten Tag wieder eingereiht.';
+                }
                 break;
 
             case 'interested':
@@ -113,7 +134,7 @@ final class ActionService
         $prospect->save(false);
 
         $emailResult = null;
-        if ($action === 'interested' && $emailRequested) {
+        if (($action === 'interested' && $emailRequested) || $action === 'email_callback') {
             try {
                 $emailResult = $this->emailService->sendRequestedInformation($prospect);
             } catch (\Throwable $exception) {
@@ -144,7 +165,8 @@ final class ActionService
     ): void {
         $labels = [
             'not_reached' => 'Nicht erreicht',
-            'callback' => 'Rückruf vereinbart',
+            'callback' => 'Wiedervorlage oder Rückruf',
+            'email_callback' => 'E-Mail gewünscht mit Wiedervorlage',
             'interested' => 'Interesse',
             'no_interest' => 'Kein Interesse',
             'wrong_number' => 'Falsche Nummer',
@@ -191,22 +213,43 @@ final class ActionService
         }
     }
 
-    private function parseCallback(string $value): \DateTimeImmutable
+    /**
+     * @return array{when: \DateTimeImmutable, has_exact_time: bool}
+     */
+    private function parseCallback(string $dateValue, string $timeValue, string $legacyValue = ''): array
     {
-        if ($value === '') {
-            throw new \InvalidArgumentException('Für einen Rückruf sind Datum und Uhrzeit erforderlich.');
-        }
         $timezoneName = (string) ($this->currentUser->getPreference('timezone') ?: 'Europe/Berlin');
         $timezone = new \DateTimeZone($timezoneName);
-        $date = \DateTimeImmutable::createFromFormat('Y-m-d\\TH:i', $value, $timezone);
-        if (!$date) {
-            throw new \InvalidArgumentException('Das Rückrufdatum ist ungültig.');
+
+        if ($dateValue === '' && $legacyValue !== '') {
+            $legacyDate = \DateTimeImmutable::createFromFormat('Y-m-d\\TH:i', $legacyValue, $timezone);
+            if (!$legacyDate) {
+                throw new \InvalidArgumentException('Das Rückrufdatum ist ungültig.');
+            }
+            $dateValue = $legacyDate->format('Y-m-d');
+            $timeValue = $legacyDate->format('H:i');
         }
-        $date = $date->setTimezone(new \DateTimeZone('UTC'));
-        if ($date <= new \DateTimeImmutable('now', new \DateTimeZone('UTC'))) {
-            throw new \InvalidArgumentException('Der Rückruf muss in der Zukunft liegen.');
+        if ($dateValue === '') {
+            throw new \InvalidArgumentException('Für einen Rückruf ist ein Datum erforderlich.');
         }
 
-        return $date;
+        $hasExactTime = $timeValue !== '';
+        $format = $hasExactTime ? '!Y-m-d H:i' : '!Y-m-d';
+        $value = $hasExactTime ? $dateValue . ' ' . $timeValue : $dateValue;
+        $date = \DateTimeImmutable::createFromFormat($format, $value, $timezone);
+        $errors = \DateTimeImmutable::getLastErrors();
+        if (!$date || (is_array($errors) && ($errors['warning_count'] > 0 || $errors['error_count'] > 0))) {
+            throw new \InvalidArgumentException('Das Rückrufdatum ist ungültig.');
+        }
+
+        $today = new \DateTimeImmutable('today', $timezone);
+        if ((!$hasExactTime && $date < $today) || ($hasExactTime && $date <= new \DateTimeImmutable('now', $timezone))) {
+            throw new \InvalidArgumentException('Der Rückruf muss heute oder in der Zukunft liegen.');
+        }
+
+        return [
+            'when' => $date->setTimezone(new \DateTimeZone('UTC')),
+            'has_exact_time' => $hasExactTime,
+        ];
     }
 }
