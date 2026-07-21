@@ -4,7 +4,7 @@ $projectRoot = Split-Path -Parent $PSScriptRoot
 $moduleRoot = Join-Path $projectRoot 'module'
 $distRoot = Join-Path $projectRoot 'dist'
 $buildRoot = Join-Path $projectRoot 'build\package'
-$zipPath = Join-Path $distRoot 'de.anesda.crmspeedphone-1.2.0.zip'
+$zipPath = Join-Path $distRoot 'de.anesda.crmspeedphone-1.2.1.zip'
 
 if (Test-Path $buildRoot) {
     Remove-Item -LiteralPath $buildRoot -Recurse -Force

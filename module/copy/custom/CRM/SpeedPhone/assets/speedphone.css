@@ -10,68 +10,70 @@
     --sp-success: #16734b;
     --sp-warning: #9a6700;
     --sp-danger: #a12b2b;
-    width: min(1240px, calc(100% - 32px));
+    width: min(1440px, calc(100% - 32px));
     margin: 0 auto;
     padding: 24px 0 40px;
     color: var(--sp-ink);
+    font-size: 16px;
+    line-height: 1.45;
     font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
 .speedphone, .speedphone * { box-sizing: border-box; }
 .speedphone a { color: inherit; }
 .speedphone__header { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-bottom: 22px; }
-.speedphone__header h1 { font-size: clamp(2rem, 4vw, 3rem); margin: 2px 0 4px; letter-spacing: -0.04em; }
+.speedphone__header h1 { font-size: clamp(32px, 4vw, 48px); margin: 2px 0 4px; letter-spacing: -0.04em; }
 .speedphone__header p { margin: 0; color: var(--sp-muted); }
-.speedphone__eyebrow { color: var(--sp-brand) !important; font-size: .76rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+.speedphone__eyebrow { color: var(--sp-brand) !important; font-size: 12px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
 .speedphone .stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 18px; }
 .speedphone .stats article { background: var(--sp-card); border: 1px solid var(--sp-border); border-radius: 16px; padding: 18px; display: flex; flex-direction: column; }
-.speedphone .stats strong { font-size: 1.8rem; }
+.speedphone .stats strong { font-size: 28px; }
 .speedphone .stats span { color: var(--sp-muted); }
-.speedphone .candidate { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(360px, .7fr); gap: 18px; align-items: start; }
+.speedphone .candidate { display: grid; grid-template-columns: minmax(0, .95fr) minmax(0, 1.05fr); gap: 18px; align-items: start; }
 .speedphone .candidate__main, .speedphone .quick-form, .speedphone .empty { background: var(--sp-card); border: 1px solid var(--sp-border); border-radius: 20px; padding: 24px; box-shadow: 0 10px 32px rgba(23, 32, 42, .06); }
 .speedphone .candidate__title { display: flex; justify-content: space-between; gap: 18px; align-items: flex-start; }
-.speedphone .candidate__title h2 { font-size: clamp(1.6rem, 3vw, 2.4rem); margin: 5px 0; }
+.speedphone .candidate__title h2 { font-size: clamp(26px, 3vw, 38px); margin: 5px 0; }
 .speedphone .candidate__title p { margin: 0; color: var(--sp-muted); }
 .speedphone .record-link { color: var(--sp-brand); font-weight: 700; white-space: nowrap; }
 .speedphone .contact-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 22px 0; }
 .speedphone .contact-card { border: 1px solid var(--sp-border); border-radius: 14px; padding: 15px; text-decoration: none; overflow-wrap: anywhere; transition: border-color .15s, transform .15s; }
 .speedphone .contact-card:hover { border-color: var(--sp-brand); transform: translateY(-1px); }
-.speedphone .contact-card span { color: var(--sp-muted); display: block; font-size: .78rem; margin-bottom: 4px; }
+.speedphone .contact-card span { color: var(--sp-muted); display: block; font-size: 12px; margin-bottom: 4px; }
 .speedphone .contact-card--phone { background: #edf9f7; border-color: #b9e5db; }
-.speedphone .contact-card--phone strong { font-size: 1.08rem; }
+.speedphone .contact-card--phone strong { font-size: 17px; }
 .speedphone .reasons { display: flex; flex-wrap: wrap; gap: 7px; }
-.speedphone .reasons span { background: #eaf3f6; color: var(--sp-brand-dark); border-radius: 999px; padding: 7px 11px; font-size: .82rem; font-weight: 650; }
+.speedphone .reasons span { background: #eaf3f6; color: var(--sp-brand-dark); border-radius: 999px; padding: 7px 11px; font-size: 12px; font-weight: 650; }
 .speedphone .email-history { margin-top: 22px; border-top: 1px solid var(--sp-border); padding-top: 18px; }
 .speedphone .email-history__heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
-.speedphone .email-history__heading h3 { margin: 0; font-size: 1.05rem; }
-.speedphone .email-history__heading > span, .speedphone .email-history__empty { color: var(--sp-muted); font-size: .82rem; }
+.speedphone .email-history__heading h3 { margin: 0; font-size: 16px; }
+.speedphone .email-history__heading > span, .speedphone .email-history__empty { color: var(--sp-muted); font-size: 13px; }
 .speedphone .email-history__item { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; padding: 13px 0; border-bottom: 1px solid #edf1f4; }
 .speedphone .email-history__item:last-child { border-bottom: 0; }
 .speedphone .email-history__item strong, .speedphone .email-history__item > div:first-child > span { display: block; overflow-wrap: anywhere; }
-.speedphone .email-history__item > div:first-child > span { color: var(--sp-muted); font-size: .82rem; margin-top: 4px; }
-.speedphone .email-history__meta { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; color: var(--sp-muted); font-size: .78rem; white-space: nowrap; }
+.speedphone .email-history__item > div:first-child > span { color: var(--sp-muted); font-size: 13px; margin-top: 4px; }
+.speedphone .email-history__meta { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; color: var(--sp-muted); font-size: 12px; white-space: nowrap; }
 .speedphone .email-history__signal { background: #e6f6ee; color: var(--sp-success); border-radius: 999px; padding: 3px 7px; font-weight: 700; }
 .speedphone .history { margin-top: 22px; border-top: 1px solid var(--sp-border); padding-top: 16px; }
 .speedphone .history summary { cursor: pointer; font-weight: 750; }
 .speedphone .history article { border-left: 3px solid var(--sp-border); padding: 8px 0 8px 13px; margin-top: 12px; }
-.speedphone .history article span { color: var(--sp-muted); display: block; font-size: .8rem; }
+.speedphone .history article span { color: var(--sp-muted); display: block; font-size: 13px; }
 .speedphone .history article p { margin-bottom: 0; }
 .speedphone .quick-form { position: sticky; top: 16px; }
-.speedphone .quick-form h3 { margin-top: 0; font-size: 1.3rem; }
-.speedphone .lock-note { margin: -4px 0 14px; padding: 9px 11px; border-radius: 9px; background: #eaf3f6; color: var(--sp-brand-dark); font-size: .8rem; font-weight: 650; }
-.speedphone .quick-form label { display: block; font-size: .85rem; font-weight: 750; margin: 13px 0 6px; }
+.speedphone .quick-form h3 { margin-top: 0; font-size: 20px; }
+.speedphone .lock-note { margin: -4px 0 14px; padding: 10px 12px; border-radius: 9px; background: #eaf3f6; color: var(--sp-brand-dark); font-size: 13px; font-weight: 650; }
+.speedphone .quick-form label { display: block; font-size: 14px; font-weight: 750; margin: 13px 0 6px; }
 .speedphone .quick-form textarea, .speedphone .quick-form input[type="email"], .speedphone .quick-form input[type="date"], .speedphone .quick-form input[type="time"] { width: 100%; border: 1px solid #bac6d0; border-radius: 10px; padding: 11px 12px; font: inherit; background: #fff; }
 .speedphone .quick-form textarea:focus, .speedphone .quick-form input:focus { outline: 3px solid rgba(21, 94, 117, .16); border-color: var(--sp-brand); }
-.speedphone .optional { color: var(--sp-muted); font-size: .72rem; font-weight: 500; }
-.speedphone .field-hint { margin: 7px 0 0; color: var(--sp-muted); font-size: .78rem; }
+.speedphone .optional { color: var(--sp-muted); font-size: 12px; font-weight: 500; }
+.speedphone .field-hint { margin: 8px 0 0; color: var(--sp-muted); font-size: 13px; }
 .speedphone .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .speedphone .follow-up-fields { border: 1px solid var(--sp-border); border-radius: 13px; margin: 17px 0 0; padding: 4px 14px 13px; }
-.speedphone .follow-up-fields legend { color: var(--sp-brand-dark); font-size: .84rem; font-weight: 800; padding: 0 7px; }
+.speedphone .follow-up-fields legend { color: var(--sp-brand-dark); font-size: 14px; font-weight: 800; padding: 0 7px; }
 .speedphone .check-row { display: flex !important; gap: 10px; align-items: flex-start; font-weight: 600 !important; }
 .speedphone .check-row input { margin-top: 3px; }
-.speedphone .action-help { background: #f2ebfa; border-left: 4px solid #6d3ca0; border-radius: 8px; color: #442662; font-size: .8rem; line-height: 1.45; margin: 14px 0 0; padding: 9px 11px; }
+.speedphone .action-help { background: #f2ebfa; border-left: 4px solid #6d3ca0; border-radius: 8px; color: #442662; font-size: 13px; line-height: 1.45; margin: 14px 0 0; padding: 10px 12px; }
 .speedphone .actions { display: grid; grid-template-columns: repeat(2, 1fr); gap: 9px; margin-top: 18px; }
-.speedphone .button { border: 0; border-radius: 10px; min-height: 44px; padding: 11px 13px; font: inherit; font-weight: 750; cursor: pointer; text-decoration: none; text-align: center; background: var(--sp-brand); color: #fff; }
+.speedphone .button { border: 0; border-radius: 10px; height: auto !important; min-height: 54px; overflow: visible; padding: 12px 14px; font-family: inherit; font-size: 15px; font-weight: 750; line-height: 1.25; white-space: normal; cursor: pointer; text-decoration: none; text-align: center; background: var(--sp-brand); color: #fff; }
 .speedphone .button:hover { filter: brightness(.96); }
 .speedphone .button:focus-visible { outline: 3px solid rgba(21, 94, 117, .28); outline-offset: 2px; }
 .speedphone .button:disabled { cursor: wait; }
@@ -88,17 +90,17 @@
 .speedphone .message--error, .speedphone .empty--error { background: #fff1f1; border-color: #e2a8a8; color: #7e2020; }
 .speedphone .empty { text-align: center; padding: 54px 24px; }
 .speedphone .empty h2 { margin-top: 0; }
-.speedphone__footer { color: var(--sp-muted); font-size: .78rem; text-align: center; padding-top: 26px; }
+.speedphone__footer { color: var(--sp-muted); font-size: 12px; text-align: center; padding-top: 26px; }
 .speedphone code { background: rgba(0,0,0,.06); border-radius: 5px; padding: 2px 5px; }
 
-@media (max-width: 900px) {
+@media (max-width: 1100px) {
     .speedphone .candidate { grid-template-columns: 1fr; }
     .speedphone .quick-form { position: static; }
     .speedphone .stats { grid-template-columns: repeat(3, 1fr); }
 }
 
 @media (max-width: 650px) {
-    .speedphone { width: min(100% - 20px, 1240px); padding-top: 16px; }
+    .speedphone { width: min(100% - 20px, 1440px); padding-top: 16px; }
     .speedphone__header, .speedphone .candidate__title { flex-direction: column; }
     .speedphone .stats { grid-template-columns: repeat(2, 1fr); }
     .speedphone .contact-grid, .speedphone .field-row, .speedphone .actions { grid-template-columns: 1fr; }
