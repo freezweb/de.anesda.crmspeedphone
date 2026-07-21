@@ -5,6 +5,7 @@ CRM SpeedPhone ist eine schnelle, abarbeitbare Telefonakquise-Warteschlange für
 ## Funktionen
 
 - priorisierte Telefonliste aus einer bestehenden SuiteCRM-Zielkontaktliste
+- native Ansicht innerhalb der SuiteCRM-Kopfzeile und Modulnavigation
 - je Benutzer nur die ihm zugewiesenen Zielkontakte
 - vorhandene Kampagnensignale wie Link-Klick und E-Mail-Öffnung als nachvollziehbare Priorisierung
 - Schnellaktionen für „nicht erreicht“, „Rückruf“, „kein Interesse“, „Interesse“, „falsche Nummer“ und „nicht mehr kontaktieren“
@@ -30,7 +31,7 @@ CRM SpeedPhone ist eine schnelle, abarbeitbare Telefonakquise-Warteschlange für
 2. Die erzeugte ZIP-Datei aus `dist/` in SuiteCRM unter **Administration → Module Loader** hochladen.
 3. Paket installieren und anschließend einmal **Quick Repair and Rebuild** ausführen, falls der Installer dies nicht automatisch erledigt hat.
 4. `custom/CRM/SpeedPhone/config.local.php.example` nach `config.local.php` kopieren und mindestens `source_list_name` konfigurieren.
-5. Im Zielkontakte-Menü **CRM SpeedPhone** öffnen.
+5. Im Zielkontakte-Menü **CRM SpeedPhone** öffnen. Die Warteschlange erscheint innerhalb der normalen SuiteCRM-Oberfläche.
 
 ## Konfiguration
 

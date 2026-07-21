@@ -16,7 +16,7 @@ $manifest = [
     'name' => 'CRM SpeedPhone',
     'published_date' => '21.07.2026',
     'type' => 'module',
-    'version' => '1.0.0',
+    'version' => '1.0.1',
 ];
 
 $installdefs = [
@@ -34,4 +34,3 @@ $installdefs = [
         '<basepath>/scripts/post_uninstall.php',
     ],
 ];
-

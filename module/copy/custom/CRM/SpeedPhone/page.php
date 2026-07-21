@@ -40,17 +40,8 @@ function speedPhoneEscape(mixed $value): string
     return htmlspecialchars((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-header('Content-Type: text/html; charset=UTF-8');
 ?>
-<!doctype html>
-<html lang="de">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>CRM SpeedPhone</title>
-    <link rel="stylesheet" href="<?= speedPhoneEscape($assetBase) ?>/speedphone.css?v=1.0.0">
-</head>
-<body>
+<link rel="stylesheet" href="<?= speedPhoneEscape($assetBase) ?>/speedphone.css?v=1.0.1">
 <main class="speedphone" data-api-url="index.php?entryPoint=crmSpeedPhoneApi" data-csrf="<?= speedPhoneEscape($_SESSION['crm_speedphone_csrf']) ?>">
     <header class="speedphone__header">
         <div>
@@ -173,9 +164,6 @@ header('Content-Type: text/html; charset=UTF-8');
         </section>
     <?php endif; ?>
 
-    <footer>Powered by SugarCRM · Supercharged by SuiteCRM · CRM SpeedPhone © anesda</footer>
+    <div class="speedphone__footer">CRM SpeedPhone © anesda</div>
 </main>
-<script src="<?= speedPhoneEscape($assetBase) ?>/speedphone.js?v=1.0.0"></script>
-</body>
-</html>
-
+<script src="<?= speedPhoneEscape($assetBase) ?>/speedphone.js?v=1.0.1"></script>
