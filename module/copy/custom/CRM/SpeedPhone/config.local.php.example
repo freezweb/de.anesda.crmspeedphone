@@ -5,6 +5,8 @@ return [
     'email_template_name' => 'Meine Informationsmail',
     'email_sending_enabled' => false,
     'allowed_usernames' => ['vertrieb'],
+    'restrict_to_assigned_user' => false,
+    'lock_minutes' => 20,
     'local_postcode_patterns' => ['/^19/', '/^168/', '/^169/'],
     'positive_patterns' => [
         '/restaurant|hotel|handwerk|praxis|werkstatt|ferien|service/iu',

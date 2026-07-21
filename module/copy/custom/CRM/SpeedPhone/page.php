@@ -20,10 +20,11 @@ if (empty($_SESSION['crm_speedphone_csrf'])) {
 }
 
 $config = Config::load(__DIR__);
-$queue = new QueueService($config, $db, $current_user);
+$lockService = new Anesda\CRM\SpeedPhone\LockService($config, $db, $current_user);
+$queue = new QueueService($config, $db, $current_user, $lockService);
 $error = '';
 $candidate = null;
-$statistics = ['open' => 0, 'callbacks_due' => 0, 'processed_today' => 0, 'interested' => 0];
+$statistics = ['open' => 0, 'callbacks_due' => 0, 'processed_today' => 0, 'interested' => 0, 'locked' => 0];
 try {
     $statistics = $queue->getStatistics();
     $candidate = $queue->getNextCandidate();
@@ -41,7 +42,7 @@ function speedPhoneEscape(mixed $value): string
 }
 
 ?>
-<link rel="stylesheet" href="<?= speedPhoneEscape($assetBase) ?>/speedphone.css?v=1.0.1">
+<link rel="stylesheet" href="<?= speedPhoneEscape($assetBase) ?>/speedphone.css?v=1.1.0">
 <main class="speedphone" data-api-url="index.php?entryPoint=crmSpeedPhoneApi" data-csrf="<?= speedPhoneEscape($_SESSION['crm_speedphone_csrf']) ?>">
     <header class="speedphone__header">
         <div>
@@ -57,6 +58,7 @@ function speedPhoneEscape(mixed $value): string
         <article><strong><?= (int) $statistics['callbacks_due'] ?></strong><span>Rückrufe fällig</span></article>
         <article><strong><?= (int) $statistics['processed_today'] ?></strong><span>heute bearbeitet</span></article>
         <article><strong><?= (int) $statistics['interested'] ?></strong><span>Interessenten</span></article>
+        <article><strong><?= (int) $statistics['locked'] ?></strong><span>gerade reserviert</span></article>
     </section>
 
     <div id="speedphone-message" class="message" hidden></div>
@@ -130,7 +132,9 @@ function speedPhoneEscape(mixed $value): string
 
             <form id="speedphone-form" class="quick-form">
                 <input type="hidden" name="prospect_id" value="<?= speedPhoneEscape($candidate['id']) ?>">
+                <input type="hidden" name="lock_token" value="<?= speedPhoneEscape($candidate['lock_token']) ?>">
                 <h3>Anruf schnell eintragen</h3>
+                <p class="lock-note">Für dich reserviert · andere Telefonierer erhalten inzwischen einen anderen Kontakt.</p>
 
                 <label for="speedphone-note">Kurze Notiz</label>
                 <textarea id="speedphone-note" name="note" rows="4" placeholder="Gespräch, Ansprechpartner oder Grund der Wiedervorlage"></textarea>
@@ -166,4 +170,4 @@ function speedPhoneEscape(mixed $value): string
 
     <div class="speedphone__footer">CRM SpeedPhone © anesda</div>
 </main>
-<script src="<?= speedPhoneEscape($assetBase) ?>/speedphone.js?v=1.0.1"></script>
+<script src="<?= speedPhoneEscape($assetBase) ?>/speedphone.js?v=1.1.0"></script>

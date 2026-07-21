@@ -23,7 +23,7 @@
 .speedphone__header h1 { font-size: clamp(2rem, 4vw, 3rem); margin: 2px 0 4px; letter-spacing: -0.04em; }
 .speedphone__header p { margin: 0; color: var(--sp-muted); }
 .speedphone__eyebrow { color: var(--sp-brand) !important; font-size: .76rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
-.speedphone .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 18px; }
+.speedphone .stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 18px; }
 .speedphone .stats article { background: var(--sp-card); border: 1px solid var(--sp-border); border-radius: 16px; padding: 18px; display: flex; flex-direction: column; }
 .speedphone .stats strong { font-size: 1.8rem; }
 .speedphone .stats span { color: var(--sp-muted); }
@@ -48,6 +48,7 @@
 .speedphone .history article p { margin-bottom: 0; }
 .speedphone .quick-form { position: sticky; top: 16px; }
 .speedphone .quick-form h3 { margin-top: 0; font-size: 1.3rem; }
+.speedphone .lock-note { margin: -4px 0 14px; padding: 9px 11px; border-radius: 9px; background: #eaf3f6; color: var(--sp-brand-dark); font-size: .8rem; font-weight: 650; }
 .speedphone .quick-form label { display: block; font-size: .85rem; font-weight: 750; margin: 13px 0 6px; }
 .speedphone .quick-form textarea, .speedphone .quick-form input[type="email"], .speedphone .quick-form input[type="datetime-local"] { width: 100%; border: 1px solid #bac6d0; border-radius: 10px; padding: 11px 12px; font: inherit; background: #fff; }
 .speedphone .quick-form textarea:focus, .speedphone .quick-form input:focus { outline: 3px solid rgba(21, 94, 117, .16); border-color: var(--sp-brand); }
@@ -74,6 +75,7 @@
 @media (max-width: 900px) {
     .speedphone .candidate { grid-template-columns: 1fr; }
     .speedphone .quick-form { position: static; }
+    .speedphone .stats { grid-template-columns: repeat(3, 1fr); }
 }
 
 @media (max-width: 650px) {

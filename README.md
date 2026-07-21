@@ -6,7 +6,10 @@ CRM SpeedPhone ist eine schnelle, abarbeitbare Telefonakquise-Warteschlange für
 
 - priorisierte Telefonliste aus einer bestehenden SuiteCRM-Zielkontaktliste
 - native Ansicht innerhalb der SuiteCRM-Kopfzeile und Modulnavigation
-- je Benutzer nur die ihm zugewiesenen Zielkontakte
+- gemeinsamer Callcenter-Pool für mehrere gleichzeitig telefonierende Benutzer
+- atomare UUID-Reservierung: ein Zielkontakt kann nie gleichzeitig bei zwei Mitarbeitern erscheinen
+- automatische Verlängerung während der Bearbeitung und Freigabe nach dem Ergebnis
+- automatische Freigabe abgelaufener Reservierungen nach konfigurierbarer Zeit
 - vorhandene Kampagnensignale wie Link-Klick und E-Mail-Öffnung als nachvollziehbare Priorisierung
 - Schnellaktionen für „nicht erreicht“, „Rückruf“, „kein Interesse“, „Interesse“, „falsche Nummer“ und „nicht mehr kontaktieren“
 - jeder Kontaktversuch wird als regulärer SuiteCRM-Anruf protokolliert
@@ -55,11 +58,14 @@ Diese Datei wird bei Updates nicht überschrieben und ist nicht Teil des veröff
 - `positive_patterns`: zusätzliche Prioritätssignale
 - `exclude_patterns`: harte Ausschlussregeln
 - `allowed_usernames`: optionale Benutzerfreigabe
-- `restrict_to_assigned_user`: auch Administratoren sehen nur ihre eigenen Zielkontakte
+- `restrict_to_assigned_user`: optional wieder auf ausschließlich zugewiesene Zielkontakte begrenzen; für einen Callcenter-Pool `false`
+- `lock_minutes`: Laufzeit einer Reservierung ohne erfolgreiche Verlängerung
 
 ## Datenmodell
 
 CRM SpeedPhone erweitert `prospects_cstm` und `calls_cstm`. Die Primärschlüssel dieser Tabellen bleiben die bestehenden SuiteCRM-UUIDs. Ein separater Kontakt- oder Queue-Datensatz wird nicht angelegt.
+
+Die Tabelle `crm_speedphone_locks` enthält ausschließlich kurzlebige Reservierungsdaten (`prospect_id`, `user_id`, Token und Zeitstempel). Sie referenziert damit die vorhandenen UUIDs und kopiert keine Kontaktinformationen. Eindeutige Datenbankindizes verhindern doppelte Reservierungen auch bei exakt gleichzeitigen Abrufen.
 
 Der Installer erzeugt eine bislang fehlende `*_cstm`-Tabelle idempotent. Dadurch ist die Installation auch möglich, wenn im Modul „Anrufe“ zuvor noch kein benutzerdefiniertes Feld existierte.
 

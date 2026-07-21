@@ -9,7 +9,8 @@ final class ActionService
         private readonly QueueService $queue,
         private readonly EmailService $emailService,
         private readonly BusinessDayCalculator $businessDays,
-        private readonly \User $currentUser
+        private readonly \User $currentUser,
+        private readonly LockService $locks
     ) {
     }
 
@@ -17,6 +18,7 @@ final class ActionService
     {
         $validator = new InputValidator();
         $prospectId = $validator->uuid((string) ($input['prospect_id'] ?? ''));
+        $lockToken = (string) ($input['lock_token'] ?? '');
         $action = $validator->action((string) ($input['result'] ?? ''));
         $newEmail = $validator->email((string) ($input['new_email'] ?? ''));
         $note = trim((string) ($input['note'] ?? ''));
@@ -25,6 +27,7 @@ final class ActionService
         if (!$this->queue->canEditProspect($prospectId) || !\ACLController::checkAccess('Prospects', 'edit', true)) {
             throw new \RuntimeException('Kein Zugriff auf diesen Zielkontakt.');
         }
+        $this->locks->assertOwned($prospectId, $lockToken);
 
         /** @var \Prospect $prospect */
         $prospect = \BeanFactory::getBean('Prospects', $prospectId);
@@ -122,6 +125,8 @@ final class ActionService
                 ];
             }
         }
+
+        $this->locks->release($prospectId, $lockToken);
 
         return [
             'message' => $message,

@@ -7,7 +7,8 @@ final class QueueService
     public function __construct(
         private readonly Config $config,
         private readonly \DBManager $db,
-        private readonly \User $currentUser
+        private readonly \User $currentUser,
+        private readonly LockService $locks
     ) {
     }
 
@@ -25,37 +26,23 @@ final class QueueService
         $listId = $this->getSourceListId();
         $batchSize = max(20, min(500, (int) $this->config->get('candidate_batch_size', 200)));
         $userCondition = $this->userCondition();
+        $baseSql = $this->candidateSelectSql($listId, $userCondition);
 
-        $sql = "SELECT p.id, p.first_name, p.last_name, p.account_name, p.description,
-                       p.phone_work, p.phone_mobile, p.primary_address_street,
-                       p.primary_address_postalcode, p.primary_address_city,
-                       COALESCE(pc.speedphone_status_c, '') speedphone_status,
-                       COALESCE(pc.speedphone_attempts_c, 0) speedphone_attempts,
-                       pc.speedphone_next_call_c speedphone_next_call,
-                       COALESCE(eng.clicked, 0) clicked,
-                       COALESCE(eng.viewed, 0) viewed
-                FROM prospects p
-                INNER JOIN prospect_lists_prospects plp
-                    ON plp.related_id=p.id
-                   AND plp.related_type='Prospects'
-                   AND plp.prospect_list_id='" . $this->db->quote($listId) . "'
-                   AND plp.deleted=0
-                LEFT JOIN prospects_cstm pc ON pc.id_c=p.id
-                LEFT JOIN (
-                    SELECT target_id,
-                           MAX(activity_type='link') clicked,
-                           MAX(activity_type='viewed') viewed
-                    FROM campaign_log
-                    WHERE deleted=0 AND target_type='Prospects'
-                    GROUP BY target_id
-                ) eng ON eng.target_id=p.id
-                WHERE p.deleted=0
-                  AND p.do_not_call=0
-                  AND {$userCondition}
-                  AND (TRIM(COALESCE(p.phone_work, ''))<>'' OR TRIM(COALESCE(p.phone_mobile, ''))<>'')
-                  AND COALESCE(pc.speedphone_status_c, '') NOT IN
-                      ('interested', 'no_interest', 'invalid_phone', 'blocked', 'paused')
-                  AND (pc.speedphone_next_call_c IS NULL OR pc.speedphone_next_call_c='' OR pc.speedphone_next_call_c<=UTC_TIMESTAMP())
+        $this->locks->cleanupExpired();
+        $activeLock = $this->locks->getActiveForCurrentUser();
+        if ($activeLock !== null) {
+            $activeCandidate = $this->findCandidateById($baseSql, $activeLock['prospect_id']);
+            if ($activeCandidate !== null && !$this->isExcluded($activeCandidate)) {
+                return $this->enrichCandidate($activeCandidate, $activeLock);
+            }
+            $this->locks->releaseCurrentUserLock();
+        }
+
+        $sql = $baseSql . "
+                  AND NOT EXISTS (
+                      SELECT 1 FROM crm_speedphone_locks spl
+                      WHERE spl.prospect_id=p.id AND spl.expires_at>UTC_TIMESTAMP()
+                  )
                 ORDER BY
                     CASE COALESCE(pc.speedphone_status_c, '')
                         WHEN 'callback' THEN 0
@@ -82,7 +69,20 @@ final class QueueService
                     continue;
                 }
 
-                return $this->enrichCandidate($row);
+                $lock = $this->locks->acquire((string) $row['id']);
+                if ($lock === null) {
+                    continue;
+                }
+                if (!hash_equals((string) $row['id'], $lock['prospect_id'])) {
+                    $lockedCandidate = $this->findCandidateById($baseSql, $lock['prospect_id']);
+                    if ($lockedCandidate !== null && !$this->isExcluded($lockedCandidate)) {
+                        return $this->enrichCandidate($lockedCandidate, $lock);
+                    }
+                    $this->locks->releaseCurrentUserLock();
+                    continue;
+                }
+
+                return $this->enrichCandidate($row, $lock);
             }
 
             if ($rowsRead < $batchSize) {
@@ -95,6 +95,7 @@ final class QueueService
 
     public function getStatistics(): array
     {
+        $this->locks->cleanupExpired();
         $listId = $this->getSourceListId();
         $userCondition = $this->userCondition();
         $common = " FROM prospects p
@@ -115,6 +116,13 @@ final class QueueService
                 AND DATE(pc.speedphone_last_call_c)=UTC_DATE()"),
             'interested' => $this->scalar("SELECT COUNT(*) n {$common}
                 AND pc.speedphone_status_c='interested'"),
+            'locked' => $this->scalar("SELECT COUNT(*) n
+                FROM crm_speedphone_locks spl
+                INNER JOIN prospects p ON p.id=spl.prospect_id AND p.deleted=0
+                INNER JOIN prospect_lists_prospects plp
+                    ON plp.related_id=p.id AND plp.related_type='Prospects'
+                   AND plp.prospect_list_id='" . $this->db->quote($listId) . "' AND plp.deleted=0
+                WHERE spl.expires_at>UTC_TIMESTAMP()"),
         ];
     }
 
@@ -169,7 +177,7 @@ final class QueueService
         return false;
     }
 
-    private function enrichCandidate(array $candidate): array
+    private function enrichCandidate(array $candidate, array $lock): array
     {
         $prospect = \BeanFactory::getBean('Prospects', $candidate['id']);
         if (!$prospect || empty($prospect->id)) {
@@ -213,6 +221,8 @@ final class QueueService
         }
 
         $candidate['recent_calls'] = $this->getRecentCalls($candidate['id']);
+        $candidate['lock_token'] = $lock['lock_token'];
+        $candidate['lock_expires_at'] = $lock['expires_at'];
 
         return $candidate;
     }
@@ -252,10 +262,52 @@ final class QueueService
 
     private function userCondition(): string
     {
-        if (!(bool) $this->config->get('restrict_to_assigned_user', true) && $this->currentUser->is_admin) {
+        if (!(bool) $this->config->get('restrict_to_assigned_user', false)) {
             return '1=1';
         }
 
         return "p.assigned_user_id='" . $this->db->quote($this->currentUser->id) . "'";
+    }
+
+    private function candidateSelectSql(string $listId, string $userCondition): string
+    {
+        return "SELECT p.id, p.first_name, p.last_name, p.account_name, p.description,
+                       p.phone_work, p.phone_mobile, p.primary_address_street,
+                       p.primary_address_postalcode, p.primary_address_city,
+                       COALESCE(pc.speedphone_status_c, '') speedphone_status,
+                       COALESCE(pc.speedphone_attempts_c, 0) speedphone_attempts,
+                       pc.speedphone_next_call_c speedphone_next_call,
+                       COALESCE(eng.clicked, 0) clicked,
+                       COALESCE(eng.viewed, 0) viewed
+                FROM prospects p
+                INNER JOIN prospect_lists_prospects plp
+                    ON plp.related_id=p.id
+                   AND plp.related_type='Prospects'
+                   AND plp.prospect_list_id='" . $this->db->quote($listId) . "'
+                   AND plp.deleted=0
+                LEFT JOIN prospects_cstm pc ON pc.id_c=p.id
+                LEFT JOIN (
+                    SELECT target_id,
+                           MAX(activity_type='link') clicked,
+                           MAX(activity_type='viewed') viewed
+                    FROM campaign_log
+                    WHERE deleted=0 AND target_type='Prospects'
+                    GROUP BY target_id
+                ) eng ON eng.target_id=p.id
+                WHERE p.deleted=0
+                  AND p.do_not_call=0
+                  AND {$userCondition}
+                  AND (TRIM(COALESCE(p.phone_work, ''))<>'' OR TRIM(COALESCE(p.phone_mobile, ''))<>'')
+                  AND COALESCE(pc.speedphone_status_c, '') NOT IN
+                      ('interested', 'no_interest', 'invalid_phone', 'blocked', 'paused')
+                  AND (pc.speedphone_next_call_c IS NULL OR pc.speedphone_next_call_c='' OR pc.speedphone_next_call_c<=UTC_TIMESTAMP())";
+    }
+
+    private function findCandidateById(string $baseSql, string $prospectId): ?array
+    {
+        $sql = $baseSql . " AND p.id='" . $this->db->quote($prospectId) . "' LIMIT 1";
+        $row = $this->db->fetchByAssoc($this->db->query($sql));
+
+        return is_array($row) && !empty($row['id']) ? $row : null;
     }
 }

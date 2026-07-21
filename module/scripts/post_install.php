@@ -49,5 +49,16 @@ speedPhoneEnsureCustomTableAndColumns($db, 'calls_cstm', [
     'speedphone_email_requested_c' => 'tinyint(1) DEFAULT 0 NULL',
 ]);
 
+$db->query("CREATE TABLE IF NOT EXISTS `crm_speedphone_locks` (
+    `prospect_id` char(36) NOT NULL,
+    `user_id` char(36) NOT NULL,
+    `lock_token` char(64) NOT NULL,
+    `locked_at` datetime NOT NULL,
+    `expires_at` datetime NOT NULL,
+    PRIMARY KEY (`prospect_id`),
+    UNIQUE KEY `idx_speedphone_lock_user` (`user_id`),
+    KEY `idx_speedphone_lock_expires` (`expires_at`)
+) ENGINE=InnoDB");
+
 $repair = new RepairAndClear();
 $repair->repairAndClearAll(['rebuildExtensions'], ['Prospect', 'Call'], true, false);

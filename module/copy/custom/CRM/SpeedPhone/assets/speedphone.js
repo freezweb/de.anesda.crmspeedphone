@@ -8,6 +8,13 @@
         return;
     }
 
+    const heartbeatTimer = window.setInterval(refreshLock, 60000);
+    document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'visible') {
+            refreshLock();
+        }
+    });
+
     form.addEventListener('submit', async function (event) {
         event.preventDefault();
         const button = event.submitter;
@@ -43,6 +50,7 @@
                 : '';
             const emailFailed = emailResult && emailResult.sent === false;
             showMessage(payload.data.message + emailMessage, emailFailed);
+            window.clearInterval(heartbeatTimer);
             window.setTimeout(function () { window.location.reload(); }, emailFailed ? 3500 : 650);
         } catch (error) {
             showMessage(error.message || String(error), true);
@@ -62,5 +70,34 @@
         message.hidden = false;
         message.classList.toggle('message--error', isError);
         message.scrollIntoView({behavior: 'smooth', block: 'nearest'});
+    }
+
+    async function refreshLock() {
+        if (!form.elements.prospect_id || !form.elements.lock_token) {
+            return;
+        }
+
+        const data = new FormData();
+        data.set('operation', 'heartbeat');
+        data.set('prospect_id', form.elements.prospect_id.value);
+        data.set('lock_token', form.elements.lock_token.value);
+        data.set('csrf', root.dataset.csrf);
+
+        try {
+            const response = await fetch(root.dataset.apiUrl, {
+                method: 'POST',
+                body: data,
+                credentials: 'same-origin',
+                headers: {'X-Requested-With': 'XMLHttpRequest'}
+            });
+            if (!response.ok) {
+                const payload = await response.json();
+                window.clearInterval(heartbeatTimer);
+                showMessage(payload.error || 'Die Kontaktreservierung ist abgelaufen. Bitte neu laden.', true);
+                setBusy(true);
+            }
+        } catch (error) {
+            // Ein kurzer Netzausfall darf ein laufendes Gespräch nicht unterbrechen.
+        }
     }
 }());

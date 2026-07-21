@@ -10,6 +10,8 @@ use Anesda\CRM\SpeedPhone\ActionService;
 use Anesda\CRM\SpeedPhone\BusinessDayCalculator;
 use Anesda\CRM\SpeedPhone\Config;
 use Anesda\CRM\SpeedPhone\EmailService;
+use Anesda\CRM\SpeedPhone\InputValidator;
+use Anesda\CRM\SpeedPhone\LockService;
 use Anesda\CRM\SpeedPhone\QueueService;
 
 global $current_user, $db;
@@ -30,10 +32,27 @@ try {
     }
 
     $config = Config::load(__DIR__);
-    $queue = new QueueService($config, $db, $current_user);
+    $lockService = new LockService($config, $db, $current_user);
+    $queue = new QueueService($config, $db, $current_user, $lockService);
     $queue->assertUserAllowed();
+
+    if ((string) ($_POST['operation'] ?? '') === 'heartbeat') {
+        $validator = new InputValidator();
+        $prospectId = $validator->uuid((string) ($_POST['prospect_id'] ?? ''));
+        $lock = $lockService->heartbeat($prospectId, (string) ($_POST['lock_token'] ?? ''));
+        echo json_encode(['success' => true, 'data' => ['expires_at' => $lock['expires_at']]], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
     $emailService = new EmailService($config, $db, $current_user);
-    $service = new ActionService($config, $queue, $emailService, new BusinessDayCalculator(), $current_user);
+    $service = new ActionService(
+        $config,
+        $queue,
+        $emailService,
+        new BusinessDayCalculator(),
+        $current_user,
+        $lockService
+    );
     $result = $service->execute($_POST);
 
     echo json_encode(['success' => true, 'data' => $result], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
@@ -41,4 +60,3 @@ try {
     http_response_code(422);
     echo json_encode(['success' => false, 'error' => $exception->getMessage()], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 }
-
