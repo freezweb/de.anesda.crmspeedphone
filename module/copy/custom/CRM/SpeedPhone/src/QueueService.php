@@ -221,6 +221,7 @@ final class QueueService
         }
 
         $candidate['recent_calls'] = $this->getRecentCalls($candidate['id']);
+        $candidate['sent_emails'] = $this->getSentEmails($candidate['id']);
         $candidate['lock_token'] = $lock['lock_token'];
         $candidate['lock_expires_at'] = $lock['expires_at'];
 
@@ -241,6 +242,101 @@ final class QueueService
         }
 
         return $calls;
+    }
+
+    private function getSentEmails(string $prospectId): array
+    {
+        $quotedProspectId = $this->db->quote($prospectId);
+        $directSql = "SELECT DISTINCT e.id,
+                             COALESCE(NULLIF(e.name, ''), 'E-Mail ohne Betreff') subject,
+                             COALESCE(e.date_sent_received, e.date_entered) sent_at,
+                             COALESCE(et.to_addrs, '') recipient,
+                             'CRM-E-Mail' source,
+                             0 opened,
+                             0 clicked
+                      FROM emails e
+                      INNER JOIN emails_text et ON et.email_id=e.id AND et.deleted=0
+                      WHERE e.deleted=0
+                        AND e.type='out'
+                        AND e.status='sent'
+                        AND (
+                            (e.parent_type='Prospects' AND e.parent_id='{$quotedProspectId}')
+                            OR EXISTS (
+                                SELECT 1 FROM emails_beans eb
+                                WHERE eb.email_id=e.id AND eb.deleted=0
+                                  AND eb.bean_module='Prospects'
+                                  AND eb.bean_id='{$quotedProspectId}'
+                            )
+                        )
+                      ORDER BY sent_at DESC
+                      LIMIT 20";
+
+        $campaignSql = "SELECT cl.id,
+                               COALESCE(NULLIF(et.subject, ''), NULLIF(em.name, ''), NULLIF(c.name, ''), 'Kampagnenmail') subject,
+                               cl.activity_date sent_at,
+                               COALESCE(cl.more_information, '') recipient,
+                               COALESCE(NULLIF(c.name, ''), 'Kampagnenmail') source,
+                               EXISTS (
+                                   SELECT 1 FROM campaign_log opened_log
+                                   WHERE opened_log.deleted=0
+                                     AND opened_log.target_type='Prospects'
+                                     AND opened_log.target_id=cl.target_id
+                                     AND opened_log.campaign_id <=> cl.campaign_id
+                                     AND opened_log.marketing_id <=> cl.marketing_id
+                                     AND opened_log.activity_type='viewed'
+                               ) opened,
+                               EXISTS (
+                                   SELECT 1 FROM campaign_log clicked_log
+                                   WHERE clicked_log.deleted=0
+                                     AND clicked_log.target_type='Prospects'
+                                     AND clicked_log.target_id=cl.target_id
+                                     AND clicked_log.campaign_id <=> cl.campaign_id
+                                     AND clicked_log.marketing_id <=> cl.marketing_id
+                                     AND clicked_log.activity_type='link'
+                               ) clicked
+                        FROM campaign_log cl
+                        LEFT JOIN campaigns c ON c.id=cl.campaign_id AND c.deleted=0
+                        LEFT JOIN email_marketing em ON em.id=cl.marketing_id AND em.deleted=0
+                        LEFT JOIN email_templates et ON et.id=em.template_id AND et.deleted=0
+                        WHERE cl.deleted=0
+                          AND cl.target_type='Prospects'
+                          AND cl.target_id='{$quotedProspectId}'
+                          AND cl.activity_type='targeted'
+                        ORDER BY cl.activity_date DESC
+                        LIMIT 20";
+
+        $emails = array_merge(
+            $this->fetchRows($directSql, 'direct'),
+            $this->fetchRows($campaignSql, 'campaign')
+        );
+        usort($emails, static fn (array $left, array $right): int => strcmp(
+            (string) ($right['sent_at'] ?? ''),
+            (string) ($left['sent_at'] ?? '')
+        ));
+
+        return array_slice($emails, 0, 10);
+    }
+
+    private function fetchRows(string $sql, string $kind): array
+    {
+        $result = $this->db->query($sql);
+        $rows = [];
+        while ($row = $this->db->fetchByAssoc($result)) {
+            $row['kind'] = $kind;
+            $row['recipient'] = $this->normalizeRecipients((string) ($row['recipient'] ?? ''));
+            $rows[] = $row;
+        }
+
+        return $rows;
+    }
+
+    private function normalizeRecipients(string $value): string
+    {
+        if (preg_match_all('/[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}/iu', $value, $matches) > 0) {
+            return implode(', ', array_values(array_unique(array_map('strtolower', $matches[0]))));
+        }
+
+        return trim($value) !== '' ? trim($value) : 'Adresse nicht protokolliert';
     }
 
     private function extractWebsite(string $description): string

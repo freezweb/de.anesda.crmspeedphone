@@ -5,6 +5,7 @@ if (!defined('sugarEntry') || !sugarEntry) {
 }
 
 require_once __DIR__ . '/bootstrap.php';
+require_once __DIR__ . '/render.php';
 
 use Anesda\CRM\SpeedPhone\ActionService;
 use Anesda\CRM\SpeedPhone\BusinessDayCalculator;
@@ -41,6 +42,25 @@ try {
         $prospectId = $validator->uuid((string) ($_POST['prospect_id'] ?? ''));
         $lock = $lockService->heartbeat($prospectId, (string) ($_POST['lock_token'] ?? ''));
         echo json_encode(['success' => true, 'data' => ['expires_at' => $lock['expires_at']]], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+    if ((string) ($_POST['operation'] ?? '') === 'next') {
+        $candidate = $queue->getNextCandidate();
+        $statistics = $queue->getStatistics();
+        $userTimezone = (string) ($current_user->getPreference('timezone') ?: 'Europe/Berlin');
+        echo json_encode([
+            'success' => true,
+            'data' => [
+                'workspace_html' => speedPhoneRenderWorkspace(
+                    $candidate,
+                    $userTimezone,
+                    (int) $config->get('default_callback_days', 7)
+                ),
+                'statistics' => $statistics,
+                'prospect_id' => $candidate['id'] ?? null,
+            ],
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         exit;
     }
 

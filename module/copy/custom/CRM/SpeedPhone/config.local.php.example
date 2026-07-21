@@ -7,12 +7,12 @@ return [
     'allowed_usernames' => ['vertrieb'],
     'restrict_to_assigned_user' => false,
     'lock_minutes' => 20,
+    'default_callback_days' => 7,
     'local_postcode_patterns' => ['/^19/', '/^168/', '/^169/'],
     'positive_patterns' => [
         '/restaurant|hotel|handwerk|praxis|werkstatt|ferien|service/iu',
     ],
     'exclude_patterns' => [
-        '/rechtsanw|anwalt|anwält|fachanw|anwaltskanzlei|rechtsanwaltskanzlei|\bkanzlei\b|\bnotar|law\s*firm|attorney|solicitor/iu',
         '/ministerium|bundesamt|landesamt|stadtverwaltung|rathaus/iu',
     ],
 ];

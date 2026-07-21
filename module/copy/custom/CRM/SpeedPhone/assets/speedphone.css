@@ -41,6 +41,16 @@
 .speedphone .contact-card--phone strong { font-size: 1.08rem; }
 .speedphone .reasons { display: flex; flex-wrap: wrap; gap: 7px; }
 .speedphone .reasons span { background: #eaf3f6; color: var(--sp-brand-dark); border-radius: 999px; padding: 7px 11px; font-size: .82rem; font-weight: 650; }
+.speedphone .email-history { margin-top: 22px; border-top: 1px solid var(--sp-border); padding-top: 18px; }
+.speedphone .email-history__heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.speedphone .email-history__heading h3 { margin: 0; font-size: 1.05rem; }
+.speedphone .email-history__heading > span, .speedphone .email-history__empty { color: var(--sp-muted); font-size: .82rem; }
+.speedphone .email-history__item { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; padding: 13px 0; border-bottom: 1px solid #edf1f4; }
+.speedphone .email-history__item:last-child { border-bottom: 0; }
+.speedphone .email-history__item strong, .speedphone .email-history__item > div:first-child > span { display: block; overflow-wrap: anywhere; }
+.speedphone .email-history__item > div:first-child > span { color: var(--sp-muted); font-size: .82rem; margin-top: 4px; }
+.speedphone .email-history__meta { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; color: var(--sp-muted); font-size: .78rem; white-space: nowrap; }
+.speedphone .email-history__signal { background: #e6f6ee; color: var(--sp-success); border-radius: 999px; padding: 3px 7px; font-weight: 700; }
 .speedphone .history { margin-top: 22px; border-top: 1px solid var(--sp-border); padding-top: 16px; }
 .speedphone .history summary { cursor: pointer; font-weight: 750; }
 .speedphone .history article { border-left: 3px solid var(--sp-border); padding: 8px 0 8px 13px; margin-top: 12px; }
@@ -50,21 +60,30 @@
 .speedphone .quick-form h3 { margin-top: 0; font-size: 1.3rem; }
 .speedphone .lock-note { margin: -4px 0 14px; padding: 9px 11px; border-radius: 9px; background: #eaf3f6; color: var(--sp-brand-dark); font-size: .8rem; font-weight: 650; }
 .speedphone .quick-form label { display: block; font-size: .85rem; font-weight: 750; margin: 13px 0 6px; }
-.speedphone .quick-form textarea, .speedphone .quick-form input[type="email"], .speedphone .quick-form input[type="datetime-local"] { width: 100%; border: 1px solid #bac6d0; border-radius: 10px; padding: 11px 12px; font: inherit; background: #fff; }
+.speedphone .quick-form textarea, .speedphone .quick-form input[type="email"], .speedphone .quick-form input[type="date"], .speedphone .quick-form input[type="time"] { width: 100%; border: 1px solid #bac6d0; border-radius: 10px; padding: 11px 12px; font: inherit; background: #fff; }
 .speedphone .quick-form textarea:focus, .speedphone .quick-form input:focus { outline: 3px solid rgba(21, 94, 117, .16); border-color: var(--sp-brand); }
+.speedphone .optional { color: var(--sp-muted); font-size: .72rem; font-weight: 500; }
+.speedphone .field-hint { margin: 7px 0 0; color: var(--sp-muted); font-size: .78rem; }
 .speedphone .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.speedphone .follow-up-fields { border: 1px solid var(--sp-border); border-radius: 13px; margin: 17px 0 0; padding: 4px 14px 13px; }
+.speedphone .follow-up-fields legend { color: var(--sp-brand-dark); font-size: .84rem; font-weight: 800; padding: 0 7px; }
 .speedphone .check-row { display: flex !important; gap: 10px; align-items: flex-start; font-weight: 600 !important; }
 .speedphone .check-row input { margin-top: 3px; }
+.speedphone .action-help { background: #f2ebfa; border-left: 4px solid #6d3ca0; border-radius: 8px; color: #442662; font-size: .8rem; line-height: 1.45; margin: 14px 0 0; padding: 9px 11px; }
 .speedphone .actions { display: grid; grid-template-columns: repeat(2, 1fr); gap: 9px; margin-top: 18px; }
-.speedphone .button { border: 0; border-radius: 10px; padding: 11px 13px; font: inherit; font-weight: 750; cursor: pointer; text-decoration: none; text-align: center; background: var(--sp-brand); color: #fff; }
+.speedphone .button { border: 0; border-radius: 10px; min-height: 44px; padding: 11px 13px; font: inherit; font-weight: 750; cursor: pointer; text-decoration: none; text-align: center; background: var(--sp-brand); color: #fff; }
 .speedphone .button:hover { filter: brightness(.96); }
+.speedphone .button:focus-visible { outline: 3px solid rgba(21, 94, 117, .28); outline-offset: 2px; }
+.speedphone .button:disabled { cursor: wait; }
 .speedphone .button--secondary { background: #e9eef2; color: var(--sp-ink); }
 .speedphone .button--success { background: var(--sp-success); }
 .speedphone .button--warning { background: #f6c453; color: #3f2b00; }
 .speedphone .button--info { background: #2563a6; }
+.speedphone .button--mail { background: #6d3ca0; }
 .speedphone .button--muted { background: #5d6975; }
 .speedphone .button--danger { background: var(--sp-danger); }
 .speedphone .is-busy { opacity: .65; }
+.speedphone .is-busy [data-submitting="true"]::after { content: " …"; }
 .speedphone .message { background: #e6f6ee; border: 1px solid #9bd5b8; border-radius: 12px; margin-bottom: 16px; padding: 14px 16px; font-weight: 700; }
 .speedphone .message--error, .speedphone .empty--error { background: #fff1f1; border-color: #e2a8a8; color: #7e2020; }
 .speedphone .empty { text-align: center; padding: 54px 24px; }
@@ -83,5 +102,7 @@
     .speedphone__header, .speedphone .candidate__title { flex-direction: column; }
     .speedphone .stats { grid-template-columns: repeat(2, 1fr); }
     .speedphone .contact-grid, .speedphone .field-row, .speedphone .actions { grid-template-columns: 1fr; }
+    .speedphone .email-history__item { grid-template-columns: 1fr; }
+    .speedphone .email-history__meta { align-items: flex-start; white-space: normal; }
     .speedphone .candidate__main, .speedphone .quick-form { padding: 17px; }
 }

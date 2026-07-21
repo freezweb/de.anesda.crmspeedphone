@@ -7,6 +7,7 @@ final class InputValidator
     private const ACTIONS = [
         'not_reached',
         'callback',
+        'email_callback',
         'interested',
         'no_interest',
         'wrong_number',
@@ -43,4 +44,3 @@ final class InputValidator
         return $value;
     }
 }
-
