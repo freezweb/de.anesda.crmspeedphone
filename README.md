@@ -30,6 +30,7 @@ CRM SpeedPhone ist eine schnelle, abarbeitbare Telefonakquise-Warteschlange für
 - Tageswiedervorlagen werden ohne Uhrzeit wieder in die Liste eingereiht; nur ausdrücklich vereinbarte Uhrzeiten erzeugen zusätzlich einen geplanten SuiteCRM-Anruf
 - optionale Aktualisierung der primären E-Mail-Adresse
 - optionaler Versand einer konfigurierten SuiteCRM-E-Mail-Vorlage bei bekundetem Interesse
+- einmaliger, protokollierter Versand einer im aktuellen Telefonat ausdrücklich angeforderten Informationsmail; vorhandene globale Opt-out- oder Ungültig-Markierungen bleiben unverändert
 - konfigurierbare Ausschlussmuster, etwa für Branchen oder Organisationstypen
 - harte serverseitige Sperre: ausgeschlossene Zielkontakte können auch nicht durch einen direkten API-Aufruf protokolliert oder angemailt werden
 - native SuiteCRM-Felder für Auswertung und Berichte
@@ -91,7 +92,7 @@ Beim Update werden außerdem ältere SpeedPhone-Anrufnamen einmalig in das struk
 
 ## Datenschutz und Akquise
 
-Das Modul bewertet lediglich technische und vorhandene CRM-Signale. Es ersetzt keine rechtliche Prüfung, ob ein Anruf oder eine E-Mail im Einzelfall zulässig ist. Opt-out, `do_not_call` und konfigurierte Sperrmuster werden vor jeder Anzeige beziehungsweise jedem Versand geprüft.
+Das Modul bewertet lediglich technische und vorhandene CRM-Signale. Es ersetzt keine rechtliche Prüfung, ob ein Anruf oder eine E-Mail im Einzelfall zulässig ist. Opt-out, `do_not_call` und konfigurierte Sperrmuster werden vor jeder Anzeige beziehungsweise jedem Versand geprüft. Eine im laufenden Telefonat ausdrücklich angeforderte einzelne Informationsmail kann nach gesonderter Bestätigung einmalig versendet werden. SpeedPhone protokolliert diese Ausnahme, ändert aber weder Opt-out noch die Kennzeichnung als ungültige Adresse; weitere E-Mails bleiben damit gesperrt.
 
 ## Entwicklung
 

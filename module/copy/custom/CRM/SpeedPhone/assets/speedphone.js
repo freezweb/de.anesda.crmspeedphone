@@ -63,6 +63,13 @@
             form.elements.new_email.focus();
             return;
         }
+        const sendsEmail = button.value === 'email_callback'
+            || (button.value === 'interested' && form.elements.email_requested.checked);
+        if (sendsEmail && !form.elements.email_address_confirmed.checked) {
+            showMessage('Bitte bestätigen Sie, dass der Kontakt diese einmalige Informationsmail ausdrücklich angefordert hat.', true);
+            form.elements.email_address_confirmed.focus();
+            return;
+        }
 
         const data = new FormData(form);
         data.set('result', button.value);
@@ -77,6 +84,16 @@
             const emailFailed = emailResult && emailResult.sent === false;
             showMessage(payload.data.message + emailMessage, emailFailed);
             stopHeartbeat();
+            if (emailFailed && emailResult.retry_allowed) {
+                setBusy(form, false);
+                delete button.dataset.submitting;
+                const retryPanel = form.querySelector('#speedphone-email-retry');
+                if (retryPanel) {
+                    retryPanel.hidden = false;
+                    retryPanel.querySelector('button')?.focus();
+                }
+                return;
+            }
             await loadNextCandidate();
         } catch (error) {
             showMessage(error.message || String(error), true);
@@ -88,6 +105,41 @@
     });
 
     root.addEventListener('click', async function (event) {
+        const emailRetryButton = event.target.closest('[data-speedphone-email-retry]');
+        if (emailRetryButton) {
+            const form = emailRetryButton.closest('#speedphone-form');
+            if (!form) {
+                return;
+            }
+            if (!form.elements.new_email.value) {
+                showMessage('Für den Versand ist eine E-Mail-Adresse erforderlich.', true);
+                form.elements.new_email.focus();
+                return;
+            }
+            if (!form.elements.email_address_confirmed.checked) {
+                showMessage('Bitte bestätigen Sie die ausdrückliche Anforderung dieser einmaligen Informationsmail.', true);
+                form.elements.email_address_confirmed.focus();
+                return;
+            }
+
+            const data = new FormData(form);
+            data.set('operation', 'resend_email');
+            data.set('csrf', root.dataset.csrf);
+            setBusy(form, true);
+            try {
+                const payload = await request(data);
+                showMessage(payload.data.message, false);
+                await loadNextCandidate();
+            } catch (error) {
+                showMessage(error.message || String(error), true);
+                if (document.body.contains(form)) {
+                    setBusy(form, false);
+                    emailRetryButton.focus();
+                }
+            }
+            return;
+        }
+
         const ownedToggle = event.target.closest('[data-speedphone-owned-toggle]');
         if (ownedToggle) {
             const panel = document.getElementById('speedphone-owned-contacts');

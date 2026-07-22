@@ -24,6 +24,7 @@ final class ActionService
         $newEmail = $validator->email((string) ($input['new_email'] ?? ''));
         $note = trim((string) ($input['note'] ?? ''));
         $emailRequested = !empty($input['email_requested']) || $action === 'email_callback';
+        $emailAddressConfirmed = !empty($input['email_address_confirmed']);
 
         if (!$this->queue->canEditProspect($prospectId) || !\ACLController::checkAccess('Prospects', 'edit', true)) {
             throw new \RuntimeException('Kein Zugriff auf diesen Zielkontakt.');
@@ -38,6 +39,12 @@ final class ActionService
 
         if ($newEmail !== '') {
             $prospect->email1 = $newEmail;
+        }
+
+        if ($emailRequested && !$emailAddressConfirmed) {
+            throw new \InvalidArgumentException(
+                'Bitte bestätigen Sie, dass der Kontakt diese einmalige Informationsmail im aktuellen Gespräch ausdrücklich angefordert hat.'
+            );
         }
 
         $now = new \DateTimeImmutable('now', new \DateTimeZone('UTC'));
@@ -143,13 +150,17 @@ final class ActionService
         $emailResult = null;
         if (($action === 'interested' && $emailRequested) || $action === 'email_callback') {
             try {
-                $emailResult = $this->emailService->sendRequestedInformation($prospect);
+                $emailResult = $this->emailService->sendRequestedInformation($prospect, $emailAddressConfirmed);
+                if ($emailResult['sent'] === false) {
+                    $emailResult['retry_allowed'] = true;
+                }
             } catch (\Throwable $exception) {
                 $GLOBALS['log']->error('CRM SpeedPhone: E-Mail-Versand fehlgeschlagen: ' . $exception->getMessage());
                 $emailResult = [
                     'sent' => false,
                     'message' => 'Der Anruf wurde gespeichert, aber die E-Mail konnte nicht versendet werden: '
                         . $exception->getMessage(),
+                    'retry_allowed' => true,
                 ];
             }
         }

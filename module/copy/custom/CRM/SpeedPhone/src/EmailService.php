@@ -11,7 +11,7 @@ final class EmailService
     ) {
     }
 
-    public function sendRequestedInformation(\Prospect $prospect): array
+    public function sendRequestedInformation(\Prospect $prospect, bool $explicitOneTimeRequest = false): array
     {
         if (!(bool) $this->config->get('email_sending_enabled', false)) {
             return ['sent' => false, 'message' => 'E-Mail-Versand ist in SpeedPhone noch deaktiviert.'];
@@ -22,7 +22,11 @@ final class EmailService
         if ($email === '') {
             throw new \RuntimeException('Der Zielkontakt hat keine primäre E-Mail-Adresse.');
         }
-        $this->assertAddressMayReceiveEmail($prospect->id, $email);
+        $suppressionBypassed = $this->assertAddressMayReceiveEmail(
+            $prospect->id,
+            $email,
+            $explicitOneTimeRequest
+        );
 
         $templateSql = "SELECT id FROM email_templates
                         WHERE deleted=0 AND name='" . $this->db->quote($templateName) . "'
@@ -74,12 +78,26 @@ final class EmailService
         $emailBean->parent_id = $prospect->id;
         $emailBean->assigned_user_id = $this->currentUser->id;
         $emailBean->date_sent_received = \TimeDate::getInstance()->nowDb();
+        if ($suppressionBypassed) {
+            $emailBean->description = "Einmaliger Versand auf ausdrückliche telefonische Anforderung.\n\n"
+                . $emailBean->description;
+        }
         $emailBean->save();
 
-        return ['sent' => true, 'message' => 'Informationsmail wurde versendet und protokolliert.'];
+        return [
+            'sent' => true,
+            'message' => $suppressionBypassed
+                ? 'Die ausdrücklich angeforderte Informationsmail wurde einmalig versendet und protokolliert; die globale E-Mail-Sperre bleibt bestehen.'
+                : 'Informationsmail wurde versendet und protokolliert.',
+            'one_time_override' => $suppressionBypassed,
+        ];
     }
 
-    private function assertAddressMayReceiveEmail(string $prospectId, string $email): void
+    private function assertAddressMayReceiveEmail(
+        string $prospectId,
+        string $email,
+        bool $explicitOneTimeRequest
+    ): bool
     {
         $sql = "SELECT ea.opt_out, ea.invalid_email
                 FROM email_addresses ea
@@ -95,7 +113,20 @@ final class EmailService
             throw new \RuntimeException('Die primäre E-Mail-Adresse ist nicht mit dem Zielkontakt verknüpft.');
         }
         if ((int) $row['opt_out'] === 1 || (int) $row['invalid_email'] === 1) {
-            throw new \RuntimeException('Die E-Mail-Adresse ist abgemeldet oder als ungültig markiert.');
+            if (!$explicitOneTimeRequest) {
+                throw new \RuntimeException(
+                    'Die E-Mail-Adresse ist abgemeldet oder als ungültig markiert. '
+                    . 'Ein einmaliger Versand ist nur nach ausdrücklicher Anforderung im aktuellen Gespräch möglich.'
+                );
+            }
+            $GLOBALS['log']->warn(sprintf(
+                'CRM SpeedPhone: Einmaliger ausdrücklich angeforderter Versand an gesperrte Adresse für Prospect %s durch Benutzer %s.',
+                $prospectId,
+                (string) $this->currentUser->id
+            ));
+            return true;
         }
+
+        return false;
     }
 }

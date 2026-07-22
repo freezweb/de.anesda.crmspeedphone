@@ -146,6 +146,11 @@
                 <label for="speedphone-email">Neue/bestätigte E-Mail-Adresse</label>
                 <input id="speedphone-email" type="email" name="new_email" value="<?= speedPhoneEscape($candidate['email']) ?>">
 
+                <label class="check-row check-row--confirmation">
+                    <input type="checkbox" name="email_address_confirmed" value="1">
+                    <span>Der Kontakt hat diese einmalige Informationsmail im aktuellen Gespräch ausdrücklich angefordert und die E-Mail-Adresse bestätigt.</span>
+                </label>
+
                 <label class="check-row">
                     <input type="checkbox" name="email_requested" value="1">
                     <span>Beim Klick auf „Erreicht · Interesse“ jetzt eine Informationsmail senden</span>
@@ -153,6 +158,11 @@
             </fieldset>
 
             <p class="action-help"><strong>Mail gewünscht, aber noch kein Interesse?</strong> „E-Mail jetzt senden + wieder anrufen“ verwenden.</p>
+
+            <div id="speedphone-email-retry" class="email-retry" hidden>
+                <button type="button" class="button button--mail" data-speedphone-email-retry>Informationsmail erneut versuchen</button>
+                <small>Dabei wird kein weiterer Anruf protokolliert.</small>
+            </div>
 
             <div class="actions">
                 <button type="submit" name="result" value="not_reached" class="button button--warning" title="Anruf protokollieren und automatisch weiter hinten erneut einplanen">Nicht erreicht</button>

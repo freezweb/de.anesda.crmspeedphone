@@ -121,12 +121,22 @@ check(preg_match('/name="callback_date"[^>]*min="\d{4}-\d{2}-\d{2}"/', $workspac
 check(str_contains($workspace, 'name="callback_time"'), 'Optionale Uhrzeit für einen festen Rückruftermin fehlt.');
 check(str_contains($workspace, 'Ohne Uhrzeit:'), 'Unterschied zwischen Tagesliste und festem Termin wird nicht erklärt.');
 check(str_contains($workspace, 'E-Mail jetzt senden + wieder anrufen'), 'E-Mail-Wiedervorlage ist nicht eindeutig beschriftet.');
+check(str_contains($workspace, 'name="email_address_confirmed"'), 'Bestätigung für eine ausdrücklich angeforderte Einzelmail fehlt.');
+check(str_contains($workspace, 'data-speedphone-email-retry'), 'Wiederholungsaktion für fehlgeschlagene E-Mails fehlt.');
 check(str_contains($workspace, 'Jessica Wendt'), 'Zugeordneter externer Mitarbeiter fehlt am Kontakt.');
 check(str_contains($workspace, '20,00 %'), 'Provisionssatz fehlt am Kontakt.');
 check(str_contains($workspace, 'interne Team freigegeben'), 'Interne Eskalation wird nicht sichtbar erklärt.');
 check(str_contains($workspace, 'Kontaktverlauf'), 'Nachvollziehbarer Kontaktverlauf fehlt.');
 check(str_contains($workspace, 'Max Mustermann'), 'Anrufender Mitarbeiter fehlt im Kontaktverlauf.');
 check(speedPhoneResultLabel('not_reached') === 'Nicht erreicht', 'Anrufergebnis wird nicht lesbar übersetzt.');
+
+$emailServiceSource = file_get_contents(__DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/EmailService.php');
+check(str_contains($emailServiceSource, 'explicitOneTimeRequest'), 'Einmalige ausdrückliche Versandfreigabe fehlt im E-Mail-Dienst.');
+check(str_contains($emailServiceSource, 'die globale E-Mail-Sperre bleibt bestehen'), 'Fortbestand der globalen E-Mail-Sperre wird nicht bestätigt.');
+check(!preg_match('/UPDATE\s+email_addresses/i', $emailServiceSource), 'Die einmalige Freigabe darf globale E-Mail-Sperrmerkmale nicht löschen.');
+
+$apiSource = file_get_contents(__DIR__ . '/../module/copy/custom/CRM/SpeedPhone/api.php');
+check(str_contains($apiSource, "'resend_email'"), 'API-Aktion zum Wiederholen ohne zweiten Anruf fehlt.');
 
 $teamUsers = [[
     'id' => 'befc6200-da8e-47a5-9fc8-3b30e8451018',

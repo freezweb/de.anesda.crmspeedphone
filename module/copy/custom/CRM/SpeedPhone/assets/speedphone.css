@@ -81,7 +81,10 @@
 .speedphone .follow-up-fields legend { color: var(--sp-brand-dark); font-size: 14px; font-weight: 800; padding: 0 7px; }
 .speedphone .check-row { display: flex !important; gap: 10px; align-items: flex-start; font-weight: 600 !important; }
 .speedphone .check-row input { margin-top: 3px; }
+.speedphone .check-row--confirmation { background: #fff8df; border: 1px solid #ead28a; border-radius: 8px; color: #5b4500; margin-top: 12px; padding: 10px 12px; }
 .speedphone .action-help { background: #f2ebfa; border-left: 4px solid #6d3ca0; border-radius: 8px; color: #442662; font-size: 13px; line-height: 1.45; margin: 14px 0 0; padding: 10px 12px; }
+.speedphone .email-retry { background: #fff1f1; border: 1px solid #e3aaaa; border-radius: 8px; margin-top: 12px; padding: 12px; }
+.speedphone .email-retry small { display: block; font-weight: 600; margin-top: 8px; }
 .speedphone .actions { display: grid; grid-template-columns: repeat(2, 1fr); gap: 9px; margin-top: 18px; }
 .speedphone .button { border: 0; border-radius: 10px; height: auto !important; min-height: 54px; overflow: visible; padding: 12px 14px; font-family: inherit; font-size: 15px; font-weight: 750; line-height: 1.25; white-space: normal; cursor: pointer; text-decoration: none; text-align: center; background: var(--sp-brand); color: #fff; }
 .speedphone .button:hover { filter: brightness(.96); }

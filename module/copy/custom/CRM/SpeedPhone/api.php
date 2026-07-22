@@ -78,6 +78,37 @@ try {
     }
 
     $emailService = new EmailService($config, $db, $current_user);
+    if ((string) ($_POST['operation'] ?? '') === 'resend_email') {
+        $validator = new InputValidator();
+        $prospectId = $validator->uuid((string) ($_POST['prospect_id'] ?? ''));
+        $newEmail = $validator->email((string) ($_POST['new_email'] ?? ''));
+        if (empty($_POST['email_address_confirmed'])) {
+            throw new InvalidArgumentException(
+                'Bitte bestätigen Sie die ausdrückliche Anforderung dieser einmaligen Informationsmail.'
+            );
+        }
+        if (!$queue->canEditProspect($prospectId) || !ACLController::checkAccess('Prospects', 'edit', true)) {
+            throw new RuntimeException('Kein Zugriff auf diesen Zielkontakt.');
+        }
+
+        /** @var Prospect $prospect */
+        $prospect = BeanFactory::getBean('Prospects', $prospectId);
+        if (!$prospect || empty($prospect->id) || (int) $prospect->deleted === 1) {
+            throw new RuntimeException('Der Zielkontakt wurde nicht gefunden.');
+        }
+        if ($newEmail !== '') {
+            $prospect->email1 = $newEmail;
+            $prospect->save(false);
+        }
+
+        $emailResult = $emailService->sendRequestedInformation($prospect, true);
+        echo json_encode([
+            'success' => true,
+            'data' => ['message' => $emailResult['message'], 'email' => $emailResult],
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        exit;
+    }
+
     $service = new ActionService(
         $config,
         $queue,
