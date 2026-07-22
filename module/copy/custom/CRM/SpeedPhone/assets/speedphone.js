@@ -105,6 +105,34 @@
     });
 
     root.addEventListener('click', async function (event) {
+        const ownedEmailButton = event.target.closest('[data-speedphone-owned-email]');
+        if (ownedEmailButton) {
+            const contactName = ownedEmailButton.dataset.contactName || 'diesen Kontakt';
+            const email = ownedEmailButton.dataset.email || '';
+            if (!window.confirm(
+                'Hat ' + contactName + ' diese einmalige Informationsmail im aktuellen Gespräch ausdrücklich angefordert und die Adresse ' + email + ' bestätigt?'
+            )) {
+                return;
+            }
+
+            const data = new FormData();
+            data.set('operation', 'resend_email');
+            data.set('prospect_id', ownedEmailButton.dataset.prospectId || '');
+            data.set('new_email', email);
+            data.set('email_address_confirmed', '1');
+            data.set('csrf', root.dataset.csrf);
+            ownedEmailButton.disabled = true;
+            try {
+                const payload = await request(data);
+                ownedEmailButton.textContent = 'Mail versendet';
+                showMessage(payload.data.message, false);
+            } catch (error) {
+                ownedEmailButton.disabled = false;
+                showMessage(error.message || String(error), true);
+            }
+            return;
+        }
+
         const emailRetryButton = event.target.closest('[data-speedphone-email-retry]');
         if (emailRetryButton) {
             const form = emailRetryButton.closest('#speedphone-form');

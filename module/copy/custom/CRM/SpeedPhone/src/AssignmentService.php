@@ -142,6 +142,14 @@ final class AssignmentService
                        TRIM(COALESCE(NULLIF(p.account_name, ''),
                            CONCAT(COALESCE(p.first_name, ''), ' ', COALESCE(p.last_name, '')))) name,
                        p.phone_work, p.phone_mobile,
+                       COALESCE((
+                           SELECT ea.email_address
+                           FROM email_addr_bean_rel er
+                           INNER JOIN email_addresses ea ON ea.id=er.email_address_id AND ea.deleted=0
+                           WHERE er.bean_module='Prospects' AND er.bean_id=p.id AND er.deleted=0
+                           ORDER BY er.primary_address DESC
+                           LIMIT 1
+                       ), '') email,
                        COALESCE(pc.speedphone_status_c, '') speedphone_status,
                        pc.speedphone_next_call_c speedphone_next_call,
                        spa.assigned_at, spa.last_contact_at, spa.last_result,
@@ -171,6 +179,7 @@ final class AssignmentService
                            TRIM(COALESCE(NULLIF(l.account_name, ''),
                                CONCAT(COALESCE(l.first_name, ''), ' ', COALESCE(l.last_name, '')))) name,
                            l.phone_work, l.phone_mobile,
+                           '' email,
                            COALESCE(l.status, '') speedphone_status,
                            NULL speedphone_next_call,
                            l.date_entered assigned_at,

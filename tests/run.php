@@ -173,6 +173,7 @@ $ownedContacts = [[
     'name' => 'Eigener Beispielbetrieb',
     'phone_work' => '+49 123 456',
     'phone_mobile' => '',
+    'email' => 'info@example.org',
     'speedphone_status' => 'callback',
     'speedphone_next_call' => '2026-07-28 00:00:00',
     'last_contact_at' => '2026-07-21 09:00:00',
@@ -186,6 +187,8 @@ $ownedContactsHtml = (string) ob_get_clean();
 check(str_contains($ownedContactsHtml, 'Meine Kontakte'), 'Eigene Kontaktliste fehlt.');
 check(str_contains($ownedContactsHtml, 'Eigener Beispielbetrieb'), 'Zugeordneter Kontakt fehlt in der eigenen Liste.');
 check(str_contains($ownedContactsHtml, 'record=befc6200-da8e-47a5-9fc8-3b30e8451018'), 'Eigene Liste referenziert nicht die vorhandene UUID.');
+check(str_contains($ownedContactsHtml, 'data-speedphone-owned-email'), 'Einmalige Informationsmail kann aus „Meine Kontakte“ nicht versendet werden.');
+check(str_contains($ownedContactsHtml, 'data-email="info@example.org"'), 'E-Mail-Aktion verwendet nicht die vorhandene Kontaktadresse.');
 
 foreach ([
     fn () => $validator->uuid('keine-uuid'),

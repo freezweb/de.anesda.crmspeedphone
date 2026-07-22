@@ -23,6 +23,7 @@ if (!defined('sugarEntry') || !sugarEntry) {
                     <tr>
                         <th>Kontakt</th>
                         <th>Telefon</th>
+                        <th>E-Mail</th>
                         <th>Status</th>
                         <th>Zuordnung</th>
                         <th>Wiedervorlage</th>
@@ -35,11 +36,24 @@ if (!defined('sugarEntry') || !sugarEntry) {
                     <tr>
                         <td><strong><?= speedPhoneEscape($contact['name'] ?: 'Unbenannter Zielkontakt') ?></strong></td>
                         <td><?= speedPhoneEscape($contact['phone_work'] ?: $contact['phone_mobile']) ?></td>
+                        <td><?= speedPhoneEscape($contact['email'] ?: '–') ?></td>
                         <td><?= speedPhoneEscape($contact['record_module'] === 'Prospects' ? speedPhoneStatusLabel($contact['speedphone_status']) : ($contact['speedphone_status'] ?: 'Offen')) ?></td>
                         <td><?= speedPhoneEscape($contact['ownership_source']) ?></td>
                         <td><?= !empty($contact['speedphone_next_call']) ? speedPhoneEscape(speedPhoneDateTime($contact['speedphone_next_call'], $userTimezone)) : '–' ?></td>
                         <td><?= !empty($contact['last_contact_at']) ? speedPhoneEscape(speedPhoneDateTime($contact['last_contact_at'], $userTimezone)) : 'Noch kein Gespräch' ?></td>
-                        <td><a class="record-link" href="index.php?module=<?= speedPhoneEscape($contact['record_module']) ?>&amp;action=DetailView&amp;record=<?= speedPhoneEscape($contact['id']) ?>">CRM öffnen</a></td>
+                        <td class="owned-contacts__actions">
+                            <?php if ($contact['record_module'] === 'Prospects' && !empty($contact['email'])): ?>
+                                <button
+                                    type="button"
+                                    class="button button--mail button--compact"
+                                    data-speedphone-owned-email
+                                    data-prospect-id="<?= speedPhoneEscape($contact['id']) ?>"
+                                    data-email="<?= speedPhoneEscape($contact['email']) ?>"
+                                    data-contact-name="<?= speedPhoneEscape($contact['name']) ?>"
+                                >Info-Mail senden</button>
+                            <?php endif; ?>
+                            <a class="record-link" href="index.php?module=<?= speedPhoneEscape($contact['record_module']) ?>&amp;action=DetailView&amp;record=<?= speedPhoneEscape($contact['id']) ?>">CRM öffnen</a>
+                        </td>
                     </tr>
                 <?php endforeach; ?>
                 </tbody>
