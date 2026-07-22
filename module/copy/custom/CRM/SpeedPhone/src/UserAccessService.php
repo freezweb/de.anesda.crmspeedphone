@@ -219,6 +219,7 @@ final class UserAccessService
                 INNER JOIN " . self::TABLE . " s
                     ON s.user_id=p.created_by AND s.user_type='external'
                 WHERE p.deleted=0 AND COALESCE(p.created_by, '')<>''");
+            (new AclRoleService($this->db))->synchronize();
             foreach ([
                 'callback_escalation_days' => $callbackDays,
                 'external_stale_days' => $staleDays,

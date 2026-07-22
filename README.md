@@ -10,6 +10,7 @@ CRM SpeedPhone ist eine schnelle, abarbeitbare Telefonakquise-Warteschlange für
 - gemeinsamer Callcenter-Pool für mehrere gleichzeitig telefonierende Benutzer
 - atomare UUID-Reservierung: ein Zielkontakt kann nie gleichzeitig bei zwei Mitarbeitern erscheinen
 - administrierbare SpeedPhone-Rollen „Intern“, „Extern“ und „Kein Zugriff“
+- automatisch verwaltete SuiteCRM-ACL-Rollen, damit Telefonierer keine globale Administratorrolle benötigen
 - eine Reservierung allein erzeugt noch keine dauerhafte Zuordnung; „nicht erreicht“ bleibt im gemeinsamen Pool
 - exklusive Betreuung ab dem ersten erreichten Gespräch: der Kontakt erscheint danach keinem anderen externen Mitarbeiter
 - selbst angelegte Zielkontakte externer Mitarbeiter werden automatisch und ausschließlich ihrem Ersteller zugeordnet
@@ -48,6 +49,8 @@ CRM SpeedPhone ist eine schnelle, abarbeitbare Telefonakquise-Warteschlange für
 4. `custom/CRM/SpeedPhone/config.local.php.example` nach `config.local.php` kopieren und mindestens `source_list_name` konfigurieren.
 5. Auf dem Dashboard **SpeedPhone starten** oder im Zielkontakte-Menü **CRM SpeedPhone** öffnen.
 6. Als berechtigter interner Benutzer über **Team & Provision** die Mitarbeiterrollen, Provisionssätze und Eskalationsfristen einstellen.
+
+Beim Speichern erzeugt das Modul die Rollen `CRM SpeedPhone Extern` und `CRM SpeedPhone Intern` und weist sie den freigeschalteten Benutzern zu. Andere vorhandene SuiteCRM-Rollen werden nicht verändert. Externe erhalten keinen Zugriff auf die allgemeine Zielkontaktliste, können aber den in SpeedPhone angezeigten Datensatz bearbeiten und ihre eigenen Leads öffnen.
 
 ## Konfiguration
 
