@@ -10,7 +10,8 @@ final class ActionService
         private readonly EmailService $emailService,
         private readonly BusinessDayCalculator $businessDays,
         private readonly \User $currentUser,
-        private readonly LockService $locks
+        private readonly LockService $locks,
+        private readonly AssignmentService $assignments
     ) {
     }
 
@@ -132,6 +133,12 @@ final class ActionService
         $prospect->speedphone_last_result_c = $action;
         $prospect->speedphone_last_note_c = $note;
         $prospect->save(false);
+        $assignment = $this->assignments->recordAction($prospectId, $action, $now);
+        if ($action === 'interested' && (float) ($assignment['won_commission_percent'] ?? 0) > 0) {
+            $commission = number_format((float) $assignment['won_commission_percent'], 2, ',', '.');
+            $winner = trim((string) ($assignment['won_by_name'] ?? '')) ?: (string) $this->currentUser->user_name;
+            $message .= " {$commission} % Provision wurden {$winner} zugeordnet.";
+        }
 
         $emailResult = null;
         if (($action === 'interested' && $emailRequested) || $action === 'email_callback') {
@@ -153,6 +160,7 @@ final class ActionService
             'message' => $message,
             'status' => $status,
             'email' => $emailResult,
+            'assignment' => $assignment,
         ];
     }
 

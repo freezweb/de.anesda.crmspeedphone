@@ -15,6 +15,34 @@
                 <a class="record-link" href="index.php?module=Prospects&amp;action=DetailView&amp;record=<?= speedPhoneEscape($candidate['id']) ?>" target="_blank" rel="noopener">CRM-Datensatz öffnen</a>
             </div>
 
+            <?php if (!empty($candidate['assignment'])): ?>
+                <?php $assignment = $candidate['assignment']; ?>
+                <aside class="assignment-banner<?= !empty($assignment['is_escalated']) ? ' assignment-banner--escalated' : '' ?>">
+                    <div>
+                        <span>SpeedPhone-Betreuung</span>
+                        <strong><?= speedPhoneEscape($assignment['owner_name']) ?></strong>
+                    </div>
+                    <div>
+                        <span>Rolle</span>
+                        <strong><?= $assignment['owner_type'] === 'external' ? 'Extern' : 'Intern' ?></strong>
+                    </div>
+                    <?php if ($assignment['owner_type'] === 'external'): ?>
+                        <div>
+                            <span>Provisionssatz</span>
+                            <strong><?= speedPhoneEscape(speedPhonePercent($assignment['owner_commission_percent'])) ?></strong>
+                        </div>
+                    <?php endif; ?>
+                    <?php if (!empty($assignment['is_escalated'])): ?>
+                        <p>Extern nicht rechtzeitig bearbeitet · jetzt für das interne Team freigegeben</p>
+                    <?php elseif (($assignment['owner_user_id'] ?? '') === ($candidate['current_profile']['user_id'] ?? '')): ?>
+                        <p>Exklusiv dir zugeordnet · andere Mitarbeiter erhalten diesen Kontakt nicht.</p>
+                    <?php endif; ?>
+                    <?php if (!empty($assignment['won_by_user_id'])): ?>
+                        <p>Gewonnen durch <?= speedPhoneEscape($assignment['won_by_name']) ?> · <?= speedPhoneEscape(speedPhonePercent($assignment['won_commission_percent'])) ?></p>
+                    <?php endif; ?>
+                </aside>
+            <?php endif; ?>
+
             <div class="contact-grid">
                 <?php if (!empty($candidate['phone_work'])): ?>
                     <a class="contact-card contact-card--phone" href="tel:<?= speedPhoneEscape(preg_replace('/[^+0-9]/', '', $candidate['phone_work'])) ?>">
@@ -70,18 +98,26 @@
                 <?php endif; ?>
             </section>
 
-            <?php if (!empty($candidate['recent_calls'])): ?>
-                <details class="history">
-                    <summary>Letzte Anrufe anzeigen</summary>
+            <section class="history" aria-label="Kontaktverlauf">
+                <div class="history__heading">
+                    <h3>Kontaktverlauf</h3>
+                    <span><?= count($candidate['recent_calls']) ?> letzte Einträge</span>
+                </div>
+                <?php if (!empty($candidate['recent_calls'])): ?>
                     <?php foreach ($candidate['recent_calls'] as $call): ?>
                         <article>
-                            <strong><?= speedPhoneEscape($call['name']) ?></strong>
-                            <span><?= speedPhoneEscape(speedPhoneDateTime($call['date_start'], $userTimezone)) ?> Uhr · <?= speedPhoneEscape($call['status']) ?></span>
+                            <div>
+                                <strong><?= speedPhoneEscape(speedPhoneResultLabel($call['speedphone_result'] ?: $call['name'])) ?></strong>
+                                <span>durch <?= speedPhoneEscape(trim((string) $call['caller_name']) ?: $call['caller_username']) ?></span>
+                            </div>
+                            <time datetime="<?= speedPhoneEscape($call['date_start']) ?>"><?= speedPhoneEscape(speedPhoneDateTime($call['date_start'], $userTimezone)) ?> Uhr</time>
                             <?php if (!empty($call['description'])): ?><p><?= nl2br(speedPhoneEscape($call['description'])) ?></p><?php endif; ?>
                         </article>
                     <?php endforeach; ?>
-                </details>
-            <?php endif; ?>
+                <?php else: ?>
+                    <p class="history__empty">Noch kein Anruf protokolliert.</p>
+                <?php endif; ?>
+            </section>
         </div>
 
         <form id="speedphone-form" class="quick-form">

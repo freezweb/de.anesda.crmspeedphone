@@ -8,16 +8,15 @@ final class QueueService
         private readonly Config $config,
         private readonly \DBManager $db,
         private readonly \User $currentUser,
-        private readonly LockService $locks
+        private readonly LockService $locks,
+        private readonly UserAccessService $access,
+        private readonly AssignmentService $assignments
     ) {
     }
 
     public function assertUserAllowed(): void
     {
-        $allowed = array_filter(array_map('strval', (array) $this->config->get('allowed_usernames', [])));
-        if ($allowed !== [] && !$this->currentUser->is_admin && !in_array($this->currentUser->user_name, $allowed, true)) {
-            throw new \RuntimeException('Dein Benutzer ist für CRM SpeedPhone nicht freigeschaltet.');
-        }
+        $this->access->assertAllowed();
     }
 
     public function getNextCandidate(): ?array
@@ -25,7 +24,7 @@ final class QueueService
         $this->assertUserAllowed();
         $listId = $this->getSourceListId();
         $batchSize = max(20, min(500, (int) $this->config->get('candidate_batch_size', 200)));
-        $userCondition = $this->userCondition();
+        $userCondition = $this->assignments->sqlAccessCondition();
         $baseSql = $this->candidateSelectSql($listId, $userCondition);
 
         $this->locks->cleanupExpired();
@@ -44,6 +43,11 @@ final class QueueService
                       WHERE spl.prospect_id=p.id AND spl.expires_at>UTC_TIMESTAMP()
                   )
                 ORDER BY
+                    CASE
+                        WHEN spa.owner_user_id='" . $this->db->quote((string) $this->currentUser->id) . "' THEN 0
+                        WHEN spa.owner_type='external' THEN 1
+                        ELSE 2
+                    END,
                     CASE COALESCE(pc.speedphone_status_c, '')
                         WHEN 'callback' THEN 0
                         WHEN 'retry' THEN 1
@@ -97,12 +101,14 @@ final class QueueService
     {
         $this->locks->cleanupExpired();
         $listId = $this->getSourceListId();
-        $userCondition = $this->userCondition();
+        $userCondition = $this->assignments->sqlAccessCondition();
         $common = " FROM prospects p
                     INNER JOIN prospect_lists_prospects plp
                         ON plp.related_id=p.id AND plp.related_type='Prospects'
                        AND plp.prospect_list_id='" . $this->db->quote($listId) . "' AND plp.deleted=0
                     LEFT JOIN prospects_cstm pc ON pc.id_c=p.id
+                    LEFT JOIN crm_speedphone_assignments spa ON spa.prospect_id=p.id
+                    LEFT JOIN crm_speedphone_user_settings sp_creator ON sp_creator.user_id=p.created_by
                     WHERE p.deleted=0 AND p.do_not_call=0 AND {$userCondition}";
 
         return [
@@ -129,12 +135,15 @@ final class QueueService
     public function canEditProspect(string $id): bool
     {
         $listId = $this->getSourceListId();
-        $userCondition = $this->userCondition();
+        $userCondition = $this->assignments->sqlAccessCondition();
         $sql = "SELECT p.first_name, p.last_name, p.account_name, p.description
                 FROM prospects p
                 INNER JOIN prospect_lists_prospects plp
                     ON plp.related_id=p.id AND plp.related_type='Prospects'
                    AND plp.prospect_list_id='" . $this->db->quote($listId) . "' AND plp.deleted=0
+                LEFT JOIN prospects_cstm pc ON pc.id_c=p.id
+                LEFT JOIN crm_speedphone_assignments spa ON spa.prospect_id=p.id
+                LEFT JOIN crm_speedphone_user_settings sp_creator ON sp_creator.user_id=p.created_by
                 WHERE p.id='" . $this->db->quote($id) . "'
                   AND p.deleted=0 AND p.do_not_call=0 AND {$userCondition}
                 LIMIT 1";
@@ -222,6 +231,8 @@ final class QueueService
 
         $candidate['recent_calls'] = $this->getRecentCalls($candidate['id']);
         $candidate['sent_emails'] = $this->getSentEmails($candidate['id']);
+        $candidate['assignment'] = $this->assignments->getAssignment((string) $candidate['id']);
+        $candidate['current_profile'] = $this->access->currentProfile();
         $candidate['lock_token'] = $lock['lock_token'];
         $candidate['lock_expires_at'] = $lock['expires_at'];
 
@@ -230,11 +241,16 @@ final class QueueService
 
     private function getRecentCalls(string $prospectId): array
     {
-        $sql = "SELECT name, status, direction, date_start, description
-                FROM calls
-                WHERE deleted=0 AND parent_type='Prospects'
-                  AND parent_id='" . $this->db->quote($prospectId) . "'
-                ORDER BY date_start DESC LIMIT 5";
+        $sql = "SELECT c.name, c.status, c.direction, c.date_start, c.description,
+                       COALESCE(cc.speedphone_result_c, '') speedphone_result,
+                       TRIM(CONCAT(COALESCE(u.first_name,''), ' ', COALESCE(u.last_name,''))) caller_name,
+                       u.user_name caller_username
+                FROM calls c
+                LEFT JOIN calls_cstm cc ON cc.id_c=c.id
+                LEFT JOIN users u ON u.id=c.assigned_user_id AND u.deleted=0
+                WHERE c.deleted=0 AND c.parent_type='Prospects'
+                  AND c.parent_id='" . $this->db->quote($prospectId) . "'
+                ORDER BY c.date_start DESC LIMIT 10";
         $result = $this->db->query($sql);
         $calls = [];
         while ($row = $this->db->fetchByAssoc($result)) {
@@ -356,23 +372,18 @@ final class QueueService
         return (int) ($row['n'] ?? 0);
     }
 
-    private function userCondition(): string
-    {
-        if (!(bool) $this->config->get('restrict_to_assigned_user', false)) {
-            return '1=1';
-        }
-
-        return "p.assigned_user_id='" . $this->db->quote($this->currentUser->id) . "'";
-    }
-
     private function candidateSelectSql(string $listId, string $userCondition): string
     {
+        $escalatedExpression = $this->assignments->sqlEscalatedExpression();
         return "SELECT p.id, p.first_name, p.last_name, p.account_name, p.description,
                        p.phone_work, p.phone_mobile, p.primary_address_street,
                        p.primary_address_postalcode, p.primary_address_city,
                        COALESCE(pc.speedphone_status_c, '') speedphone_status,
                        COALESCE(pc.speedphone_attempts_c, 0) speedphone_attempts,
                        pc.speedphone_next_call_c speedphone_next_call,
+                       spa.owner_user_id speedphone_owner_user_id,
+                       spa.owner_type speedphone_owner_type,
+                       CASE WHEN {$escalatedExpression} THEN 1 ELSE 0 END speedphone_is_escalated,
                        COALESCE(eng.clicked, 0) clicked,
                        COALESCE(eng.viewed, 0) viewed
                 FROM prospects p
@@ -382,6 +393,8 @@ final class QueueService
                    AND plp.prospect_list_id='" . $this->db->quote($listId) . "'
                    AND plp.deleted=0
                 LEFT JOIN prospects_cstm pc ON pc.id_c=p.id
+                LEFT JOIN crm_speedphone_assignments spa ON spa.prospect_id=p.id
+                LEFT JOIN crm_speedphone_user_settings sp_creator ON sp_creator.user_id=p.created_by
                 LEFT JOIN (
                     SELECT target_id,
                            MAX(activity_type='link') clicked,

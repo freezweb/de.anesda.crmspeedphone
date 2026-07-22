@@ -8,7 +8,9 @@ require_once __DIR__ . '/bootstrap.php';
 require_once __DIR__ . '/render.php';
 
 use Anesda\CRM\SpeedPhone\Config;
+use Anesda\CRM\SpeedPhone\AssignmentService;
 use Anesda\CRM\SpeedPhone\QueueService;
+use Anesda\CRM\SpeedPhone\UserAccessService;
 
 global $current_user, $db, $sugar_config;
 
@@ -21,14 +23,26 @@ if (empty($_SESSION['crm_speedphone_csrf'])) {
 }
 
 $config = Config::load(__DIR__);
+$accessService = new UserAccessService($db, $current_user);
+$assignmentService = new AssignmentService($config, $db, $current_user, $accessService);
 $lockService = new Anesda\CRM\SpeedPhone\LockService($config, $db, $current_user);
-$queue = new QueueService($config, $db, $current_user, $lockService);
+$queue = new QueueService($config, $db, $current_user, $lockService, $accessService, $assignmentService);
 $error = '';
 $candidate = null;
 $statistics = ['open' => 0, 'callbacks_due' => 0, 'processed_today' => 0, 'interested' => 0, 'locked' => 0];
+$currentProfile = $accessService->currentProfile();
+$canManageTeam = $accessService->canManageTeam();
+$teamUsers = [];
+$escalationOptions = [];
+$ownedContacts = [];
 try {
     $candidate = $queue->getNextCandidate();
     $statistics = $queue->getStatistics();
+    $ownedContacts = $assignmentService->listOwnedByCurrentUser();
+    if ($canManageTeam) {
+        $teamUsers = $accessService->listTeamUsers();
+        $escalationOptions = $accessService->escalationOptions($config);
+    }
 } catch (Throwable $exception) {
     $error = $exception->getMessage();
 }
@@ -39,16 +53,36 @@ $assetBase = $legacyBase . '/custom/CRM/SpeedPhone/assets';
 $userTimezone = (string) ($current_user->getPreference('timezone') ?: 'Europe/Berlin');
 
 ?>
-<link rel="stylesheet" href="<?= speedPhoneEscape($assetBase) ?>/speedphone.css?v=1.2.1">
+<link rel="stylesheet" href="<?= speedPhoneEscape($assetBase) ?>/speedphone.css?v=1.3.0">
 <main class="speedphone" data-api-url="index.php?entryPoint=crmSpeedPhoneApi" data-csrf="<?= speedPhoneEscape($_SESSION['crm_speedphone_csrf']) ?>">
     <header class="speedphone__header">
         <div>
             <p class="speedphone__eyebrow">SuiteCRM-Telefonwarteschlange</p>
             <h1>CRM SpeedPhone</h1>
-            <p>Angemeldet als <?= speedPhoneEscape(trim($current_user->first_name . ' ' . $current_user->last_name) ?: $current_user->user_name) ?></p>
+            <p>
+                Angemeldet als <?= speedPhoneEscape(trim($current_user->first_name . ' ' . $current_user->last_name) ?: $current_user->user_name) ?>
+                · <?= $currentProfile['user_type'] === 'external' ? 'Extern' : 'Intern' ?>
+                <?php if ($currentProfile['user_type'] === 'external'): ?>· <?= speedPhoneEscape(speedPhonePercent($currentProfile['commission_percent'])) ?> Provision<?php endif; ?>
+            </p>
         </div>
-        <a class="button button--secondary" href="index.php?module=Prospects&amp;action=index">Alle Zielkontakte</a>
+        <div class="speedphone__header-actions">
+            <button type="button" class="button button--secondary" data-speedphone-owned-toggle aria-expanded="false">
+                Meine Kontakte (<?= count($ownedContacts) ?>)
+            </button>
+            <?php if ($canManageTeam): ?>
+                <button type="button" class="button button--secondary" data-speedphone-team-toggle aria-expanded="false">Team &amp; Provision</button>
+            <?php endif; ?>
+            <a class="button button--secondary" href="index.php?module=Prospects&amp;action=index">Alle Zielkontakte</a>
+        </div>
     </header>
+
+    <?php if ($error === ''): ?>
+        <?php require __DIR__ . '/owned_contacts.php'; ?>
+    <?php endif; ?>
+
+    <?php if ($canManageTeam && $error === ''): ?>
+        <?php require __DIR__ . '/team_settings.php'; ?>
+    <?php endif; ?>
 
     <section class="stats" aria-label="Tagesübersicht">
         <article><strong data-stat="open"><?= (int) $statistics['open'] ?></strong><span>offen</span></article>
@@ -74,4 +108,4 @@ $userTimezone = (string) ($current_user->getPreference('timezone') ?: 'Europe/Be
 
     <div class="speedphone__footer">CRM SpeedPhone © anesda</div>
 </main>
-<script src="<?= speedPhoneEscape($assetBase) ?>/speedphone.js?v=1.2.1"></script>
+<script src="<?= speedPhoneEscape($assetBase) ?>/speedphone.js?v=1.3.0"></script>

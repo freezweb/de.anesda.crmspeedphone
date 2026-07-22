@@ -1,11 +1,17 @@
 <?php
 
+if (!defined('sugarEntry')) {
+    define('sugarEntry', true);
+}
+
 require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/BusinessDayCalculator.php';
 require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/InputValidator.php';
+require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/AssignmentService.php';
 require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/render.php';
 
 use Anesda\CRM\SpeedPhone\BusinessDayCalculator;
 use Anesda\CRM\SpeedPhone\InputValidator;
+use Anesda\CRM\SpeedPhone\AssignmentService;
 
 $failures = [];
 
@@ -29,6 +35,12 @@ check($validator->action('interested') === 'interested', 'Gültige Aktion wurde 
 check($validator->action('email_callback') === 'email_callback', 'E-Mail mit Rückruf wurde als Aktion abgelehnt.');
 check($validator->email('info@example.org') === 'info@example.org', 'Gültige E-Mail wurde abgelehnt.');
 check($validator->email('') === '', 'Leere optionale E-Mail wurde abgelehnt.');
+check(!AssignmentService::actionAssignsOwner('not_reached'), 'Ein erfolgloser Anruf darf keinen Besitzer erzeugen.');
+check(!AssignmentService::actionAssignsOwner('wrong_number'), 'Eine falsche Nummer darf keinen Besitzer erzeugen.');
+check(!AssignmentService::actionAssignsOwner('later'), 'Ein Verschieben ohne Anruf darf keinen Besitzer erzeugen.');
+check(AssignmentService::actionAssignsOwner('callback'), 'Ein vereinbarter RÃ¼ckruf muss den Kontakt zuordnen.');
+check(AssignmentService::actionAssignsOwner('email_callback'), 'Ein E-Mail-Wunsch muss den Kontakt zuordnen.');
+check(AssignmentService::actionAssignsOwner('interested'), 'Ein Interessent muss dem erfolgreichen Mitarbeiter zugeordnet werden.');
 
 $exampleConfig = require __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/config.local.php.example';
 check(
@@ -56,7 +68,28 @@ $workspace = speedPhoneRenderWorkspace([
         'opened' => 1,
         'clicked' => 0,
     ]],
-    'recent_calls' => [],
+    'recent_calls' => [[
+        'name' => 'SpeedPhone: Nicht erreicht',
+        'status' => 'Held',
+        'date_start' => '2026-07-21 09:00:00',
+        'description' => 'Zentrale nicht besetzt',
+        'speedphone_result' => 'not_reached',
+        'caller_name' => 'Max Mustermann',
+        'caller_username' => 'maxmustermann',
+    ]],
+    'assignment' => [
+        'owner_user_id' => '12fc6200-da8e-47a5-9fc8-3b30e8451000',
+        'owner_name' => 'Jessica Wendt',
+        'owner_type' => 'external',
+        'owner_commission_percent' => 20,
+        'is_escalated' => true,
+        'won_by_user_id' => null,
+    ],
+    'current_profile' => [
+        'user_id' => 'befc6200-da8e-47a5-9fc8-3b30e8451018',
+        'user_type' => 'internal',
+        'commission_percent' => 0,
+    ],
     'lock_token' => str_repeat('a', 64),
 ], 'Europe/Berlin', 7);
 check(str_contains($workspace, 'Gesendete E-Mails'), 'E-Mail-Historie fehlt im gerenderten Kontakt.');
@@ -67,6 +100,52 @@ check(preg_match('/name="callback_date"[^>]*min="\d{4}-\d{2}-\d{2}"/', $workspac
 check(str_contains($workspace, 'name="callback_time"'), 'Optionale Uhrzeit für einen festen Rückruftermin fehlt.');
 check(str_contains($workspace, 'Ohne Uhrzeit:'), 'Unterschied zwischen Tagesliste und festem Termin wird nicht erklärt.');
 check(str_contains($workspace, 'E-Mail jetzt senden + wieder anrufen'), 'E-Mail-Wiedervorlage ist nicht eindeutig beschriftet.');
+check(str_contains($workspace, 'Jessica Wendt'), 'Zugeordneter externer Mitarbeiter fehlt am Kontakt.');
+check(str_contains($workspace, '20,00 %'), 'Provisionssatz fehlt am Kontakt.');
+check(str_contains($workspace, 'interne Team freigegeben'), 'Interne Eskalation wird nicht sichtbar erklärt.');
+check(str_contains($workspace, 'Kontaktverlauf'), 'Nachvollziehbarer Kontaktverlauf fehlt.');
+check(str_contains($workspace, 'Max Mustermann'), 'Anrufender Mitarbeiter fehlt im Kontaktverlauf.');
+check(speedPhoneResultLabel('not_reached') === 'Nicht erreicht', 'Anrufergebnis wird nicht lesbar übersetzt.');
+
+$teamUsers = [[
+    'id' => 'befc6200-da8e-47a5-9fc8-3b30e8451018',
+    'name' => 'Jessica Wendt',
+    'user_name' => 'jessicawendt',
+    'is_admin' => false,
+    'user_type' => 'external',
+    'commission_percent' => 20,
+    'can_receive_unassigned' => true,
+    'can_manage' => false,
+    'assigned_count' => 4,
+    'won_count' => 1,
+]];
+$escalationOptions = ['callback_escalation_days' => 2, 'external_stale_days' => 14];
+ob_start();
+require __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/team_settings.php';
+$teamSettingsHtml = (string) ob_get_clean();
+check(str_contains($teamSettingsHtml, 'Team, Rechte und Provision'), 'Teamverwaltung fehlt.');
+check(str_contains($teamSettingsHtml, 'value="external" selected'), 'Externe Rolle wird nicht vorausgewählt.');
+check(str_contains($teamSettingsHtml, 'value="20.00"'), 'Provisionssatz wird nicht bearbeitbar dargestellt.');
+check(str_contains($teamSettingsHtml, 'external_stale_days'), 'Eskalationsfrist bei Untätigkeit fehlt.');
+
+$ownedContacts = [[
+    'id' => 'befc6200-da8e-47a5-9fc8-3b30e8451018',
+    'name' => 'Eigener Beispielbetrieb',
+    'phone_work' => '+49 123 456',
+    'phone_mobile' => '',
+    'speedphone_status' => 'callback',
+    'speedphone_next_call' => '2026-07-28 00:00:00',
+    'last_contact_at' => '2026-07-21 09:00:00',
+    'record_module' => 'Prospects',
+    'ownership_source' => 'SpeedPhone-Zuordnung',
+]];
+$userTimezone = 'Europe/Berlin';
+ob_start();
+require __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/owned_contacts.php';
+$ownedContactsHtml = (string) ob_get_clean();
+check(str_contains($ownedContactsHtml, 'Meine Kontakte'), 'Eigene Kontaktliste fehlt.');
+check(str_contains($ownedContactsHtml, 'Eigener Beispielbetrieb'), 'Zugeordneter Kontakt fehlt in der eigenen Liste.');
+check(str_contains($ownedContactsHtml, 'record=befc6200-da8e-47a5-9fc8-3b30e8451018'), 'Eigene Liste referenziert nicht die vorhandene UUID.');
 
 foreach ([
     fn () => $validator->uuid('keine-uuid'),

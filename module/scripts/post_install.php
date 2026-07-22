@@ -129,6 +129,129 @@ $db->query("CREATE TABLE IF NOT EXISTS `crm_speedphone_locks` (
     KEY `idx_speedphone_lock_expires` (`expires_at`)
 ) ENGINE=InnoDB");
 
+$db->query("CREATE TABLE IF NOT EXISTS `crm_speedphone_user_settings` (
+    `user_id` char(36) NOT NULL,
+    `user_type` varchar(20) NOT NULL DEFAULT 'disabled',
+    `commission_percent` decimal(5,2) NOT NULL DEFAULT 0.00,
+    `can_receive_unassigned` tinyint(1) NOT NULL DEFAULT 0,
+    `can_manage` tinyint(1) NOT NULL DEFAULT 0,
+    `date_modified` datetime NOT NULL,
+    PRIMARY KEY (`user_id`),
+    KEY `idx_speedphone_user_type` (`user_type`)
+) ENGINE=InnoDB");
+
+$db->query("CREATE TABLE IF NOT EXISTS `crm_speedphone_options` (
+    `option_name` varchar(64) NOT NULL,
+    `option_value` varchar(255) NOT NULL,
+    `date_modified` datetime NOT NULL,
+    PRIMARY KEY (`option_name`)
+) ENGINE=InnoDB");
+
+$db->query("CREATE TABLE IF NOT EXISTS `crm_speedphone_assignments` (
+    `prospect_id` char(36) NOT NULL,
+    `owner_user_id` char(36) NOT NULL,
+    `owner_type` varchar(20) NOT NULL,
+    `owner_commission_percent` decimal(5,2) NOT NULL DEFAULT 0.00,
+    `assigned_at` datetime NOT NULL,
+    `last_activity_at` datetime NULL,
+    `last_contact_at` datetime NULL,
+    `last_action_user_id` char(36) NULL,
+    `last_result` varchar(40) NULL,
+    `won_by_user_id` char(36) NULL,
+    `won_at` datetime NULL,
+    `won_commission_percent` decimal(5,2) NOT NULL DEFAULT 0.00,
+    PRIMARY KEY (`prospect_id`),
+    KEY `idx_speedphone_assignment_owner` (`owner_user_id`),
+    KEY `idx_speedphone_assignment_contact` (`last_contact_at`),
+    KEY `idx_speedphone_assignment_winner` (`won_by_user_id`)
+) ENGINE=InnoDB");
+
+$db->query("INSERT IGNORE INTO crm_speedphone_user_settings
+    (user_id, user_type, commission_percent, can_receive_unassigned, can_manage, date_modified)
+    SELECT id,
+           IF(is_admin=1, 'internal', 'disabled'),
+           0.00,
+           IF(is_admin=1, 1, 0),
+           IF(is_admin=1, 1, 0),
+           UTC_TIMESTAMP()
+    FROM users
+    WHERE deleted=0 AND status='Active' AND employee_status='Active'");
+
+// Frühere Modulversionen haben das Ergebnis bei einzelnen SuiteCRM-Setups nur
+// im lesbaren Anrufnamen gespeichert. Diese regulären CRM-Anrufe werden einmalig
+// normalisiert, damit Historie und Zuordnung beim Update erhalten bleiben.
+$db->query("INSERT IGNORE INTO calls_cstm (id_c)
+            SELECT c.id FROM calls c
+            WHERE c.deleted=0 AND c.parent_type='Prospects' AND c.name LIKE 'SpeedPhone:%'");
+$db->query("UPDATE calls c
+            INNER JOIN calls_cstm cc ON cc.id_c=c.id
+            SET cc.speedphone_result_c=CASE
+                WHEN c.name LIKE 'SpeedPhone: Nicht erreicht%' THEN 'not_reached'
+                WHEN c.name LIKE 'SpeedPhone: Wiedervorlage oder Rückruf%' THEN 'callback'
+                WHEN c.name LIKE 'SpeedPhone: Rückruf %' THEN 'callback'
+                WHEN c.name LIKE 'SpeedPhone: E-Mail gewünscht mit Wiedervorlage%' THEN 'email_callback'
+                WHEN c.name='SpeedPhone: Interesse' THEN 'interested'
+                WHEN c.name='SpeedPhone: Kein Interesse' THEN 'no_interest'
+                WHEN c.name='SpeedPhone: Falsche Nummer' THEN 'wrong_number'
+                WHEN c.name='SpeedPhone: Nicht mehr kontaktieren' THEN 'blocked'
+                ELSE cc.speedphone_result_c
+            END
+            WHERE c.deleted=0
+              AND c.parent_type='Prospects'
+              AND c.name LIKE 'SpeedPhone:%'
+              AND COALESCE(cc.speedphone_result_c, '')=''");
+
+$db->query("INSERT IGNORE INTO crm_speedphone_assignments
+    (prospect_id, owner_user_id, owner_type, owner_commission_percent,
+     assigned_at, last_activity_at)
+    SELECT p.id,
+           p.created_by,
+           'external',
+           s.commission_percent,
+           COALESCE(p.date_entered, UTC_TIMESTAMP()),
+           COALESCE(p.date_entered, UTC_TIMESTAMP())
+    FROM prospects p
+    INNER JOIN crm_speedphone_user_settings s
+        ON s.user_id=p.created_by AND s.user_type='external'
+    WHERE p.deleted=0 AND COALESCE(p.created_by, '')<>''");
+
+$db->query("INSERT IGNORE INTO crm_speedphone_assignments
+    (prospect_id, owner_user_id, owner_type, owner_commission_percent,
+     assigned_at, last_activity_at, last_contact_at, last_action_user_id, last_result)
+    SELECT c.parent_id,
+           c.assigned_user_id,
+           COALESCE(s.user_type, 'internal'),
+           COALESCE(s.commission_percent, 0.00),
+           c.date_start,
+           c.date_start,
+           c.date_start,
+           c.assigned_user_id,
+           cc.speedphone_result_c
+    FROM calls c
+    INNER JOIN calls_cstm cc ON cc.id_c=c.id
+        AND cc.speedphone_result_c IN ('callback', 'email_callback', 'interested', 'no_interest', 'blocked')
+    LEFT JOIN crm_speedphone_user_settings s ON s.user_id=c.assigned_user_id
+    WHERE c.deleted=0
+      AND c.parent_type='Prospects'
+      AND c.assigned_user_id<>''
+      AND NOT EXISTS (
+          SELECT 1 FROM calls newer
+          INNER JOIN calls_cstm newer_cstm
+              ON newer_cstm.id_c=newer.id
+             AND newer_cstm.speedphone_result_c IN
+                 ('callback', 'email_callback', 'interested', 'no_interest', 'blocked')
+          WHERE newer.deleted=0
+            AND newer.parent_type='Prospects'
+            AND newer.parent_id=c.parent_id
+            AND (newer.date_start>c.date_start OR (newer.date_start=c.date_start AND newer.id>c.id))
+      )");
+
+$db->query("UPDATE crm_speedphone_assignments
+            SET won_by_user_id=owner_user_id,
+                won_at=last_contact_at,
+                won_commission_percent=IF(owner_type='external', owner_commission_percent, 0.00)
+            WHERE last_result='interested' AND won_by_user_id IS NULL");
+
 speedPhoneInstallDashboardDashlets($db);
 
 $repair = new RepairAndClear();

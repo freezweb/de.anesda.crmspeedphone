@@ -16,6 +16,39 @@ function speedPhoneDateTime(mixed $value, string $timezone): string
     }
 }
 
+function speedPhoneResultLabel(mixed $value): string
+{
+    return [
+        'not_reached' => 'Nicht erreicht',
+        'callback' => 'Wiedervorlage / Rückruf',
+        'email_callback' => 'E-Mail + Wiedervorlage',
+        'interested' => 'Interesse',
+        'no_interest' => 'Kein Interesse',
+        'wrong_number' => 'Falsche Nummer',
+        'blocked' => 'Nicht mehr kontaktieren',
+        'later' => 'Ohne Anruf verschoben',
+    ][(string) $value] ?? (string) $value;
+}
+
+function speedPhonePercent(mixed $value): string
+{
+    return number_format((float) $value, 2, ',', '.') . ' %';
+}
+
+function speedPhoneStatusLabel(mixed $value): string
+{
+    return [
+        '' => 'Offen',
+        'retry' => 'Erneut anrufen',
+        'callback' => 'Wiedervorlage / Rückruf',
+        'interested' => 'Interesse',
+        'no_interest' => 'Kein Interesse',
+        'invalid_phone' => 'Ungültige Telefonnummer',
+        'blocked' => 'Nicht mehr kontaktieren',
+        'paused' => 'Pausiert',
+    ][(string) $value] ?? speedPhoneResultLabel($value);
+}
+
 function speedPhoneRenderWorkspace(?array $candidate, string $userTimezone, int $defaultCallbackDays = 7): string
 {
     $defaultCallbackDays = max(1, min(90, $defaultCallbackDays));

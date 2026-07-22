@@ -22,6 +22,7 @@
 .speedphone, .speedphone * { box-sizing: border-box; }
 .speedphone a { color: inherit; }
 .speedphone__header { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-bottom: 22px; }
+.speedphone__header-actions { display: flex; align-items: center; gap: 10px; }
 .speedphone__header h1 { font-size: clamp(32px, 4vw, 48px); margin: 2px 0 4px; letter-spacing: -0.04em; }
 .speedphone__header p { margin: 0; color: var(--sp-muted); }
 .speedphone__eyebrow { color: var(--sp-brand) !important; font-size: 12px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
@@ -35,6 +36,12 @@
 .speedphone .candidate__title h2 { font-size: clamp(26px, 3vw, 38px); margin: 5px 0; }
 .speedphone .candidate__title p { margin: 0; color: var(--sp-muted); }
 .speedphone .record-link { color: var(--sp-brand); font-weight: 700; white-space: nowrap; }
+.speedphone .assignment-banner { display: flex; flex-wrap: wrap; align-items: center; gap: 16px 28px; margin-top: 18px; border: 1px solid #b9e5db; border-radius: 14px; padding: 14px 16px; background: #edf9f7; }
+.speedphone .assignment-banner > div { min-width: 120px; }
+.speedphone .assignment-banner span { display: block; color: var(--sp-muted); font-size: 12px; }
+.speedphone .assignment-banner p { flex-basis: 100%; margin: 0; color: var(--sp-brand-dark); font-size: 13px; font-weight: 700; }
+.speedphone .assignment-banner--escalated { border-color: #e5bc6f; background: #fff7e8; }
+.speedphone .assignment-banner--escalated p { color: #704600; }
 .speedphone .contact-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 22px 0; }
 .speedphone .contact-card { border: 1px solid var(--sp-border); border-radius: 14px; padding: 15px; text-decoration: none; overflow-wrap: anywhere; transition: border-color .15s, transform .15s; }
 .speedphone .contact-card:hover { border-color: var(--sp-brand); transform: translateY(-1px); }
@@ -54,10 +61,13 @@
 .speedphone .email-history__meta { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; color: var(--sp-muted); font-size: 12px; white-space: nowrap; }
 .speedphone .email-history__signal { background: #e6f6ee; color: var(--sp-success); border-radius: 999px; padding: 3px 7px; font-weight: 700; }
 .speedphone .history { margin-top: 22px; border-top: 1px solid var(--sp-border); padding-top: 16px; }
-.speedphone .history summary { cursor: pointer; font-weight: 750; }
-.speedphone .history article { border-left: 3px solid var(--sp-border); padding: 8px 0 8px 13px; margin-top: 12px; }
+.speedphone .history__heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.speedphone .history__heading h3 { margin: 0; font-size: 16px; }
+.speedphone .history__heading span, .speedphone .history__empty { color: var(--sp-muted); font-size: 13px; }
+.speedphone .history article { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 16px; border-left: 3px solid var(--sp-border); padding: 9px 0 9px 13px; margin-top: 10px; }
 .speedphone .history article span { color: var(--sp-muted); display: block; font-size: 13px; }
-.speedphone .history article p { margin-bottom: 0; }
+.speedphone .history article time { color: var(--sp-muted); font-size: 13px; white-space: nowrap; }
+.speedphone .history article p { grid-column: 1 / -1; margin: 0; }
 .speedphone .quick-form { position: sticky; top: 16px; }
 .speedphone .quick-form h3 { margin-top: 0; font-size: 20px; }
 .speedphone .lock-note { margin: -4px 0 14px; padding: 10px 12px; border-radius: 9px; background: #eaf3f6; color: var(--sp-brand-dark); font-size: 13px; font-weight: 650; }
@@ -88,6 +98,35 @@
 .speedphone .is-busy [data-submitting="true"]::after { content: " …"; }
 .speedphone .message { background: #e6f6ee; border: 1px solid #9bd5b8; border-radius: 12px; margin-bottom: 16px; padding: 14px 16px; font-weight: 700; }
 .speedphone .message--error, .speedphone .empty--error { background: #fff1f1; border-color: #e2a8a8; color: #7e2020; }
+.speedphone .owned-contacts { margin-bottom: 20px; border: 1px solid var(--sp-border); border-radius: 20px; padding: 24px; background: var(--sp-card); box-shadow: 0 10px 32px rgba(23, 32, 42, .06); }
+.speedphone .owned-contacts__heading { display: flex; justify-content: space-between; gap: 24px; align-items: flex-start; }
+.speedphone .owned-contacts__heading h2 { margin: 3px 0 6px; font-size: 26px; }
+.speedphone .owned-contacts__heading p { margin: 0; color: var(--sp-muted); }
+.speedphone .owned-contacts__table-wrap { margin-top: 20px; overflow-x: auto; }
+.speedphone .owned-contacts__table { width: 100%; border-collapse: collapse; }
+.speedphone .owned-contacts__table th, .speedphone .owned-contacts__table td { border-bottom: 1px solid var(--sp-border); padding: 11px 10px; text-align: left; vertical-align: middle; }
+.speedphone .owned-contacts__table th { color: var(--sp-muted); font-size: 12px; text-transform: uppercase; letter-spacing: .05em; }
+.speedphone .owned-contacts__empty { margin: 20px 0 0; border-radius: 12px; padding: 16px; background: var(--sp-bg); color: var(--sp-muted); }
+.speedphone .team-settings { margin-bottom: 20px; border: 1px solid var(--sp-border); border-radius: 20px; padding: 24px; background: var(--sp-card); box-shadow: 0 10px 32px rgba(23, 32, 42, .06); }
+.speedphone .team-settings__heading { display: flex; justify-content: space-between; gap: 24px; align-items: flex-start; }
+.speedphone .team-settings__heading h2 { margin: 3px 0 6px; font-size: 26px; }
+.speedphone .team-settings__heading p { margin: 0; color: var(--sp-muted); }
+.speedphone .team-settings__table-wrap { margin-top: 20px; overflow-x: auto; }
+.speedphone .team-settings__table { width: 100%; border-collapse: collapse; }
+.speedphone .team-settings__table th, .speedphone .team-settings__table td { border-bottom: 1px solid var(--sp-border); padding: 11px 10px; text-align: left; vertical-align: middle; }
+.speedphone .team-settings__table th { color: var(--sp-muted); font-size: 12px; text-transform: uppercase; letter-spacing: .05em; }
+.speedphone .team-settings__table td > span { display: block; color: var(--sp-muted); font-size: 12px; }
+.speedphone .team-settings select, .speedphone .team-settings input[type="number"] { border: 1px solid #bac6d0; border-radius: 9px; padding: 9px 10px; font: inherit; background: #fff; }
+.speedphone .team-settings__commission { display: flex; align-items: center; gap: 6px; }
+.speedphone .team-settings__commission input { width: 90px; }
+.speedphone .team-settings__check { text-align: center !important; }
+.speedphone .team-settings__check input { width: 20px; height: 20px; }
+.speedphone .team-settings__rules { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 20px; }
+.speedphone .team-settings__rules label { display: flex; justify-content: space-between; align-items: center; gap: 12px; border: 1px solid var(--sp-border); border-radius: 12px; padding: 14px; font-weight: 700; }
+.speedphone .team-settings__rules label span { white-space: nowrap; font-weight: 500; }
+.speedphone .team-settings__rules input { width: 76px; }
+.speedphone .team-settings__footer { display: flex; justify-content: space-between; align-items: center; gap: 24px; margin-top: 18px; }
+.speedphone .team-settings__footer p { margin: 0; max-width: 800px; color: var(--sp-muted); font-size: 13px; }
 .speedphone .empty { text-align: center; padding: 54px 24px; }
 .speedphone .empty h2 { margin-top: 0; }
 .speedphone__footer { color: var(--sp-muted); font-size: 12px; text-align: center; padding-top: 26px; }
@@ -97,11 +136,13 @@
     .speedphone .candidate { grid-template-columns: 1fr; }
     .speedphone .quick-form { position: static; }
     .speedphone .stats { grid-template-columns: repeat(3, 1fr); }
+    .speedphone .team-settings__rules { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 650px) {
     .speedphone { width: min(100% - 20px, 1440px); padding-top: 16px; }
-    .speedphone__header, .speedphone .candidate__title { flex-direction: column; }
+    .speedphone__header, .speedphone .candidate__title, .speedphone .owned-contacts__heading, .speedphone .team-settings__heading, .speedphone .team-settings__footer { flex-direction: column; }
+    .speedphone__header-actions { width: 100%; flex-wrap: wrap; }
     .speedphone .stats { grid-template-columns: repeat(2, 1fr); }
     .speedphone .contact-grid, .speedphone .field-row, .speedphone .actions { grid-template-columns: 1fr; }
     .speedphone .email-history__item { grid-template-columns: 1fr; }
