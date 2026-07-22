@@ -2,9 +2,13 @@
 
 final class SpeedPhoneProspectHook
 {
-    public function assignExternalCreator(SugarBean $bean, string $event, array $arguments): void
+    public function assignExternalCreator(SugarBean $bean, string $event, $arguments = []): void
     {
-        if (!empty($arguments['isUpdate']) || empty($bean->id) || empty($bean->created_by)) {
+        $isUpdate = is_array($arguments) && array_key_exists('isUpdate', $arguments)
+            ? !empty($arguments['isUpdate'])
+            : !empty($bean->fetched_row);
+
+        if ($isUpdate || empty($bean->id) || empty($bean->created_by)) {
             return;
         }
 
