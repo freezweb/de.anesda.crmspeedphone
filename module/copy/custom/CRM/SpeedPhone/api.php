@@ -8,12 +8,14 @@ require_once __DIR__ . '/bootstrap.php';
 require_once __DIR__ . '/render.php';
 
 use Anesda\CRM\SpeedPhone\ActionService;
+use Anesda\CRM\SpeedPhone\AssignmentService;
 use Anesda\CRM\SpeedPhone\BusinessDayCalculator;
 use Anesda\CRM\SpeedPhone\Config;
 use Anesda\CRM\SpeedPhone\EmailService;
 use Anesda\CRM\SpeedPhone\InputValidator;
 use Anesda\CRM\SpeedPhone\LockService;
 use Anesda\CRM\SpeedPhone\QueueService;
+use Anesda\CRM\SpeedPhone\UserAccessService;
 
 global $current_user, $db;
 
@@ -33,9 +35,20 @@ try {
     }
 
     $config = Config::load(__DIR__);
+    $accessService = new UserAccessService($db, $current_user);
+    $assignmentService = new AssignmentService($config, $db, $current_user, $accessService);
     $lockService = new LockService($config, $db, $current_user);
-    $queue = new QueueService($config, $db, $current_user, $lockService);
+    $queue = new QueueService($config, $db, $current_user, $lockService, $accessService, $assignmentService);
     $queue->assertUserAllowed();
+
+    if ((string) ($_POST['operation'] ?? '') === 'save_team_settings') {
+        $accessService->saveTeamSettings($_POST, $config);
+        echo json_encode([
+            'success' => true,
+            'data' => ['message' => 'Teamrechte, Provisionen und Eskalationsfristen wurden gespeichert.'],
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        exit;
+    }
 
     if ((string) ($_POST['operation'] ?? '') === 'heartbeat') {
         $validator = new InputValidator();
@@ -71,7 +84,8 @@ try {
         $emailService,
         new BusinessDayCalculator(),
         $current_user,
-        $lockService
+        $lockService,
+        $assignmentService
     );
     $result = $service->execute($_POST);
 

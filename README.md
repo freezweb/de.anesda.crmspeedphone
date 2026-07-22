@@ -9,6 +9,14 @@ CRM SpeedPhone ist eine schnelle, abarbeitbare Telefonakquise-Warteschlange für
 - automatisch eingeblendete Dashboard-Kachel „SpeedPhone starten“
 - gemeinsamer Callcenter-Pool für mehrere gleichzeitig telefonierende Benutzer
 - atomare UUID-Reservierung: ein Zielkontakt kann nie gleichzeitig bei zwei Mitarbeitern erscheinen
+- administrierbare SpeedPhone-Rollen „Intern“, „Extern“ und „Kein Zugriff“
+- eine Reservierung allein erzeugt noch keine dauerhafte Zuordnung; „nicht erreicht“ bleibt im gemeinsamen Pool
+- exklusive Betreuung ab dem ersten erreichten Gespräch: der Kontakt erscheint danach keinem anderen externen Mitarbeiter
+- selbst angelegte Zielkontakte externer Mitarbeiter werden automatisch und ausschließlich ihrem Ersteller zugeordnet
+- aufklappbare Liste „Meine Kontakte“ mit direkten UUID-Links auf zugeordnete Zielkontakte und selbst angelegte SuiteCRM-Interessenten (`Leads`)
+- konfigurierbare interne Eskalation bei überfälligen Rückrufen oder zu langer Untätigkeit
+- dauerhafte Provisionszuordnung an den externen Mitarbeiter, der das Interesse protokolliert
+- sichtbarer Kontaktverlauf mit Mitarbeiter, Zeitpunkt, Ergebnis und Notiz
 - automatische Verlängerung während der Bearbeitung und Freigabe nach dem Ergebnis
 - automatische Freigabe abgelaufener Reservierungen nach konfigurierbarer Zeit
 - vorhandene Kampagnensignale wie Link-Klick und E-Mail-Öffnung als nachvollziehbare Priorisierung
@@ -39,6 +47,7 @@ CRM SpeedPhone ist eine schnelle, abarbeitbare Telefonakquise-Warteschlange für
 3. Paket installieren und anschließend einmal **Quick Repair and Rebuild** ausführen, falls der Installer dies nicht automatisch erledigt hat.
 4. `custom/CRM/SpeedPhone/config.local.php.example` nach `config.local.php` kopieren und mindestens `source_list_name` konfigurieren.
 5. Auf dem Dashboard **SpeedPhone starten** oder im Zielkontakte-Menü **CRM SpeedPhone** öffnen.
+6. Als berechtigter interner Benutzer über **Team & Provision** die Mitarbeiterrollen, Provisionssätze und Eskalationsfristen einstellen.
 
 ## Konfiguration
 
@@ -61,10 +70,10 @@ Diese Datei wird bei Updates nicht überschrieben und ist nicht Teil des veröff
 - `local_postcode_patterns`: regionale Priorisierung
 - `positive_patterns`: zusätzliche Prioritätssignale
 - `exclude_patterns`: harte Ausschlussregeln
-- `allowed_usernames`: optionale Benutzerfreigabe
-- `restrict_to_assigned_user`: optional wieder auf ausschließlich zugewiesene Zielkontakte begrenzen; für einen Callcenter-Pool `false`
 - `lock_minutes`: Laufzeit einer Reservierung ohne erfolgreiche Verlängerung
 - `default_callback_days`: Vorbelegung des änderbaren Rückrufdatums ohne Uhrzeit, standardmäßig `7` Tage; eine optionale Uhrzeit erzeugt zusätzlich einen festen CRM-Termin
+- `callback_escalation_days`: nach wie vielen Tagen ein nicht erledigter externer Rückruf intern sichtbar wird; über die Oberfläche änderbar
+- `external_stale_days`: nach wie vielen Tagen ohne Kontaktversuch ein extern betreuter Kontakt intern sichtbar wird; über die Oberfläche änderbar
 
 ## Datenmodell
 
@@ -72,7 +81,10 @@ CRM SpeedPhone erweitert `prospects_cstm` und `calls_cstm`. Die Primärschlüsse
 
 Die Tabelle `crm_speedphone_locks` enthält ausschließlich kurzlebige Reservierungsdaten (`prospect_id`, `user_id`, Token und Zeitstempel). Sie referenziert damit die vorhandenen UUIDs und kopiert keine Kontaktinformationen. Eindeutige Datenbankindizes verhindern doppelte Reservierungen auch bei exakt gleichzeitigen Abrufen.
 
+`crm_speedphone_user_settings` speichert pro vorhandener Benutzer-UUID die SpeedPhone-Rolle, den Provisionssatz und die Modulrechte. `crm_speedphone_assignments` referenziert ausschließlich Zielkontakt- und Benutzer-UUIDs und hält Betreuung, letzten Kontaktversuch sowie die bei einem Erfolg eingefrorene Provisionszuordnung fest. Ein Eintrag entsteht beim ersten erreichten Gespräch oder sofort für einen von einem externen Benutzer selbst angelegten Zielkontakt. `crm_speedphone_options` enthält die beiden Eskalationsfristen. Es werden weiterhin keine Kontaktkopien angelegt.
+
 Der Installer erzeugt eine bislang fehlende `*_cstm`-Tabelle idempotent. Dadurch ist die Installation auch möglich, wenn im Modul „Anrufe“ zuvor noch kein benutzerdefiniertes Feld existierte.
+Beim Update werden außerdem ältere SpeedPhone-Anrufnamen einmalig in das strukturierte Ergebnisfeld übernommen. Nur tatsächlich erreichte Gespräche erzeugen daraus eine Betreuung; „nicht erreicht“, „falsche Nummer“ und reine Verschiebungen tun das nicht.
 
 ## Datenschutz und Akquise
 

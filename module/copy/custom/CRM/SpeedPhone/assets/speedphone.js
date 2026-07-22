@@ -18,6 +18,24 @@
     });
 
     root.addEventListener('submit', async function (event) {
+        const teamForm = event.target.closest('#speedphone-team-form');
+        if (teamForm) {
+            event.preventDefault();
+            const teamData = new FormData(teamForm);
+            teamData.set('operation', 'save_team_settings');
+            teamData.set('csrf', root.dataset.csrf);
+            setBusy(teamForm, true);
+            try {
+                const payload = await request(teamData);
+                showMessage(payload.data.message, false);
+                setBusy(teamForm, false);
+            } catch (error) {
+                showMessage(error.message || String(error), true);
+                setBusy(teamForm, false);
+            }
+            return;
+        }
+
         const form = event.target.closest('#speedphone-form');
         if (!form) {
             return;
@@ -70,6 +88,36 @@
     });
 
     root.addEventListener('click', async function (event) {
+        const ownedToggle = event.target.closest('[data-speedphone-owned-toggle]');
+        if (ownedToggle) {
+            const panel = document.getElementById('speedphone-owned-contacts');
+            if (panel) {
+                panel.hidden = !panel.hidden;
+                root.querySelectorAll('[data-speedphone-owned-toggle]').forEach(function (toggle) {
+                    toggle.setAttribute('aria-expanded', panel.hidden ? 'false' : 'true');
+                });
+                if (!panel.hidden) {
+                    panel.scrollIntoView({behavior: 'smooth', block: 'start'});
+                }
+            }
+            return;
+        }
+
+        const teamToggle = event.target.closest('[data-speedphone-team-toggle]');
+        if (teamToggle) {
+            const panel = document.getElementById('speedphone-team-settings');
+            if (panel) {
+                panel.hidden = !panel.hidden;
+                root.querySelectorAll('[data-speedphone-team-toggle]').forEach(function (toggle) {
+                    toggle.setAttribute('aria-expanded', panel.hidden ? 'false' : 'true');
+                });
+                if (!panel.hidden) {
+                    panel.scrollIntoView({behavior: 'smooth', block: 'start'});
+                }
+            }
+            return;
+        }
+
         const button = event.target.closest('[data-speedphone-retry]');
         if (!button) {
             return;
@@ -81,6 +129,18 @@
         } catch (error) {
             button.disabled = false;
             showMessage(error.message || String(error), true);
+        }
+    });
+
+    root.addEventListener('change', function (event) {
+        const role = event.target.closest('[data-speedphone-role]');
+        if (!role) {
+            return;
+        }
+        const row = role.closest('tr');
+        const commission = row ? row.querySelector('input[name^="commission_percent"]') : null;
+        if (commission && role.value === 'external' && Number(commission.value.replace(',', '.')) === 0) {
+            commission.value = '20.00';
         }
     });
 
@@ -133,7 +193,7 @@
     }
 
     function setBusy(form, busy) {
-        Array.from(form.querySelectorAll('button, input, textarea')).forEach(function (element) {
+        Array.from(form.querySelectorAll('button, input, textarea, select')).forEach(function (element) {
             element.disabled = busy;
         });
         form.classList.toggle('is-busy', busy);
