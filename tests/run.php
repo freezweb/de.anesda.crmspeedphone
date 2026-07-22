@@ -15,6 +15,15 @@ use Anesda\CRM\SpeedPhone\AssignmentService;
 
 $failures = [];
 
+if (!class_exists('SugarBean')) {
+    class SugarBean
+    {
+        public string $id = '';
+        public string $created_by = '';
+        public array $fetched_row = [];
+    }
+}
+
 function check(bool $condition, string $message): void
 {
     global $failures;
@@ -41,6 +50,18 @@ check(!AssignmentService::actionAssignsOwner('later'), 'Ein Verschieben ohne Anr
 check(AssignmentService::actionAssignsOwner('callback'), 'Ein vereinbarter RÃ¼ckruf muss den Kontakt zuordnen.');
 check(AssignmentService::actionAssignsOwner('email_callback'), 'Ein E-Mail-Wunsch muss den Kontakt zuordnen.');
 check(AssignmentService::actionAssignsOwner('interested'), 'Ein Interessent muss dem erfolgreichen Mitarbeiter zugeordnet werden.');
+
+require_once __DIR__ . '/../module/copy/custom/modules/Prospects/SpeedPhoneProspectHook.php';
+$existingProspect = new SugarBean();
+$existingProspect->id = 'befc6200-da8e-47a5-9fc8-3b30e8451018';
+$existingProspect->created_by = '12fc6200-da8e-47a5-9fc8-3b30e8451000';
+$existingProspect->fetched_row = ['id' => $existingProspect->id];
+try {
+    (new SpeedPhoneProspectHook())->assignExternalCreator($existingProspect, 'after_save', 'SpeedPhone-Rückruf');
+    check(true, 'String-Argument des SuiteCRM-Hooks wurde akzeptiert.');
+} catch (TypeError $error) {
+    check(false, 'Der SuiteCRM-Hook muss String-Argumente beim Rückruf-Speichern akzeptieren: ' . $error->getMessage());
+}
 
 $exampleConfig = require __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/config.local.php.example';
 check(
