@@ -252,6 +252,9 @@ $db->query("UPDATE crm_speedphone_assignments
                 won_commission_percent=IF(owner_type='external', owner_commission_percent, 0.00)
             WHERE last_result='interested' AND won_by_user_id IS NULL");
 
+require_once 'custom/CRM/SpeedPhone/bootstrap.php';
+(new Anesda\CRM\SpeedPhone\AclRoleService($db))->synchronize();
+
 speedPhoneInstallDashboardDashlets($db);
 
 $repair = new RepairAndClear();

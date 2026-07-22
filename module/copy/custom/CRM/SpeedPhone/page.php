@@ -53,7 +53,7 @@ $assetBase = $legacyBase . '/custom/CRM/SpeedPhone/assets';
 $userTimezone = (string) ($current_user->getPreference('timezone') ?: 'Europe/Berlin');
 
 ?>
-<link rel="stylesheet" href="<?= speedPhoneEscape($assetBase) ?>/speedphone.css?v=1.3.0">
+<link rel="stylesheet" href="<?= speedPhoneEscape($assetBase) ?>/speedphone.css?v=1.3.1">
 <main class="speedphone" data-api-url="index.php?entryPoint=crmSpeedPhoneApi" data-csrf="<?= speedPhoneEscape($_SESSION['crm_speedphone_csrf']) ?>">
     <header class="speedphone__header">
         <div>
@@ -72,7 +72,9 @@ $userTimezone = (string) ($current_user->getPreference('timezone') ?: 'Europe/Be
             <?php if ($canManageTeam): ?>
                 <button type="button" class="button button--secondary" data-speedphone-team-toggle aria-expanded="false">Team &amp; Provision</button>
             <?php endif; ?>
-            <a class="button button--secondary" href="index.php?module=Prospects&amp;action=index">Alle Zielkontakte</a>
+            <?php if ($currentProfile['user_type'] === 'internal'): ?>
+                <a class="button button--secondary" href="index.php?module=Prospects&amp;action=index">Alle Zielkontakte</a>
+            <?php endif; ?>
         </div>
     </header>
 
@@ -108,4 +110,4 @@ $userTimezone = (string) ($current_user->getPreference('timezone') ?: 'Europe/Be
 
     <div class="speedphone__footer">CRM SpeedPhone © anesda</div>
 </main>
-<script src="<?= speedPhoneEscape($assetBase) ?>/speedphone.js?v=1.3.0"></script>
+<script src="<?= speedPhoneEscape($assetBase) ?>/speedphone.js?v=1.3.1"></script>

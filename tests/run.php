@@ -128,6 +128,15 @@ check(str_contains($teamSettingsHtml, 'value="external" selected'), 'Externe Rol
 check(str_contains($teamSettingsHtml, 'value="20.00"'), 'Provisionssatz wird nicht bearbeitbar dargestellt.');
 check(str_contains($teamSettingsHtml, 'external_stale_days'), 'Eskalationsfrist bei Untätigkeit fehlt.');
 
+$aclRoleSource = file_get_contents(__DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/AclRoleService.php');
+check(str_contains($aclRoleSource, 'CRM SpeedPhone Extern'), 'Verwaltete externe SuiteCRM-Rolle fehlt.');
+check(str_contains($aclRoleSource, 'CRM SpeedPhone Intern'), 'Verwaltete interne SuiteCRM-Rolle fehlt.');
+check(
+    str_contains($aclRoleSource, "'list' => \$internal ? \$all : \$none"),
+    'Externe Rolle darf keinen Zugriff auf die allgemeine Zielkontaktliste erhalten.'
+);
+check(str_contains($aclRoleSource, "'delete' => \$none"), 'SpeedPhone-Rollen dürfen keine Löschberechtigung erteilen.');
+
 $ownedContacts = [[
     'id' => 'befc6200-da8e-47a5-9fc8-3b30e8451018',
     'name' => 'Eigener Beispielbetrieb',

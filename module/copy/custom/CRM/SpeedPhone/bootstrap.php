@@ -9,6 +9,7 @@ foreach ([
     'Config',
     'BusinessDayCalculator',
     'InputValidator',
+    'AclRoleService',
     'UserAccessService',
     'AssignmentService',
     'LockService',
