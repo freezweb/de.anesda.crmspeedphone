@@ -11,13 +11,14 @@ use Anesda\CRM\SpeedPhone\ActionService;
 use Anesda\CRM\SpeedPhone\AssignmentService;
 use Anesda\CRM\SpeedPhone\BusinessDayCalculator;
 use Anesda\CRM\SpeedPhone\Config;
+use Anesda\CRM\SpeedPhone\DialerService;
 use Anesda\CRM\SpeedPhone\EmailService;
 use Anesda\CRM\SpeedPhone\InputValidator;
 use Anesda\CRM\SpeedPhone\LockService;
 use Anesda\CRM\SpeedPhone\QueueService;
 use Anesda\CRM\SpeedPhone\UserAccessService;
 
-global $current_user, $db;
+global $current_user, $db, $sugar_config;
 
 header('Content-Type: application/json; charset=UTF-8');
 header('Cache-Control: no-store');
@@ -40,6 +41,42 @@ try {
     $lockService = new LockService($config, $db, $current_user);
     $queue = new QueueService($config, $db, $current_user, $lockService, $accessService, $assignmentService);
     $queue->assertUserAllowed();
+    $dialerService = new DialerService($db, $current_user);
+
+    if ((string) ($_POST['operation'] ?? '') === 'dialer_pairing') {
+        $siteUrl = rtrim((string) ($sugar_config['site_url'] ?? ''), '/');
+        $legacyBase = str_ends_with($siteUrl, '/legacy') ? $siteUrl : $siteUrl . '/legacy';
+        $result = $dialerService->createPairing($legacyBase . '/index.php?entryPoint=crmSpeedPhoneDialerApi');
+        $result['devices'] = $dialerService->listDevices();
+        echo json_encode(['success' => true, 'data' => $result], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        exit;
+    }
+
+    if ((string) ($_POST['operation'] ?? '') === 'dialer_call') {
+        $validator = new InputValidator();
+        $prospectId = $validator->uuid((string) ($_POST['prospect_id'] ?? ''));
+        if (!$queue->canEditProspect($prospectId) || !ACLController::checkAccess('Prospects', 'edit', true)) {
+            throw new RuntimeException('Kein Zugriff auf diesen Zielkontakt.');
+        }
+        $lockService->assertOwned($prospectId, (string) ($_POST['lock_token'] ?? ''));
+        $result = $dialerService->queueCall($prospectId, (string) ($_POST['phone_kind'] ?? 'work'));
+        echo json_encode(['success' => true, 'data' => $result], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        exit;
+    }
+
+    if ((string) ($_POST['operation'] ?? '') === 'dialer_command_status') {
+        $validator = new InputValidator();
+        $commandId = $validator->uuid((string) ($_POST['command_id'] ?? ''));
+        echo json_encode(['success' => true, 'data' => $dialerService->commandStatus($commandId)], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        exit;
+    }
+
+    if ((string) ($_POST['operation'] ?? '') === 'dialer_revoke') {
+        $validator = new InputValidator();
+        $dialerService->revokeDevice($validator->uuid((string) ($_POST['device_id'] ?? '')));
+        echo json_encode(['success' => true, 'data' => ['message' => 'Die Kopplung wurde aufgehoben.']], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        exit;
+    }
 
     if ((string) ($_POST['operation'] ?? '') === 'save_team_settings') {
         $accessService->saveTeamSettings($_POST, $config);
@@ -68,7 +105,8 @@ try {
                 'workspace_html' => speedPhoneRenderWorkspace(
                     $candidate,
                     $userTimezone,
-                    (int) $config->get('default_callback_days', 7)
+                    (int) $config->get('default_callback_days', 7),
+                    $dialerService->listDevices()
                 ),
                 'statistics' => $statistics,
                 'prospect_id' => $candidate['id'] ?? null,

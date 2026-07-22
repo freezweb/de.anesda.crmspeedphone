@@ -99,6 +99,26 @@
 .speedphone .button--mail { background: #6d3ca0; }
 .speedphone .button--muted { background: #5d6975; }
 .speedphone .button--danger { background: var(--sp-danger); }
+.speedphone .button--dialer { background: #075985; }
+.speedphone .mobile-dial-actions { align-items: center; background: #eaf7fb; border: 1px solid #9fd4e2; border-radius: 13px; display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; padding: 12px 14px; }
+.speedphone .mobile-dial-actions > div { flex: 1 1 220px; }
+.speedphone .mobile-dial-actions strong, .speedphone .mobile-dial-actions span { display: block; }
+.speedphone .mobile-dial-actions span { color: var(--sp-muted); font-size: 13px; margin-top: 2px; }
+.speedphone .mobile-dial-actions .button { min-height: 40px; }
+.speedphone .dialer-panel { background: var(--sp-card); border: 1px solid var(--sp-border); border-radius: 20px; box-shadow: 0 10px 32px rgba(23, 32, 42, .06); margin-bottom: 20px; padding: 24px; }
+.speedphone .dialer-panel__heading { align-items: flex-start; display: flex; gap: 24px; justify-content: space-between; }
+.speedphone .dialer-panel__heading h2 { font-size: 26px; margin: 3px 0 6px; }
+.speedphone .dialer-panel__heading p { color: var(--sp-muted); margin: 0; max-width: 760px; }
+.speedphone .dialer-panel__body { display: grid; gap: 28px; grid-template-columns: minmax(240px, 340px) minmax(280px, 1fr); margin-top: 20px; }
+.speedphone .dialer-panel__body h3 { margin-top: 0; }
+.speedphone .dialer-panel__qr-wrap { text-align: center; }
+.speedphone .dialer-panel__qr { align-items: center; aspect-ratio: 1; background: #fff; border: 1px solid var(--sp-border); border-radius: 14px; display: flex; justify-content: center; margin: 0 auto; max-width: 300px; overflow: hidden; padding: 10px; }
+.speedphone .dialer-panel__qr svg { display: block; height: auto; max-height: 100%; max-width: 100%; width: 100%; }
+.speedphone .dialer-panel__qr-wrap > p { color: var(--sp-muted); font-size: 13px; min-height: 20px; }
+.speedphone .dialer-device { align-items: center; border-bottom: 1px solid var(--sp-border); display: flex; gap: 14px; justify-content: space-between; padding: 11px 0; }
+.speedphone .dialer-device strong, .speedphone .dialer-device span { display: block; }
+.speedphone .dialer-device span, .speedphone .dialer-panel__empty { color: var(--sp-muted); font-size: 13px; }
+.speedphone .dialer-panel__security { background: #eef8f3; border-left: 4px solid var(--sp-success); border-radius: 8px; margin: 20px 0 0; padding: 11px 13px; }
 .speedphone .is-busy { opacity: .65; }
 .speedphone .is-busy [data-submitting="true"]::after { content: " …"; }
 .speedphone .message { background: #e6f6ee; border: 1px solid #9bd5b8; border-radius: 12px; margin-bottom: 16px; padding: 14px 16px; font-weight: 700; }
@@ -142,11 +162,12 @@
     .speedphone .quick-form { position: static; }
     .speedphone .stats { grid-template-columns: repeat(3, 1fr); }
     .speedphone .team-settings__rules { grid-template-columns: 1fr; }
+    .speedphone .dialer-panel__body { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 650px) {
     .speedphone { width: min(100% - 20px, 1440px); padding-top: 16px; }
-    .speedphone__header, .speedphone .candidate__title, .speedphone .owned-contacts__heading, .speedphone .team-settings__heading, .speedphone .team-settings__footer { flex-direction: column; }
+    .speedphone__header, .speedphone .candidate__title, .speedphone .owned-contacts__heading, .speedphone .team-settings__heading, .speedphone .team-settings__footer, .speedphone .dialer-panel__heading { flex-direction: column; }
     .speedphone__header-actions { width: 100%; flex-wrap: wrap; }
     .speedphone .stats { grid-template-columns: repeat(2, 1fr); }
     .speedphone .contact-grid, .speedphone .field-row, .speedphone .actions { grid-template-columns: 1fr; }

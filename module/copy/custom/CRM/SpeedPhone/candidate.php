@@ -66,6 +66,21 @@
                 <?php endif; ?>
             </div>
 
+            <?php if (!empty($candidate['phone_work']) || !empty($candidate['phone_mobile'])): ?>
+                <div class="mobile-dial-actions" data-speedphone-dialer-ready="<?= $dialerReady ? '1' : '0' ?>">
+                    <div>
+                        <strong>Anruf über Handy starten</strong>
+                        <span><?= $dialerReady ? 'Die App ist empfangsbereit.' : 'App am Handy öffnen oder zuerst koppeln.' ?></span>
+                    </div>
+                    <?php if (!empty($candidate['phone_work'])): ?>
+                        <button type="button" class="button button--dialer button--compact" data-speedphone-dialer-call="work"<?= $dialerReady ? '' : ' disabled' ?>>Telefon wählen</button>
+                    <?php endif; ?>
+                    <?php if (!empty($candidate['phone_mobile'])): ?>
+                        <button type="button" class="button button--dialer button--compact" data-speedphone-dialer-call="mobile"<?= $dialerReady ? '' : ' disabled' ?>>Mobil wählen</button>
+                    <?php endif; ?>
+                </div>
+            <?php endif; ?>
+
             <div class="reasons">
                 <?php foreach ($candidate['reasons'] as $reason): ?>
                     <span><?= speedPhoneEscape($reason) ?></span>

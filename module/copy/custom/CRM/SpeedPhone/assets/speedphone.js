@@ -105,6 +105,83 @@
     });
 
     root.addEventListener('click', async function (event) {
+        const dialerToggle = event.target.closest('[data-speedphone-dialer-toggle]');
+        if (dialerToggle) {
+            const panel = document.getElementById('speedphone-dialer-panel');
+            if (panel) {
+                panel.hidden = !panel.hidden;
+                dialerToggle.setAttribute('aria-expanded', panel.hidden ? 'false' : 'true');
+                if (!panel.hidden) {
+                    await loadPairingCode();
+                    panel.scrollIntoView({behavior: 'smooth', block: 'start'});
+                }
+            }
+            return;
+        }
+
+        if (event.target.closest('[data-speedphone-dialer-close]')) {
+            const panel = document.getElementById('speedphone-dialer-panel');
+            if (panel) {
+                panel.hidden = true;
+                root.querySelector('[data-speedphone-dialer-toggle]')?.setAttribute('aria-expanded', 'false');
+            }
+            return;
+        }
+
+        if (event.target.closest('[data-speedphone-dialer-refresh]')) {
+            await loadPairingCode();
+            return;
+        }
+
+        const revokeButton = event.target.closest('[data-speedphone-dialer-revoke]');
+        if (revokeButton) {
+            if (!window.confirm('Dieses Handy wirklich vom Benutzerkonto trennen?')) {
+                return;
+            }
+            const data = new FormData();
+            data.set('operation', 'dialer_revoke');
+            data.set('device_id', revokeButton.dataset.speedphoneDialerRevoke || '');
+            data.set('csrf', root.dataset.csrf);
+            revokeButton.disabled = true;
+            try {
+                const payload = await request(data);
+                revokeButton.closest('.dialer-device')?.remove();
+                showMessage(payload.data.message, false);
+            } catch (error) {
+                revokeButton.disabled = false;
+                showMessage(error.message || String(error), true);
+            }
+            return;
+        }
+
+        const dialButton = event.target.closest('[data-speedphone-dialer-call]');
+        if (dialButton) {
+            const form = document.getElementById('speedphone-form');
+            if (!form) {
+                return;
+            }
+            const data = new FormData();
+            data.set('operation', 'dialer_call');
+            data.set('prospect_id', form.elements.prospect_id.value);
+            data.set('lock_token', form.elements.lock_token.value);
+            data.set('phone_kind', dialButton.dataset.speedphoneDialerCall || 'work');
+            data.set('csrf', root.dataset.csrf);
+            dialButton.disabled = true;
+            const originalText = dialButton.textContent;
+            dialButton.textContent = 'Wird gesendet …';
+            try {
+                const payload = await request(data);
+                dialButton.textContent = 'An Handy gesendet';
+                showMessage('Anrufauftrag an „' + payload.data.device_name + '“ gesendet.', false);
+                await watchDialerCommand(payload.data.command_id, payload.data.platform);
+            } catch (error) {
+                dialButton.disabled = false;
+                dialButton.textContent = originalText;
+                showMessage(error.message || String(error), true);
+            }
+            return;
+        }
+
         const ownedEmailButton = event.target.closest('[data-speedphone-owned-email]');
         if (ownedEmailButton) {
             const contactName = ownedEmailButton.dataset.contactName || 'diesen Kontakt';
@@ -261,6 +338,92 @@
         }
 
         return payload;
+    }
+
+    async function loadPairingCode() {
+        const qrTarget = root.querySelector('[data-speedphone-dialer-qr]');
+        const expiryTarget = root.querySelector('[data-speedphone-dialer-expiry]');
+        if (!qrTarget || typeof window.qrcode !== 'function') {
+            showMessage('Der QR-Code konnte nicht geladen werden.', true);
+            return;
+        }
+        qrTarget.textContent = 'QR-Code wird geladen …';
+        const data = new FormData();
+        data.set('operation', 'dialer_pairing');
+        data.set('csrf', root.dataset.csrf);
+        try {
+            const payload = await request(data);
+            const qr = window.qrcode(0, 'M');
+            qr.addData(payload.data.payload);
+            qr.make();
+            qrTarget.innerHTML = qr.createSvgTag(5, 4);
+            qrTarget.querySelector('svg')?.setAttribute('aria-label', 'QR-Code zum Koppeln der SpeedPhone Dialer App');
+            if (expiryTarget) {
+                const expires = new Date(String(payload.data.expires_at).replace(' ', 'T') + 'Z');
+                expiryTarget.textContent = 'Gültig bis ' + expires.toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'}) + ' Uhr';
+            }
+            renderDialerDevices(payload.data.devices || []);
+        } catch (error) {
+            qrTarget.textContent = 'QR-Code konnte nicht erzeugt werden.';
+            showMessage(error.message || String(error), true);
+        }
+    }
+
+    function renderDialerDevices(devices) {
+        const target = root.querySelector('[data-speedphone-dialer-devices]');
+        if (!target) {
+            return;
+        }
+        target.replaceChildren();
+        if (!devices.length) {
+            const empty = document.createElement('p');
+            empty.className = 'dialer-panel__empty';
+            empty.textContent = 'Noch kein Gerät gekoppelt.';
+            target.appendChild(empty);
+            return;
+        }
+        devices.forEach(function (device) {
+            const item = document.createElement('article');
+            item.className = 'dialer-device';
+            const details = document.createElement('div');
+            const name = document.createElement('strong');
+            const state = document.createElement('span');
+            name.textContent = device.device_name;
+            state.textContent = String(device.platform).toUpperCase() + ' · ' + (Number(device.is_ready) === 1 ? 'empfangsbereit' : 'App derzeit nicht aktiv');
+            details.append(name, state);
+            const remove = document.createElement('button');
+            remove.type = 'button';
+            remove.className = 'button button--danger button--compact';
+            remove.dataset.speedphoneDialerRevoke = device.id;
+            remove.textContent = 'Trennen';
+            item.append(details, remove);
+            target.appendChild(item);
+        });
+    }
+
+    async function watchDialerCommand(commandId, platform) {
+        for (let attempt = 0; attempt < 15; attempt += 1) {
+            await new Promise(function (resolve) { window.setTimeout(resolve, 1000); });
+            const data = new FormData();
+            data.set('operation', 'dialer_command_status');
+            data.set('command_id', commandId);
+            data.set('csrf', root.dataset.csrf);
+            const payload = await request(data);
+            if (payload.data.status === 'dialed') {
+                showMessage(platform === 'ios' ? 'Anruf am iPhone bestätigt und gestartet.' : 'Anruf auf dem Handy gestartet.', false);
+                return;
+            }
+            if (payload.data.status === 'failed') {
+                throw new Error(payload.data.error || 'Das Handy konnte den Anruf nicht starten.');
+            }
+            if (payload.data.status === 'expired' || payload.data.status === 'cancelled') {
+                throw new Error('Der Anrufauftrag wurde nicht rechtzeitig vom Handy übernommen.');
+            }
+            if (payload.data.status === 'received') {
+                showMessage(platform === 'ios' ? 'Auf dem iPhone bitte den Anruf bestätigen.' : 'Das Handy hat den Anruf übernommen.', false);
+            }
+        }
+        showMessage('Das Handy hat noch keine Rückmeldung gegeben. Prüfen Sie, ob die App geöffnet ist.', true);
     }
 
     function updateStatistics(statistics) {

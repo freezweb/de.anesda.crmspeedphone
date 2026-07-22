@@ -7,11 +7,13 @@ if (!defined('sugarEntry')) {
 require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/BusinessDayCalculator.php';
 require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/InputValidator.php';
 require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/AssignmentService.php';
+require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/DialerService.php';
 require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/render.php';
 
 use Anesda\CRM\SpeedPhone\BusinessDayCalculator;
 use Anesda\CRM\SpeedPhone\InputValidator;
 use Anesda\CRM\SpeedPhone\AssignmentService;
+use Anesda\CRM\SpeedPhone\DialerService;
 
 $failures = [];
 
@@ -50,6 +52,12 @@ check(!AssignmentService::actionAssignsOwner('later'), 'Ein Verschieben ohne Anr
 check(AssignmentService::actionAssignsOwner('callback'), 'Ein vereinbarter RÃ¼ckruf muss den Kontakt zuordnen.');
 check(AssignmentService::actionAssignsOwner('email_callback'), 'Ein E-Mail-Wunsch muss den Kontakt zuordnen.');
 check(AssignmentService::actionAssignsOwner('interested'), 'Ein Interessent muss dem erfolgreichen Mitarbeiter zugeordnet werden.');
+check(DialerService::normalizePhone('+49 (0) 431 265189') === '+490431265189', 'Telefonnummer wird nicht sicher normalisiert.');
+try {
+    DialerService::normalizePhone('*21*123#');
+    check(false, 'MMI-Steuercodes dürfen nicht als Telefonnummer akzeptiert werden.');
+} catch (InvalidArgumentException) {
+}
 
 require_once __DIR__ . '/../module/copy/custom/modules/Prospects/SpeedPhoneProspectHook.php';
 $existingProspect = new SugarBean();
@@ -112,7 +120,12 @@ $workspace = speedPhoneRenderWorkspace([
         'commission_percent' => 0,
     ],
     'lock_token' => str_repeat('a', 64),
-], 'Europe/Berlin', 7);
+], 'Europe/Berlin', 7, [[
+    'id' => '12fc6200-da8e-47a5-9fc8-3b30e8451000',
+    'device_name' => 'Testhandy',
+    'platform' => 'android',
+    'is_ready' => 1,
+]]);
 check(str_contains($workspace, 'Gesendete E-Mails'), 'E-Mail-Historie fehlt im gerenderten Kontakt.');
 check(str_contains($workspace, 'info@example.org'), 'Empfängeradresse fehlt in der E-Mail-Historie.');
 check(str_contains($workspace, 'value="email_callback"'), 'Aktion „E-Mail jetzt senden + wieder anrufen“ fehlt.');
@@ -131,11 +144,21 @@ check(str_contains($workspace, 'Max Mustermann'), 'Anrufender Mitarbeiter fehlt 
 check(speedPhoneResultLabel('not_reached') === 'Nicht erreicht', 'Anrufergebnis wird nicht lesbar übersetzt.');
 
 $emailServiceSource = file_get_contents(__DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/EmailService.php');
+check(str_contains($workspace, 'data-speedphone-dialer-call="work"'), 'Schaltfläche zum Anruf über das gekoppelte Handy fehlt.');
+check(!str_contains($workspace, 'data-speedphone-dialer-call="work" disabled'), 'Handywahl bleibt trotz empfangsbereitem Gerät gesperrt.');
 check(str_contains($emailServiceSource, 'explicitOneTimeRequest'), 'Einmalige ausdrückliche Versandfreigabe fehlt im E-Mail-Dienst.');
 check(str_contains($emailServiceSource, 'die globale E-Mail-Sperre bleibt bestehen'), 'Fortbestand der globalen E-Mail-Sperre wird nicht bestätigt.');
 check(!preg_match('/UPDATE\s+email_addresses/i', $emailServiceSource), 'Die einmalige Freigabe darf globale E-Mail-Sperrmerkmale nicht löschen.');
 
 $apiSource = file_get_contents(__DIR__ . '/../module/copy/custom/CRM/SpeedPhone/api.php');
+check(str_contains($apiSource, "'dialer_pairing'"), 'API-Aktion zur QR-Kopplung fehlt.');
+check(str_contains($apiSource, "'dialer_call'"), 'API-Aktion zur Handywahl fehlt.');
+
+$dialerEntryPointSource = file_get_contents(__DIR__ . '/../module/copy/custom/Extension/application/Ext/EntryPointRegistry/crm_speedphone.php');
+check(str_contains($dialerEntryPointSource, "'auth' => false"), 'Die native App erreicht den token-geschützten Dialer-Endpunkt nicht ohne CRM-Sitzung.');
+$dialerApiSource = file_get_contents(__DIR__ . '/../module/copy/custom/CRM/SpeedPhone/dialer_api.php');
+check(str_contains($dialerApiSource, "'claim_pairing'"), 'Öffentliche API kann den QR-Einmalcode nicht einlösen.');
+check(!str_contains($dialerApiSource, 'crm_speedphone_csrf'), 'Native Geräteauthentifizierung darf nicht von einer Browser-CSRF-Sitzung abhängen.');
 check(str_contains($apiSource, "'resend_email'"), 'API-Aktion zum Wiederholen ohne zweiten Anruf fehlt.');
 
 $teamUsers = [[

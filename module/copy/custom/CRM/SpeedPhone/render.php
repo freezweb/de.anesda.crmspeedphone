@@ -49,7 +49,7 @@ function speedPhoneStatusLabel(mixed $value): string
     ][(string) $value] ?? speedPhoneResultLabel($value);
 }
 
-function speedPhoneRenderWorkspace(?array $candidate, string $userTimezone, int $defaultCallbackDays = 7): string
+function speedPhoneRenderWorkspace(?array $candidate, string $userTimezone, int $defaultCallbackDays = 7, array $dialerDevices = []): string
 {
     $defaultCallbackDays = max(1, min(90, $defaultCallbackDays));
     try {
@@ -61,6 +61,13 @@ function speedPhoneRenderWorkspace(?array $candidate, string $userTimezone, int 
     } catch (Throwable) {
         $todayDate = (new DateTimeImmutable('today'))->format('Y-m-d');
         $defaultCallbackDate = (new DateTimeImmutable('+7 days'))->format('Y-m-d');
+    }
+    $dialerReady = false;
+    foreach ($dialerDevices as $dialerDevice) {
+        if ((int) ($dialerDevice['is_ready'] ?? 0) === 1) {
+            $dialerReady = true;
+            break;
+        }
     }
     ob_start();
     require __DIR__ . '/candidate.php';

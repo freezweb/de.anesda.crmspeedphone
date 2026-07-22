@@ -16,6 +16,7 @@ foreach ([
     'QueueService',
     'EmailService',
     'ActionService',
+    'DialerService',
 ] as $className) {
     require_once $speedPhoneBase . '/src/' . $className . '.php';
 }

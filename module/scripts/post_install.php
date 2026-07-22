@@ -166,6 +166,54 @@ $db->query("CREATE TABLE IF NOT EXISTS `crm_speedphone_assignments` (
     KEY `idx_speedphone_assignment_winner` (`won_by_user_id`)
 ) ENGINE=InnoDB");
 
+$db->query("CREATE TABLE IF NOT EXISTS `crm_speedphone_dialer_pairings` (
+    `id` char(36) NOT NULL,
+    `user_id` char(36) NOT NULL,
+    `token_hash` char(64) NOT NULL,
+    `created_at` datetime NOT NULL,
+    `expires_at` datetime NOT NULL,
+    `used_at` datetime NULL,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `idx_speedphone_pairing_token` (`token_hash`),
+    KEY `idx_speedphone_pairing_user` (`user_id`),
+    KEY `idx_speedphone_pairing_expiry` (`expires_at`)
+) ENGINE=InnoDB");
+
+$db->query("CREATE TABLE IF NOT EXISTS `crm_speedphone_dialer_devices` (
+    `id` char(36) NOT NULL,
+    `user_id` char(36) NOT NULL,
+    `device_name` varchar(120) NOT NULL,
+    `platform` varchar(20) NOT NULL,
+    `token_hash` char(64) NOT NULL,
+    `active` tinyint(1) NOT NULL DEFAULT 1,
+    `paired_at` datetime NOT NULL,
+    `last_seen_at` datetime NULL,
+    `last_error` varchar(255) NULL,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `idx_speedphone_device_token` (`token_hash`),
+    KEY `idx_speedphone_device_user` (`user_id`, `active`),
+    KEY `idx_speedphone_device_seen` (`last_seen_at`)
+) ENGINE=InnoDB");
+
+$db->query("CREATE TABLE IF NOT EXISTS `crm_speedphone_dialer_commands` (
+    `id` char(36) NOT NULL,
+    `device_id` char(36) NOT NULL,
+    `user_id` char(36) NOT NULL,
+    `prospect_id` char(36) NOT NULL,
+    `phone` varchar(40) NOT NULL,
+    `display_name` varchar(255) NOT NULL,
+    `status` varchar(20) NOT NULL,
+    `created_at` datetime NOT NULL,
+    `expires_at` datetime NOT NULL,
+    `delivered_at` datetime NULL,
+    `completed_at` datetime NULL,
+    `error_message` varchar(255) NULL,
+    PRIMARY KEY (`id`),
+    KEY `idx_speedphone_command_device` (`device_id`, `status`, `expires_at`),
+    KEY `idx_speedphone_command_user` (`user_id`, `created_at`),
+    KEY `idx_speedphone_command_prospect` (`prospect_id`)
+) ENGINE=InnoDB");
+
 $db->query("INSERT IGNORE INTO crm_speedphone_user_settings
     (user_id, user_type, commission_percent, can_receive_unassigned, can_manage, date_modified)
     SELECT id,
