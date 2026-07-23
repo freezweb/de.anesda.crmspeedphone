@@ -1,0 +1,77 @@
+name: SuiteCRM-Modul veröffentlichen
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/release.yml"
+      - "module/**"
+      - "tools/**"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Repository auschecken
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Modulversion ermitteln
+        shell: bash
+        run: |
+          version="$(php -r 'include "module/manifest.php"; echo $manifest["version"];')"
+          test -n "$version"
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+          echo "ARCHIVE=de.anesda.crmspeedphone-$version.zip" >> "$GITHUB_ENV"
+
+      - name: Installationspaket bauen
+        shell: bash
+        run: |
+          mkdir -p build/package dist
+          cp -R module/. build/package/
+          rm -f build/package/copy/custom/CRM/SpeedPhone/config.local.php
+          (
+            cd build/package
+            zip -q -r "../../dist/$ARCHIVE" .
+          )
+          unzip -l "dist/$ARCHIVE" | grep -q "manifest.php"
+          unzip -l "dist/$ARCHIVE" | grep -q "copy/custom/CRM/SpeedPhone/"
+          if unzip -l "dist/$ARCHIVE" | grep -q "config.local.php$"; then
+            echo "Instanzbezogene Konfiguration darf nicht veröffentlicht werden." >&2
+            exit 1
+          fi
+
+      - name: Release-Text schreiben
+        shell: bash
+        run: |
+          cat > release-notes.md <<'EOF'
+          ## Änderungen
+
+          - Kontakt-, Verlauf-, E-Mail-, Kennzahlen- und Dialerstatus werden alle zehn Sekunden per AJAX aktualisiert.
+          - Die exklusive Kontaktreservierung wird während der gesamten geöffneten Bearbeitung automatisch verlängert.
+          - Laufende Formulareingaben bleiben bei der Aktualisierung erhalten.
+          - Die Handywahl kann für denselben Kontakt beliebig oft wiederholt werden, etwa bei „besetzt“.
+          - Browser-Sitzungs- und Verbindungsfehler werden verständlich angezeigt und automatisch erneut geprüft.
+          EOF
+
+      - name: GitHub-Release anlegen oder aktualisieren
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="v$VERSION"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" "dist/$ARCHIVE" --clobber
+          else
+            gh release create "$tag" "dist/$ARCHIVE" \
+              --title "CRM SpeedPhone $VERSION" \
+              --notes-file release-notes.md \
+              --verify-tag
+          fi
