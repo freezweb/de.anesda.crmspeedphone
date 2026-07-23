@@ -221,12 +221,12 @@ final class DialerService
         return $normalized;
     }
 
-    private function authenticateDevice(string $deviceId, string $deviceToken): array
+    public function authenticateDevice(string $deviceId, string $deviceToken): array
     {
         if (!preg_match('/^[a-f0-9-]{36}$/i', $deviceId) || !preg_match('/^[A-Za-z0-9_-]{32,128}$/', $deviceToken)) {
             throw new RuntimeException('Geräteanmeldung ungültig.');
         }
-        $result = $this->db->query("SELECT id, device_name, token_hash FROM crm_speedphone_dialer_devices
+        $result = $this->db->query("SELECT id, user_id, device_name, token_hash FROM crm_speedphone_dialer_devices
             WHERE id='" . $this->quote($deviceId) . "' AND active=1 LIMIT 1");
         $device = $this->db->fetchByAssoc($result);
         if (!$device || !hash_equals((string) $device['token_hash'], hash('sha256', $deviceToken))) {

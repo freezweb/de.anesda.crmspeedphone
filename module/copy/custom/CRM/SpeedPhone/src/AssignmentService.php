@@ -40,6 +40,30 @@ final class AssignmentService
         return "({$own} OR {$shared} OR " . $this->sqlEscalatedExpression($assignmentAlias, $customAlias) . ')';
     }
 
+    /**
+     * Eingehende Rückrufe müssen intern auch dann zugeordnet werden können,
+     * wenn der Kontakt einem externen Provisionsmitarbeiter gehört. Der
+     * Besitzer wird dadurch nicht verändert. Externe Benutzer behalten ihre
+     * normale, eingeschränkte Sicht.
+     */
+    public function sqlIncomingAccessCondition(
+        string $assignmentAlias = 'spa',
+        string $customAlias = 'pc',
+        string $prospectAlias = 'p',
+        string $creatorSettingsAlias = 'sp_creator'
+    ): string {
+        if ($this->access->currentProfile()['user_type'] === 'internal') {
+            return '1=1';
+        }
+
+        return $this->sqlAccessCondition(
+            $assignmentAlias,
+            $customAlias,
+            $prospectAlias,
+            $creatorSettingsAlias
+        );
+    }
+
     public function sqlEscalatedExpression(string $assignmentAlias = 'spa', string $customAlias = 'pc'): string
     {
         $options = $this->access->escalationOptions($this->config);

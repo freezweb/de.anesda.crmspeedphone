@@ -474,10 +474,8 @@
 
     function startLiveUpdates() {
         stopLiveUpdates();
-        if (document.getElementById('speedphone-form')) {
-            liveUpdateTimer = window.setInterval(refreshCurrent, LIVE_UPDATE_INTERVAL_MS);
-            refreshCurrent();
-        }
+        liveUpdateTimer = window.setInterval(refreshCurrent, LIVE_UPDATE_INTERVAL_MS);
+        refreshCurrent();
     }
 
     function stopLiveUpdates() {
@@ -489,16 +487,12 @@
 
     async function refreshCurrent() {
         const form = document.getElementById('speedphone-form');
-        if (!form || !form.elements.prospect_id || !form.elements.lock_token) {
-            stopLiveUpdates();
-            return;
-        }
-        if (refreshInFlight || form.classList.contains('is-busy')) {
+        if (refreshInFlight || (form && form.classList.contains('is-busy'))) {
             return;
         }
 
-        const prospectId = form.elements.prospect_id.value;
-        const lockToken = form.elements.lock_token.value;
+        const prospectId = form?.elements.prospect_id?.value || '';
+        const lockToken = form?.elements.lock_token?.value || '';
 
         const data = new FormData();
         data.set('operation', 'refresh_current');
@@ -510,6 +504,29 @@
         try {
             const payload = await request(data);
             const currentForm = document.getElementById('speedphone-form');
+            if (payload.data.incoming_call && payload.data.workspace_html) {
+                storeCurrentDraft(currentForm);
+                workspace.innerHTML = payload.data.workspace_html;
+                updateStatistics(payload.data.statistics || {});
+                renderDialerDevices(payload.data.devices || []);
+                updateLiveStatus(payload.data.expires_at);
+                restoreDraft(document.getElementById('speedphone-form'));
+                showMessage(
+                    'Eingehender Rückruf erkannt: '
+                    + payload.data.incoming_call.display_name
+                    + ' wurde automatisch geöffnet.',
+                    false
+                );
+                refreshFailures = 0;
+                return;
+            }
+
+            if (!currentForm) {
+                updateStatistics(payload.data.statistics || {});
+                renderDialerDevices(payload.data.devices || []);
+                refreshFailures = 0;
+                return;
+            }
             if (!currentForm
                 || currentForm.elements.prospect_id.value !== prospectId
                 || currentForm.elements.lock_token.value !== lockToken
@@ -579,6 +596,57 @@
             : 'Live · reserviert bis '
                 + expires.toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'})
                 + ' Uhr';
+    }
+
+    function storeCurrentDraft(form) {
+        if (!form || !form.elements.prospect_id) {
+            return;
+        }
+        const values = {};
+        Array.from(form.elements).forEach(function (element) {
+            if (!element.name || ['prospect_id', 'lock_token'].includes(element.name)) {
+                return;
+            }
+            values[element.name] = element.type === 'checkbox'
+                ? element.checked
+                : element.value;
+        });
+        try {
+            window.sessionStorage.setItem(
+                'speedphone-draft-' + form.elements.prospect_id.value,
+                JSON.stringify(values)
+            );
+        } catch (_) {
+            // Private Browsermodi können Sitzungsspeicher blockieren; der Rückruf muss trotzdem geöffnet werden.
+        }
+    }
+
+    function restoreDraft(form) {
+        if (!form || !form.elements.prospect_id) {
+            return;
+        }
+        let values = null;
+        try {
+            values = JSON.parse(window.sessionStorage.getItem(
+                'speedphone-draft-' + form.elements.prospect_id.value
+            ) || 'null');
+        } catch (_) {
+            return;
+        }
+        if (!values || typeof values !== 'object') {
+            return;
+        }
+        Object.keys(values).forEach(function (name) {
+            const element = form.elements[name];
+            if (!element) {
+                return;
+            }
+            if (element.type === 'checkbox') {
+                element.checked = Boolean(values[name]);
+            } else {
+                element.value = String(values[name]);
+            }
+        });
     }
 
     function isReservationError(errorText) {

@@ -14,6 +14,7 @@ use Anesda\CRM\SpeedPhone\Config;
 use Anesda\CRM\SpeedPhone\DialerService;
 use Anesda\CRM\SpeedPhone\EmailService;
 use Anesda\CRM\SpeedPhone\InputValidator;
+use Anesda\CRM\SpeedPhone\IncomingCallService;
 use Anesda\CRM\SpeedPhone\LockService;
 use Anesda\CRM\SpeedPhone\QueueService;
 use Anesda\CRM\SpeedPhone\UserAccessService;
@@ -96,11 +97,23 @@ try {
     }
 
     if ((string) ($_POST['operation'] ?? '') === 'refresh_current') {
-        $validator = new InputValidator();
-        $prospectId = $validator->uuid((string) ($_POST['prospect_id'] ?? ''));
+        $prospectIdInput = (string) ($_POST['prospect_id'] ?? '');
         $lockToken = (string) ($_POST['lock_token'] ?? '');
-        $lock = $lockService->heartbeat($prospectId, $lockToken);
-        $candidate = $queue->getCurrentCandidate($prospectId, $lockToken);
+        $incomingCall = (new IncomingCallService($config, $db))
+            ->openPendingForCurrentUser($current_user, $queue);
+        $candidate = null;
+        $lock = null;
+        if ($incomingCall !== null) {
+            $candidate = $incomingCall['candidate'];
+            $lock = [
+                'expires_at' => $candidate['lock_expires_at'],
+            ];
+        } elseif ($prospectIdInput !== '') {
+            $validator = new InputValidator();
+            $prospectId = $validator->uuid($prospectIdInput);
+            $lock = $lockService->heartbeat($prospectId, $lockToken);
+            $candidate = $queue->getCurrentCandidate($prospectId, $lockToken);
+        }
         $devices = $dialerService->listDevices();
         $userTimezone = (string) ($current_user->getPreference('timezone') ?: 'Europe/Berlin');
 
@@ -115,8 +128,12 @@ try {
                 ),
                 'statistics' => $queue->getStatistics(),
                 'devices' => $devices,
-                'prospect_id' => $candidate['id'],
-                'expires_at' => $lock['expires_at'],
+                'prospect_id' => $candidate['id'] ?? null,
+                'expires_at' => $lock['expires_at'] ?? null,
+                'incoming_call' => $incomingCall === null ? null : [
+                    'event_id' => $incomingCall['event_id'],
+                    'display_name' => $candidate['name'],
+                ],
             ],
         ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         exit;

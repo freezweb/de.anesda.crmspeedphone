@@ -214,6 +214,18 @@ $db->query("CREATE TABLE IF NOT EXISTS `crm_speedphone_dialer_commands` (
     KEY `idx_speedphone_command_prospect` (`prospect_id`)
 ) ENGINE=InnoDB");
 
+$db->query("CREATE TABLE IF NOT EXISTS `crm_speedphone_incoming_calls` (
+    `id` char(36) NOT NULL,
+    `device_id` char(36) NOT NULL,
+    `user_id` char(36) NOT NULL,
+    `prospect_id` char(36) NOT NULL,
+    `received_at` datetime NOT NULL,
+    `opened_at` datetime NULL,
+    PRIMARY KEY (`id`),
+    KEY `idx_speedphone_incoming_user` (`user_id`, `opened_at`, `received_at`),
+    KEY `idx_speedphone_incoming_prospect` (`prospect_id`, `received_at`)
+) ENGINE=InnoDB");
+
 $db->query("INSERT IGNORE INTO crm_speedphone_user_settings
     (user_id, user_type, commission_percent, can_receive_unassigned, can_manage, date_modified)
     SELECT id,

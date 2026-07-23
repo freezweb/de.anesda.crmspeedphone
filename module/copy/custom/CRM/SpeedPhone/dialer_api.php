@@ -7,6 +7,8 @@ if (!defined('sugarEntry') || !sugarEntry) {
 require_once __DIR__ . '/bootstrap.php';
 
 use Anesda\CRM\SpeedPhone\DialerService;
+use Anesda\CRM\SpeedPhone\Config;
+use Anesda\CRM\SpeedPhone\IncomingCallService;
 
 global $db;
 
@@ -42,6 +44,14 @@ try {
     } elseif ($operation === 'disconnect') {
         $service->disconnect((string) ($_POST['device_id'] ?? ''), (string) ($_POST['device_token'] ?? ''));
         $result = ['disconnected' => true];
+    } elseif ($operation === 'incoming_call') {
+        $incomingCalls = new IncomingCallService(Config::load(__DIR__), $db);
+        $result = $incomingCalls->report(
+            $service,
+            (string) ($_POST['device_id'] ?? ''),
+            (string) ($_POST['device_token'] ?? ''),
+            (string) ($_POST['phone'] ?? '')
+        );
     } else {
         throw new InvalidArgumentException('Unbekannte Dialer-Aktion.');
     }

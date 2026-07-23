@@ -8,12 +8,14 @@ require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/BusinessDayCal
 require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/InputValidator.php';
 require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/AssignmentService.php';
 require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/DialerService.php';
+require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/IncomingCallService.php';
 require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/render.php';
 
 use Anesda\CRM\SpeedPhone\BusinessDayCalculator;
 use Anesda\CRM\SpeedPhone\InputValidator;
 use Anesda\CRM\SpeedPhone\AssignmentService;
 use Anesda\CRM\SpeedPhone\DialerService;
+use Anesda\CRM\SpeedPhone\IncomingCallService;
 
 $failures = [];
 
@@ -52,7 +54,23 @@ check(!AssignmentService::actionAssignsOwner('later'), 'Ein Verschieben ohne Anr
 check(AssignmentService::actionAssignsOwner('callback'), 'Ein vereinbarter RÃ¼ckruf muss den Kontakt zuordnen.');
 check(AssignmentService::actionAssignsOwner('email_callback'), 'Ein E-Mail-Wunsch muss den Kontakt zuordnen.');
 check(AssignmentService::actionAssignsOwner('interested'), 'Ein Interessent muss dem erfolgreichen Mitarbeiter zugeordnet werden.');
+check(
+    str_contains(
+        file_get_contents(__DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/AssignmentService.php'),
+        'sqlIncomingAccessCondition'
+    ),
+    'Interne Benutzer können einen Rückrufer nicht unabhängig von der Provisionszuordnung öffnen.'
+);
 check(DialerService::normalizePhone('+49 (0) 431 265189') === '+490431265189', 'Telefonnummer wird nicht sicher normalisiert.');
+check(
+    IncomingCallService::phoneVariants('+49 (0) 331 2882214')
+        === ['4903312882214', '493312882214', '03312882214'],
+    'Internationale Rückrufnummer mit optionaler Null wird nicht zuverlässig zugeordnet.'
+);
+check(
+    in_array('493312882214', IncomingCallService::phoneVariants('0331 2882214'), true),
+    'Nationale Rückrufnummer erhält keine deutsche internationale Vergleichsform.'
+);
 try {
     DialerService::normalizePhone('*21*123#');
     check(false, 'MMI-Steuercodes dürfen nicht als Telefonnummer akzeptiert werden.');
@@ -155,6 +173,7 @@ $apiSource = file_get_contents(__DIR__ . '/../module/copy/custom/CRM/SpeedPhone/
 check(str_contains($apiSource, "'dialer_pairing'"), 'API-Aktion zur QR-Kopplung fehlt.');
 check(str_contains($apiSource, "'dialer_call'"), 'API-Aktion zur Handywahl fehlt.');
 check(str_contains($apiSource, "'refresh_current'"), 'AJAX-Aktualisierung des reservierten Kontakts fehlt.');
+check(str_contains($apiSource, 'openPendingForCurrentUser'), 'Eingehende Rückrufe werden im Portal nicht automatisch geöffnet.');
 
 $queueSource = file_get_contents(__DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/QueueService.php');
 check(str_contains($queueSource, 'getCurrentCandidate'), 'Aktueller Kontakt kann nicht ohne Warteschlangenwechsel aktualisiert werden.');
@@ -167,6 +186,8 @@ $javascriptSource = file_get_contents(__DIR__ . '/../module/copy/custom/CRM/Spee
 check(str_contains($javascriptSource, "data.set('operation', 'refresh_current')"), 'Browser fragt keine aktuellen Kontaktdaten per AJAX ab.');
 check(str_contains($javascriptSource, 'LIVE_UPDATE_INTERVAL_MS = 10000'), 'Live-Aktualisierung läuft nicht im vorgesehenen Intervall.');
 check(str_contains($javascriptSource, 'currentMain.replaceWith(incomingMain)'), 'Live-Aktualisierung schützt das laufend bearbeitete Eingabeformular nicht.');
+check(str_contains($javascriptSource, 'payload.data.incoming_call'), 'Browser reagiert nicht auf eingehende Rückrufereignisse.');
+check(str_contains($javascriptSource, 'storeCurrentDraft'), 'Ein Rückrufwechsel schützt laufende Formulareingaben nicht.');
 check(
     preg_match('/finally\\s*\\{.*?dialButton\\.disabled\\s*=\\s*false;/s', $javascriptSource) === 1,
     'Handywahl wird nach einem Versuch nicht wieder freigegeben.'
@@ -176,8 +197,15 @@ $dialerEntryPointSource = file_get_contents(__DIR__ . '/../module/copy/custom/Ex
 check(str_contains($dialerEntryPointSource, "'auth' => false"), 'Die native App erreicht den token-geschützten Dialer-Endpunkt nicht ohne CRM-Sitzung.');
 $dialerApiSource = file_get_contents(__DIR__ . '/../module/copy/custom/CRM/SpeedPhone/dialer_api.php');
 check(str_contains($dialerApiSource, "'claim_pairing'"), 'Öffentliche API kann den QR-Einmalcode nicht einlösen.');
+check(str_contains($dialerApiSource, "'incoming_call'"), 'Gekoppelte App kann keinen eingehenden Rückruf melden.');
 check(!str_contains($dialerApiSource, 'crm_speedphone_csrf'), 'Native Geräteauthentifizierung darf nicht von einer Browser-CSRF-Sitzung abhängen.');
 check(str_contains($apiSource, "'resend_email'"), 'API-Aktion zum Wiederholen ohne zweiten Anruf fehlt.');
+
+$installerSource = file_get_contents(__DIR__ . '/../module/scripts/post_install.php');
+check(
+    str_contains($installerSource, 'crm_speedphone_incoming_calls'),
+    'Installer legt die UUID-basierte Tabelle für Rückrufereignisse nicht an.'
+);
 
 $teamUsers = [[
     'id' => 'befc6200-da8e-47a5-9fc8-3b30e8451018',

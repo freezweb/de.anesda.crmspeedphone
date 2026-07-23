@@ -25,6 +25,8 @@ CRM SpeedPhone ist eine schnelle, abarbeitbare Telefonakquise-Warteschlange für
 - chronologische Liste gesendeter Direkt- und Kampagnenmails mit Datum, Uhrzeit, Empfängeradresse und Betreff direkt am aktuellen Kontakt
 - Kontaktwechsel und aktualisierte Kennzahlen per AJAX ohne vollständiges Neuladen der Seite
 - beliebig wiederholbare Handywahl für denselben Kontakt, etwa wenn besetzt war oder ein Anruf neu gestartet werden muss
+- automatische Rückruferkennung über die gekoppelte Android-App: eingehende bekannte Nummern öffnen den vorhandenen Zielkontakt im laufenden Portal
+- Rückrufereignisse bleiben benutzerbezogen und respektieren bestehende Mehrbenutzer-Reservierungen
 - optionale SpeedPhone-Dialer-App für Android und iOS: ein Klick im CRM übergibt die vorhandene Telefonnummer sicher an das eigene Handy
 - benutzerbezogene Geräte-Kopplung per kurzlebigem Einmal-QR-Code; CRM-Zugangsdaten werden nicht an die App übertragen
 - Android startet den Anruf nach erteilter Telefonberechtigung direkt; iOS zeigt die systembedingt vorgeschriebene Anrufbestätigung
@@ -94,6 +96,8 @@ Die Tabelle `crm_speedphone_locks` enthält ausschließlich kurzlebige Reservier
 `crm_speedphone_user_settings` speichert pro vorhandener Benutzer-UUID die SpeedPhone-Rolle, den Provisionssatz und die Modulrechte. `crm_speedphone_assignments` referenziert ausschließlich Zielkontakt- und Benutzer-UUIDs und hält Betreuung, letzten Kontaktversuch sowie die bei einem Erfolg eingefrorene Provisionszuordnung fest. Ein Eintrag entsteht beim ersten erreichten Gespräch oder sofort für einen von einem externen Benutzer selbst angelegten Zielkontakt. `crm_speedphone_options` enthält die beiden Eskalationsfristen. Es werden weiterhin keine Kontaktkopien angelegt.
 
 Die Dialer-Tabellen speichern Geräte, kurzlebige Kopplungen und Anrufaufträge. Jeder Auftrag referenziert den vorhandenen Zielkontakt ausschließlich über dessen UUID. Kopplungscodes und dauerhafte Gerätetoken werden serverseitig nur als SHA-256-Hash gespeichert; Telefonnummern in Anrufaufträgen verfallen nach zwei Minuten.
+
+`crm_speedphone_incoming_calls` speichert bei einem zugeordneten Rückruf ausschließlich Ereignis-, Geräte-, Benutzer- und Zielkontakt-UUID sowie Eingangs- und Öffnungszeitpunkt. Die eingehende Telefonnummer wird nicht in einer zusätzlichen SpeedPhone-Tabelle gespeichert. Nicht zuordenbare Nummern erzeugen keinen Ereignisdatensatz.
 
 Der Installer erzeugt eine bislang fehlende `*_cstm`-Tabelle idempotent. Dadurch ist die Installation auch möglich, wenn im Modul „Anrufe“ zuvor noch kein benutzerdefiniertes Feld existierte.
 Beim Update werden außerdem ältere SpeedPhone-Anrufnamen einmalig in das strukturierte Ergebnisfeld übernommen. Nur tatsächlich erreichte Gespräche erzeugen daraus eine Betreuung; „nicht erreicht“, „falsche Nummer“ und reine Verschiebungen tun das nicht.

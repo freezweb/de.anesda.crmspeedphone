@@ -111,6 +111,46 @@ final class LockService
         $this->db->query($sql);
     }
 
+    /**
+     * Wechselt die Reservierung des aktuellen Benutzers möglichst atomar auf
+     * einen bestimmten Rückrufer. Eine fremde aktive Reservierung wird nie
+     * übernommen oder aufgehoben.
+     */
+    public function switchTo(string $prospectId): ?array
+    {
+        $this->cleanupExpired();
+        $active = $this->getActiveForCurrentUser();
+        if ($active !== null && hash_equals($prospectId, $active['prospect_id'])) {
+            return $this->heartbeat($prospectId, $active['lock_token']);
+        }
+
+        $lockedSql = "SELECT COUNT(*) n
+                      FROM " . self::TABLE . "
+                      WHERE prospect_id='" . $this->db->quote($prospectId) . "'
+                        AND user_id<>'" . $this->db->quote((string) $this->currentUser->id) . "'
+                        AND expires_at>UTC_TIMESTAMP()";
+        $locked = $this->db->fetchByAssoc($this->db->query($lockedSql));
+        if ((int) ($locked['n'] ?? 0) > 0) {
+            return null;
+        }
+
+        $this->db->query('START TRANSACTION');
+        try {
+            $this->releaseCurrentUserLock();
+            $lock = $this->acquire($prospectId);
+            if ($lock === null || !hash_equals($prospectId, $lock['prospect_id'])) {
+                $this->db->query('ROLLBACK');
+                return null;
+            }
+            $this->db->query('COMMIT');
+
+            return $lock;
+        } catch (\Throwable $exception) {
+            $this->db->query('ROLLBACK');
+            throw $exception;
+        }
+    }
+
     private function lockMinutes(): int
     {
         return max(5, min(120, (int) $this->config->get('lock_minutes', 20)));

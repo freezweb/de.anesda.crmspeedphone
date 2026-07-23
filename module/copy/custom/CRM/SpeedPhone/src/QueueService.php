@@ -127,6 +127,32 @@ final class QueueService
         return $this->enrichCandidate($candidate, $lock);
     }
 
+    /**
+     * Öffnet einen bekannten Rückrufer aus der bestehenden Zielkontaktliste.
+     * Ist der Datensatz bereits bei einem anderen Mitarbeiter reserviert,
+     * bleibt dessen Sperre unangetastet und es wird null zurückgegeben.
+     */
+    public function openCandidateById(string $prospectId): ?array
+    {
+        $this->assertUserAllowed();
+        $listId = $this->getSourceListId();
+        $userCondition = $this->assignments->sqlIncomingAccessCondition();
+        $candidate = $this->findCandidateById(
+            $this->candidateSelectSql($listId, $userCondition, false),
+            $prospectId
+        );
+        if ($candidate === null) {
+            return null;
+        }
+
+        $lock = $this->locks->switchTo($prospectId);
+        if ($lock === null) {
+            return null;
+        }
+
+        return $this->enrichCandidate($candidate, $lock);
+    }
+
     public function getStatistics(): array
     {
         $this->locks->cleanupExpired();
