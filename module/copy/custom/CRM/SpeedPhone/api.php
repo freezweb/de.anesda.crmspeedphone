@@ -95,6 +95,33 @@ try {
         exit;
     }
 
+    if ((string) ($_POST['operation'] ?? '') === 'refresh_current') {
+        $validator = new InputValidator();
+        $prospectId = $validator->uuid((string) ($_POST['prospect_id'] ?? ''));
+        $lockToken = (string) ($_POST['lock_token'] ?? '');
+        $lock = $lockService->heartbeat($prospectId, $lockToken);
+        $candidate = $queue->getCurrentCandidate($prospectId, $lockToken);
+        $devices = $dialerService->listDevices();
+        $userTimezone = (string) ($current_user->getPreference('timezone') ?: 'Europe/Berlin');
+
+        echo json_encode([
+            'success' => true,
+            'data' => [
+                'workspace_html' => speedPhoneRenderWorkspace(
+                    $candidate,
+                    $userTimezone,
+                    (int) $config->get('default_callback_days', 7),
+                    $devices
+                ),
+                'statistics' => $queue->getStatistics(),
+                'devices' => $devices,
+                'prospect_id' => $candidate['id'],
+                'expires_at' => $lock['expires_at'],
+            ],
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        exit;
+    }
+
     if ((string) ($_POST['operation'] ?? '') === 'next') {
         $candidate = $queue->getNextCandidate();
         $statistics = $queue->getStatistics();

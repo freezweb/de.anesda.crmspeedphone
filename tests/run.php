@@ -141,6 +141,7 @@ check(str_contains($workspace, '20,00 %'), 'Provisionssatz fehlt am Kontakt.');
 check(str_contains($workspace, 'interne Team freigegeben'), 'Interne Eskalation wird nicht sichtbar erklärt.');
 check(str_contains($workspace, 'Kontaktverlauf'), 'Nachvollziehbarer Kontaktverlauf fehlt.');
 check(str_contains($workspace, 'Max Mustermann'), 'Anrufender Mitarbeiter fehlt im Kontaktverlauf.');
+check(str_contains($workspace, 'data-speedphone-live-status'), 'Sichtbarer Status der Live-Reservierung fehlt.');
 check(speedPhoneResultLabel('not_reached') === 'Nicht erreicht', 'Anrufergebnis wird nicht lesbar übersetzt.');
 
 $emailServiceSource = file_get_contents(__DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/EmailService.php');
@@ -153,6 +154,23 @@ check(!preg_match('/UPDATE\s+email_addresses/i', $emailServiceSource), 'Die einm
 $apiSource = file_get_contents(__DIR__ . '/../module/copy/custom/CRM/SpeedPhone/api.php');
 check(str_contains($apiSource, "'dialer_pairing'"), 'API-Aktion zur QR-Kopplung fehlt.');
 check(str_contains($apiSource, "'dialer_call'"), 'API-Aktion zur Handywahl fehlt.');
+check(str_contains($apiSource, "'refresh_current'"), 'AJAX-Aktualisierung des reservierten Kontakts fehlt.');
+
+$queueSource = file_get_contents(__DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/QueueService.php');
+check(str_contains($queueSource, 'getCurrentCandidate'), 'Aktueller Kontakt kann nicht ohne Warteschlangenwechsel aktualisiert werden.');
+check(
+    str_contains($queueSource, 'erwirbt bewusst keine neue Reservierung'),
+    'Live-Aktualisierung muss ausdrücklich ohne neue Kontaktreservierung arbeiten.'
+);
+
+$javascriptSource = file_get_contents(__DIR__ . '/../module/copy/custom/CRM/SpeedPhone/assets/speedphone.js');
+check(str_contains($javascriptSource, "data.set('operation', 'refresh_current')"), 'Browser fragt keine aktuellen Kontaktdaten per AJAX ab.');
+check(str_contains($javascriptSource, 'LIVE_UPDATE_INTERVAL_MS = 10000'), 'Live-Aktualisierung läuft nicht im vorgesehenen Intervall.');
+check(str_contains($javascriptSource, 'currentMain.replaceWith(incomingMain)'), 'Live-Aktualisierung schützt das laufend bearbeitete Eingabeformular nicht.');
+check(
+    preg_match('/finally\\s*\\{.*?dialButton\\.disabled\\s*=\\s*false;/s', $javascriptSource) === 1,
+    'Handywahl wird nach einem Versuch nicht wieder freigegeben.'
+);
 
 $dialerEntryPointSource = file_get_contents(__DIR__ . '/../module/copy/custom/Extension/application/Ext/EntryPointRegistry/crm_speedphone.php');
 check(str_contains($dialerEntryPointSource, "'auth' => false"), 'Die native App erreicht den token-geschützten Dialer-Endpunkt nicht ohne CRM-Sitzung.');

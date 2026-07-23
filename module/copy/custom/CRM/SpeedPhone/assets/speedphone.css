@@ -71,6 +71,7 @@
 .speedphone .quick-form { position: sticky; top: 16px; }
 .speedphone .quick-form h3 { margin-top: 0; font-size: 20px; }
 .speedphone .lock-note { margin: -4px 0 14px; padding: 10px 12px; border-radius: 9px; background: #eaf3f6; color: var(--sp-brand-dark); font-size: 13px; font-weight: 650; }
+.speedphone .lock-note [data-speedphone-live-status] { display: block; margin-top: 4px; color: #18794e; font-size: 12px; font-weight: 800; }
 .speedphone .quick-form label { display: block; font-size: 14px; font-weight: 750; margin: 13px 0 6px; }
 .speedphone .quick-form textarea, .speedphone .quick-form input[type="email"], .speedphone .quick-form input[type="date"], .speedphone .quick-form input[type="time"] { width: 100%; border: 1px solid #bac6d0; border-radius: 10px; padding: 11px 12px; font: inherit; background: #fff; }
 .speedphone .quick-form textarea:focus, .speedphone .quick-form input:focus { outline: 3px solid rgba(21, 94, 117, .16); border-color: var(--sp-brand); }

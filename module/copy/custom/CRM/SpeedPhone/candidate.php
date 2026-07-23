@@ -139,7 +139,10 @@
             <input type="hidden" name="prospect_id" value="<?= speedPhoneEscape($candidate['id']) ?>">
             <input type="hidden" name="lock_token" value="<?= speedPhoneEscape($candidate['lock_token']) ?>">
             <h3>Anruf schnell eintragen</h3>
-            <p class="lock-note">Für dich reserviert · andere Telefonierer erhalten inzwischen einen anderen Kontakt.</p>
+            <p class="lock-note">
+                Für dich reserviert · andere Telefonierer erhalten inzwischen einen anderen Kontakt.
+                <span data-speedphone-live-status>Live-Aktualisierung aktiv</span>
+            </p>
 
             <label for="speedphone-note">Kurze Notiz</label>
             <textarea id="speedphone-note" name="note" rows="4" placeholder="Gespräch, Ansprechpartner oder Grund der Wiedervorlage"></textarea>

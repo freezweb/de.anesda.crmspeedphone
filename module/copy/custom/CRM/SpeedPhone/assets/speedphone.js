@@ -8,14 +8,20 @@
         return;
     }
 
-    let heartbeatTimer = null;
-    startHeartbeat();
+    const LIVE_UPDATE_INTERVAL_MS = 10000;
+    let liveUpdateTimer = null;
+    let refreshInFlight = false;
+    let refreshFailures = 0;
+    startLiveUpdates();
 
     document.addEventListener('visibilitychange', function () {
         if (document.visibilityState === 'visible') {
-            refreshLock();
+            refreshCurrent();
         }
     });
+    window.addEventListener('online', refreshCurrent);
+    window.addEventListener('pagehide', stopLiveUpdates);
+    window.addEventListener('pageshow', startLiveUpdates);
 
     root.addEventListener('submit', async function (event) {
         const teamForm = event.target.closest('#speedphone-team-form');
@@ -83,7 +89,7 @@
             const emailMessage = emailResult && emailResult.message ? ' ' + emailResult.message : '';
             const emailFailed = emailResult && emailResult.sent === false;
             showMessage(payload.data.message + emailMessage, emailFailed);
-            stopHeartbeat();
+            stopLiveUpdates();
             if (emailFailed && emailResult.retry_allowed) {
                 setBusy(form, false);
                 delete button.dataset.submitting;
@@ -175,9 +181,13 @@
                 showMessage('Anrufauftrag an „' + payload.data.device_name + '“ gesendet.', false);
                 await watchDialerCommand(payload.data.command_id, payload.data.platform);
             } catch (error) {
-                dialButton.disabled = false;
-                dialButton.textContent = originalText;
                 showMessage(error.message || String(error), true);
+            } finally {
+                if (document.body.contains(dialButton)) {
+                    dialButton.disabled = false;
+                    dialButton.textContent = originalText;
+                }
+                refreshCurrent();
             }
             return;
         }
@@ -310,7 +320,10 @@
             const payload = await request(data);
             workspace.innerHTML = payload.data.workspace_html;
             updateStatistics(payload.data.statistics || {});
-            startHeartbeat();
+            if (payload.data.devices) {
+                renderDialerDevices(payload.data.devices);
+            }
+            startLiveUpdates();
             const candidateName = workspace.querySelector('.candidate-name');
             if (candidateName) {
                 candidateName.focus({preventScroll: true});
@@ -332,7 +345,15 @@
             credentials: 'same-origin',
             headers: {'X-Requested-With': 'XMLHttpRequest'}
         });
-        const payload = await response.json();
+        let payload;
+        try {
+            payload = await response.json();
+        } catch (error) {
+            if (response.redirected || !String(response.headers.get('content-type') || '').includes('application/json')) {
+                throw new Error('Die Sitzung ist abgelaufen. Bitte SpeedPhone neu laden.');
+            }
+            throw error;
+        }
         if (!response.ok || !payload.success) {
             throw new Error(payload.error || 'Die Anfrage konnte nicht verarbeitet werden.');
         }
@@ -451,39 +472,121 @@
         message.scrollIntoView({behavior: 'smooth', block: 'nearest'});
     }
 
-    function startHeartbeat() {
-        stopHeartbeat();
+    function startLiveUpdates() {
+        stopLiveUpdates();
         if (document.getElementById('speedphone-form')) {
-            heartbeatTimer = window.setInterval(refreshLock, 60000);
+            liveUpdateTimer = window.setInterval(refreshCurrent, LIVE_UPDATE_INTERVAL_MS);
+            refreshCurrent();
         }
     }
 
-    function stopHeartbeat() {
-        if (heartbeatTimer !== null) {
-            window.clearInterval(heartbeatTimer);
-            heartbeatTimer = null;
+    function stopLiveUpdates() {
+        if (liveUpdateTimer !== null) {
+            window.clearInterval(liveUpdateTimer);
+            liveUpdateTimer = null;
         }
     }
 
-    async function refreshLock() {
+    async function refreshCurrent() {
         const form = document.getElementById('speedphone-form');
         if (!form || !form.elements.prospect_id || !form.elements.lock_token) {
-            stopHeartbeat();
+            stopLiveUpdates();
+            return;
+        }
+        if (refreshInFlight || form.classList.contains('is-busy')) {
             return;
         }
 
+        const prospectId = form.elements.prospect_id.value;
+        const lockToken = form.elements.lock_token.value;
+
         const data = new FormData();
-        data.set('operation', 'heartbeat');
-        data.set('prospect_id', form.elements.prospect_id.value);
-        data.set('lock_token', form.elements.lock_token.value);
+        data.set('operation', 'refresh_current');
+        data.set('prospect_id', prospectId);
+        data.set('lock_token', lockToken);
         data.set('csrf', root.dataset.csrf);
 
+        refreshInFlight = true;
         try {
-            await request(data);
+            const payload = await request(data);
+            const currentForm = document.getElementById('speedphone-form');
+            if (!currentForm
+                || currentForm.elements.prospect_id.value !== prospectId
+                || currentForm.elements.lock_token.value !== lockToken
+                || payload.data.prospect_id !== prospectId) {
+                return;
+            }
+
+            updateCurrentCandidate(payload.data.workspace_html);
+            updateStatistics(payload.data.statistics || {});
+            renderDialerDevices(payload.data.devices || []);
+            updateLiveStatus(payload.data.expires_at);
+            if (refreshFailures >= 3) {
+                showMessage('Live-Aktualisierung und Kontaktreservierung sind wieder verbunden.', false);
+            }
+            refreshFailures = 0;
         } catch (error) {
-            stopHeartbeat();
-            showMessage(error.message || 'Die Kontaktreservierung ist abgelaufen. Bitte den nächsten Kontakt laden.', true);
-            setBusy(form, true);
+            refreshFailures += 1;
+            const errorText = error.message || String(error);
+            if (isReservationError(errorText)) {
+                stopLiveUpdates();
+                showMessage(errorText, true);
+                if (document.body.contains(form)) {
+                    setBusy(form, true);
+                }
+            } else if (refreshFailures >= 3) {
+                showMessage(
+                    'Die Live-Aktualisierung ist vorübergehend unterbrochen. '
+                    + 'SpeedPhone versucht es automatisch weiter. ' + errorText,
+                    true
+                );
+            }
+        } finally {
+            refreshInFlight = false;
         }
+    }
+
+    function updateCurrentCandidate(workspaceHtml) {
+        const currentCandidate = workspace.querySelector('.candidate');
+        if (!currentCandidate || typeof workspaceHtml !== 'string') {
+            return;
+        }
+
+        const template = document.createElement('template');
+        template.innerHTML = workspaceHtml.trim();
+        const incomingCandidate = template.content.querySelector('.candidate');
+        const incomingMain = incomingCandidate?.querySelector('.candidate__main');
+        const currentMain = currentCandidate.querySelector('.candidate__main');
+        if (!incomingCandidate
+            || incomingCandidate.dataset.prospectId !== currentCandidate.dataset.prospectId
+            || !incomingMain
+            || !currentMain) {
+            return;
+        }
+
+        currentMain.replaceWith(incomingMain);
+    }
+
+    function updateLiveStatus(expiresAt) {
+        const target = document.querySelector('[data-speedphone-live-status]');
+        if (!target) {
+            return;
+        }
+
+        const expires = new Date(String(expiresAt || '').replace(' ', 'T') + 'Z');
+        target.textContent = Number.isNaN(expires.getTime())
+            ? 'Live-Aktualisierung aktiv'
+            : 'Live · reserviert bis '
+                + expires.toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'})
+                + ' Uhr';
+    }
+
+    function isReservationError(errorText) {
+        const normalized = String(errorText).toLocaleLowerCase('de-DE');
+        return normalized.includes('nicht mehr für dich reserviert')
+            || normalized.includes('kontaktreservierung ist abgelaufen')
+            || normalized.includes('reservierte zielkontakt ist nicht mehr')
+            || normalized.includes('sitzung ist abgelaufen')
+            || normalized.includes('nicht angemeldet');
     }
 }());

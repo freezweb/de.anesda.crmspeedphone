@@ -97,6 +97,36 @@ final class QueueService
         return null;
     }
 
+    /**
+     * Lädt ausschließlich den bereits reservierten Kontakt neu.
+     *
+     * Diese Methode erwirbt bewusst keine neue Reservierung. Dadurch kann die
+     * Oberfläche den sichtbaren Datensatz regelmäßig aktualisieren, ohne dem
+     * Telefonierer unbemerkt einen anderen Kontakt unterzuschieben.
+     */
+    public function getCurrentCandidate(string $prospectId, string $lockToken): array
+    {
+        $this->assertUserAllowed();
+        $this->locks->assertOwned($prospectId, $lockToken);
+
+        $listId = $this->getSourceListId();
+        $userCondition = $this->assignments->sqlAccessCondition();
+        $baseSql = $this->candidateSelectSql($listId, $userCondition, false);
+        $candidate = $this->findCandidateById($baseSql, $prospectId);
+        if ($candidate === null || $this->isExcluded($candidate)) {
+            throw new \RuntimeException(
+                'Der reservierte Zielkontakt ist nicht mehr für SpeedPhone freigegeben.'
+            );
+        }
+
+        $lock = $this->locks->getActiveForCurrentUser();
+        if ($lock === null || !hash_equals($prospectId, $lock['prospect_id'])) {
+            throw new \RuntimeException('Die Kontaktreservierung ist abgelaufen.');
+        }
+
+        return $this->enrichCandidate($candidate, $lock);
+    }
+
     public function getStatistics(): array
     {
         $this->locks->cleanupExpired();
@@ -372,9 +402,15 @@ final class QueueService
         return (int) ($row['n'] ?? 0);
     }
 
-    private function candidateSelectSql(string $listId, string $userCondition): string
+    private function candidateSelectSql(string $listId, string $userCondition, bool $onlyDue = true): string
     {
         $escalatedExpression = $this->assignments->sqlEscalatedExpression();
+        $dueCondition = $onlyDue
+            ? "AND COALESCE(pc.speedphone_status_c, '') NOT IN
+                      ('interested', 'no_interest', 'invalid_phone', 'blocked', 'paused')
+                  AND (pc.speedphone_next_call_c IS NULL OR pc.speedphone_next_call_c='' OR pc.speedphone_next_call_c<=UTC_TIMESTAMP())"
+            : '';
+
         return "SELECT p.id, p.first_name, p.last_name, p.account_name, p.description,
                        p.phone_work, p.phone_mobile, p.primary_address_street,
                        p.primary_address_postalcode, p.primary_address_city,
@@ -407,9 +443,7 @@ final class QueueService
                   AND p.do_not_call=0
                   AND {$userCondition}
                   AND (TRIM(COALESCE(p.phone_work, ''))<>'' OR TRIM(COALESCE(p.phone_mobile, ''))<>'')
-                  AND COALESCE(pc.speedphone_status_c, '') NOT IN
-                      ('interested', 'no_interest', 'invalid_phone', 'blocked', 'paused')
-                  AND (pc.speedphone_next_call_c IS NULL OR pc.speedphone_next_call_c='' OR pc.speedphone_next_call_c<=UTC_TIMESTAMP())";
+                  {$dueCondition}";
     }
 
     private function findCandidateById(string $baseSql, string $prospectId): ?array
