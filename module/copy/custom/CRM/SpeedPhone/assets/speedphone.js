@@ -7,6 +7,10 @@
     if (!root || !message || !workspace) {
         return;
     }
+    if (root.dataset.speedphoneInitialized === 'true') {
+        return;
+    }
+    root.dataset.speedphoneInitialized = 'true';
 
     const LIVE_UPDATE_INTERVAL_MS = 10000;
     let liveUpdateTimer = null;

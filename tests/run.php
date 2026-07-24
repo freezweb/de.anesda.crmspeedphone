@@ -185,12 +185,31 @@ check(
 $javascriptSource = file_get_contents(__DIR__ . '/../module/copy/custom/CRM/SpeedPhone/assets/speedphone.js');
 check(str_contains($javascriptSource, "data.set('operation', 'refresh_current')"), 'Browser fragt keine aktuellen Kontaktdaten per AJAX ab.');
 check(str_contains($javascriptSource, 'LIVE_UPDATE_INTERVAL_MS = 10000'), 'Live-Aktualisierung läuft nicht im vorgesehenen Intervall.');
+check(
+    str_contains($javascriptSource, "root.dataset.speedphoneInitialized = 'true'"),
+    'Die Browserinitialisierung ist nicht gegen eine doppelte Skriptausführung abgesichert.'
+);
 check(str_contains($javascriptSource, 'currentMain.replaceWith(incomingMain)'), 'Live-Aktualisierung schützt das laufend bearbeitete Eingabeformular nicht.');
 check(str_contains($javascriptSource, 'payload.data.incoming_call'), 'Browser reagiert nicht auf eingehende Rückrufereignisse.');
 check(str_contains($javascriptSource, 'storeCurrentDraft'), 'Ein Rückrufwechsel schützt laufende Formulareingaben nicht.');
 check(
     preg_match('/finally\\s*\\{.*?dialButton\\.disabled\\s*=\\s*false;/s', $javascriptSource) === 1,
     'Handywahl wird nach einem Versuch nicht wieder freigegeben.'
+);
+
+$manifestSource = file_get_contents(__DIR__ . '/../module/manifest.php');
+$pageSource = file_get_contents(__DIR__ . '/../module/copy/custom/CRM/SpeedPhone/page.php');
+$versionMatch = [];
+check(
+    preg_match("/'version'\\s*=>\\s*'([^']+)'/", $manifestSource, $versionMatch) === 1,
+    'Die Modulversion konnte nicht aus dem Manifest gelesen werden.'
+);
+$assetVersion = $versionMatch[1] ?? '';
+check(
+    $assetVersion !== ''
+        && str_contains($pageSource, '/speedphone.css?v=' . $assetVersion)
+        && str_contains($pageSource, '/speedphone.js?v=' . $assetVersion),
+    'CSS und JavaScript müssen mit der aktuellen Modulversion aus dem Browsercache geladen werden.'
 );
 
 $dialerEntryPointSource = file_get_contents(__DIR__ . '/../module/copy/custom/Extension/application/Ext/EntryPointRegistry/crm_speedphone.php');
