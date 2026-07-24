@@ -3,7 +3,7 @@
         <div>
             <p class="speedphone__eyebrow">SpeedPhone Dialer App</p>
             <h2>Handy koppeln</h2>
-            <p>App öffnen, „QR-Code scannen“ wählen und den Code hier erfassen. Der Code gilt einmalig für zehn Minuten.</p>
+            <p>Mit der normalen Handykamera scannen. Ist die App installiert, öffnet sie sich direkt; andernfalls führt der Code automatisch zum passenden App Store. Der Code gilt einmalig für zehn Minuten.</p>
         </div>
         <button type="button" class="button button--secondary button--compact" data-speedphone-dialer-close>Schließen</button>
     </div>
@@ -34,5 +34,5 @@
             </div>
         </div>
     </div>
-    <p class="dialer-panel__security"><strong>Sicher gekoppelt:</strong> Der QR-Code enthält nur Serveradresse und einen kurzlebigen Einmalcode. CRM-Passwort und Kontakte werden nicht auf das Handy übertragen.</p>
+    <p class="dialer-panel__security"><strong>Sicher gekoppelt:</strong> Der QR-Code enthält nur Serveradresse und einen kurzlebigen Einmalcode im geschützten URL-Fragment. CRM-Passwort und Kontakte werden nicht auf das Handy übertragen.</p>
 </section>

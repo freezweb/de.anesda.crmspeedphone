@@ -15,11 +15,14 @@ final class DialerService
     {
     }
 
-    public function createPairing(string $endpoint): array
+    public function createPairing(string $endpoint, string $setupPage): array
     {
         $userId = $this->currentUserId();
         if (!filter_var($endpoint, FILTER_VALIDATE_URL) || !str_starts_with($endpoint, 'https://')) {
             throw new RuntimeException('Die öffentliche Dialer-Adresse muss HTTPS verwenden.');
+        }
+        if (!filter_var($setupPage, FILTER_VALIDATE_URL) || !str_starts_with($setupPage, 'https://')) {
+            throw new RuntimeException('Die öffentliche Dialer-Installationsseite muss HTTPS verwenden.');
         }
 
         $this->cleanup();
@@ -36,9 +39,15 @@ final class DialerService
                     '" . hash('sha256', $token) . "', UTC_TIMESTAMP(),
                     '" . $this->quote($expiresAt) . "', NULL)");
 
-        $payload = 'speedphone://pair?v=1&server=' . rawurlencode($endpoint) . '&token=' . rawurlencode($token);
+        $deepLink = 'speedphone://pair?v=1&server=' . rawurlencode($endpoint) . '&token=' . rawurlencode($token);
+        // Das Fragment wird weder an den Webserver übertragen noch im Access-Log gespeichert.
+        $payload = $setupPage . '#setup=' . self::base64Url($deepLink);
 
-        return ['payload' => $payload, 'expires_at' => $expiresAt, 'expires_in' => self::PAIRING_LIFETIME_SECONDS];
+        return [
+            'payload' => $payload,
+            'expires_at' => $expiresAt,
+            'expires_in' => self::PAIRING_LIFETIME_SECONDS,
+        ];
     }
 
     public function claimPairing(string $token, string $deviceName, string $platform, string $deviceTokenHash): array

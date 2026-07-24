@@ -28,7 +28,8 @@ CRM SpeedPhone ist eine schnelle, abarbeitbare Telefonakquise-Warteschlange für
 - automatische Rückruferkennung über die gekoppelte Android-App: eingehende bekannte Nummern öffnen den vorhandenen Zielkontakt im laufenden Portal
 - Rückrufereignisse bleiben benutzerbezogen und respektieren bestehende Mehrbenutzer-Reservierungen
 - optionale SpeedPhone-Dialer-App für Android und iOS: ein Klick im CRM übergibt die vorhandene Telefonnummer sicher an das eigene Handy
-- benutzerbezogene Geräte-Kopplung per kurzlebigem Einmal-QR-Code; CRM-Zugangsdaten werden nicht an die App übertragen
+- benutzerbezogene Geräte-Kopplung per kurzlebigem Einmal-QR-Code; die normale Handykamera öffnet die installierte App oder automatisch den passenden Google-/Apple-Store
+- der Kopplungscode liegt ausschließlich im URL-Fragment und wird dadurch nicht an den Webserver oder dessen Access-Log übertragen
 - Android startet den Anruf nach erteilter Telefonberechtigung direkt; iOS zeigt die systembedingt vorgeschriebene Anrufbestätigung
 - Schnellaktionen für „nicht erreicht“, „Rückruf“, „kein Interesse“, „Interesse“, „falsche Nummer“ und „nicht mehr kontaktieren“
 - eigene Aktion „E-Mail jetzt senden + wieder anrufen“, die den Kontakt offen lässt und keinen Interessentenstatus setzt
@@ -86,6 +87,8 @@ Diese Datei wird bei Updates nicht überschrieben und ist nicht Teil des veröff
 - `default_callback_days`: Vorbelegung des änderbaren Rückrufdatums ohne Uhrzeit, standardmäßig `7` Tage; eine optionale Uhrzeit erzeugt zusätzlich einen festen CRM-Termin
 - `callback_escalation_days`: nach wie vielen Tagen ein nicht erledigter externer Rückruf intern sichtbar wird; über die Oberfläche änderbar
 - `external_stale_days`: nach wie vielen Tagen ohne Kontaktversuch ein extern betreuter Kontakt intern sichtbar wird; über die Oberfläche änderbar
+- `dialer_android_store_url`: öffentliche Google-Play-Adresse der Dialer-App
+- `dialer_ios_store_url`: öffentliche App-Store-Adresse der iOS-App; bleibt leer, solange die iOS-App noch nicht veröffentlicht ist
 
 ## Datenmodell
 

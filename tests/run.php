@@ -195,11 +195,34 @@ check(
 
 $dialerEntryPointSource = file_get_contents(__DIR__ . '/../module/copy/custom/Extension/application/Ext/EntryPointRegistry/crm_speedphone.php');
 check(str_contains($dialerEntryPointSource, "'auth' => false"), 'Die native App erreicht den token-geschützten Dialer-Endpunkt nicht ohne CRM-Sitzung.');
+check(
+    str_contains($dialerEntryPointSource, 'crmSpeedPhoneDialerSetup'),
+    'Öffentliche Installations- und Kopplungsseite fehlt.'
+);
 $dialerApiSource = file_get_contents(__DIR__ . '/../module/copy/custom/CRM/SpeedPhone/dialer_api.php');
 check(str_contains($dialerApiSource, "'claim_pairing'"), 'Öffentliche API kann den QR-Einmalcode nicht einlösen.');
 check(str_contains($dialerApiSource, "'incoming_call'"), 'Gekoppelte App kann keinen eingehenden Rückruf melden.');
 check(!str_contains($dialerApiSource, 'crm_speedphone_csrf'), 'Native Geräteauthentifizierung darf nicht von einer Browser-CSRF-Sitzung abhängen.');
 check(str_contains($apiSource, "'resend_email'"), 'API-Aktion zum Wiederholen ohne zweiten Anruf fehlt.');
+
+$dialerServiceSource = file_get_contents(
+    __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/DialerService.php'
+);
+check(
+    str_contains($dialerServiceSource, "'#setup='"),
+    'QR-Code führt nicht über die geräteabhängige Installationsseite.'
+);
+$dialerSetupSource = file_get_contents(
+    __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/dialer_setup.php'
+);
+check(
+    str_contains($dialerSetupSource, 'Android') && str_contains($dialerSetupSource, 'iPhone'),
+    'Installationsseite unterscheidet Android und iPhone nicht.'
+);
+check(
+    str_contains($dialerSetupSource, 'Referrer-Policy: no-referrer'),
+    'Installationsseite schützt den kurzlebigen Kopplungscode nicht vor Referrer-Weitergabe.'
+);
 
 $installerSource = file_get_contents(__DIR__ . '/../module/scripts/post_install.php');
 check(

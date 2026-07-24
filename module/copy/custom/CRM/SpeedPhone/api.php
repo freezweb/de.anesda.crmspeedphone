@@ -47,7 +47,10 @@ try {
     if ((string) ($_POST['operation'] ?? '') === 'dialer_pairing') {
         $siteUrl = rtrim((string) ($sugar_config['site_url'] ?? ''), '/');
         $legacyBase = str_ends_with($siteUrl, '/legacy') ? $siteUrl : $siteUrl . '/legacy';
-        $result = $dialerService->createPairing($legacyBase . '/index.php?entryPoint=crmSpeedPhoneDialerApi');
+        $result = $dialerService->createPairing(
+            $legacyBase . '/index.php?entryPoint=crmSpeedPhoneDialerApi',
+            $legacyBase . '/index.php?entryPoint=crmSpeedPhoneDialerSetup'
+        );
         $result['devices'] = $dialerService->listDevices();
         echo json_encode(['success' => true, 'data' => $result], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         exit;

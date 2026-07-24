@@ -14,3 +14,8 @@ $entry_point_registry['crmSpeedPhoneDialerApi'] = [
     'file' => 'custom/CRM/SpeedPhone/dialer_api.php',
     'auth' => false,
 ];
+
+$entry_point_registry['crmSpeedPhoneDialerSetup'] = [
+    'file' => 'custom/CRM/SpeedPhone/dialer_setup.php',
+    'auth' => false,
+];

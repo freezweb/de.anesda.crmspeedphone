@@ -15,4 +15,6 @@ return [
     'local_postcode_patterns' => [],
     'positive_patterns' => [],
     'exclude_patterns' => [],
+    'dialer_android_store_url' => 'https://play.google.com/store/apps/details?id=de.anesda.crmspeedphone.dialer',
+    'dialer_ios_store_url' => '',
 ];
