@@ -41,10 +41,11 @@ pipeline {
                         $ssh = (Get-Command ssh -ErrorAction Stop).Source
                         $scp = (Get-Command scp -ErrorAction Stop).Source
                         $target = "${env:LIVE_SSH_USER}@${env:LIVE_HOST}"
-                        $testArchive = Join-Path $PWD 'dist\\crm-speedphone-tests.zip'
-                        Compress-Archive -Path module,tests -DestinationPath $testArchive -Force
+                        $testArchive = Join-Path $PWD 'dist\\crm-speedphone-tests.tar.gz'
+                        & tar.exe -czf $testArchive module tests
+                        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
                         & $scp -i $env:LIVE_SSH_KEY -o StrictHostKeyChecking=no `
-                            $testArchive "${target}:/tmp/crm-speedphone-tests.zip"
+                            $testArchive "${target}:/tmp/crm-speedphone-tests.tar.gz"
                         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
                         $remote = @'
@@ -53,7 +54,7 @@ test_root="/tmp/crm-speedphone-ci-${BUILD_NUMBER}"
 [[ "$test_root" == /tmp/crm-speedphone-ci-* ]]
 rm -rf -- "$test_root"
 mkdir -p "$test_root"
-unzip -q /tmp/crm-speedphone-tests.zip -d "$test_root"
+tar -xzf /tmp/crm-speedphone-tests.tar.gz -C "$test_root"
 cd "$test_root"
 php tests/run.php
 find module -type f -name '*.php' -print0 | xargs -0 -n1 php -l >/dev/null
