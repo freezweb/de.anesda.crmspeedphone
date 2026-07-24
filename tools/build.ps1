@@ -5,7 +5,12 @@ $moduleRoot = Join-Path $projectRoot 'module'
 $distRoot = Join-Path $projectRoot 'dist'
 $buildRoot = Join-Path $projectRoot 'build\package'
 $manifestPath = Join-Path $moduleRoot 'manifest.php'
-$version = (& php -r "include '$($manifestPath.Replace('\', '/'))'; echo `$manifest['version'];").Trim()
+$manifestSource = Get-Content -LiteralPath $manifestPath -Raw -Encoding UTF8
+$versionMatch = [regex]::Match($manifestSource, "'version'\s*=>\s*'([^']+)'")
+if (-not $versionMatch.Success) {
+    throw 'Modulversion wurde im Manifest nicht gefunden.'
+}
+$version = $versionMatch.Groups[1].Value
 if ($version -notmatch '^\d+\.\d+\.\d+$') {
     throw "Ungültige Modulversion im Manifest: $version"
 }

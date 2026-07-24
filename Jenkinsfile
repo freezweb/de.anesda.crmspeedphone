@@ -19,21 +19,6 @@ pipeline {
             }
         }
 
-        stage('PHP-Tests') {
-            steps {
-                powershell '''
-                    $ErrorActionPreference = 'Stop'
-                    $php = (Get-Command php -ErrorAction Stop).Source
-                    & $php tests/run.php
-                    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-                    Get-ChildItem -LiteralPath module -Recurse -Filter *.php | ForEach-Object {
-                        & $php -l $_.FullName | Out-Null
-                        if ($LASTEXITCODE -ne 0) { throw "PHP-Syntaxfehler in $($_.FullName)" }
-                    }
-                '''
-            }
-        }
-
         stage('Installationspaket') {
             steps {
                 powershell '''
@@ -42,6 +27,41 @@ pipeline {
                     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
                 '''
                 archiveArtifacts artifacts: 'dist/de.anesda.crmspeedphone-*.zip', fingerprint: true
+            }
+        }
+
+        stage('PHP-Tests') {
+            steps {
+                powershell '''
+                    $ErrorActionPreference = 'Stop'
+                    $ssh = (Get-Command ssh -ErrorAction Stop).Source
+                    $scp = (Get-Command scp -ErrorAction Stop).Source
+                    if (-not (Test-Path -LiteralPath $env:SSH_KEY)) {
+                        throw "SSH-Schlüssel fehlt: $env:SSH_KEY"
+                    }
+                    $testArchive = Join-Path $PWD 'dist\\crm-speedphone-tests.zip'
+                    Compress-Archive -Path module,tests -DestinationPath $testArchive -Force
+                    & $scp -i $env:SSH_KEY -o StrictHostKeyChecking=no `
+                        $testArchive "${env:LIVE_HOST}:/tmp/crm-speedphone-tests.zip"
+                    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+                    $remote = @'
+set -euo pipefail
+test_root="/tmp/crm-speedphone-ci-${BUILD_NUMBER}"
+[[ "$test_root" == /tmp/crm-speedphone-ci-* ]]
+rm -rf -- "$test_root"
+mkdir -p "$test_root"
+unzip -q /tmp/crm-speedphone-tests.zip -d "$test_root"
+cd "$test_root"
+php tests/run.php
+find module -type f -name '*.php' -print0 | xargs -0 -n1 php -l >/dev/null
+'@
+                    $remote = $remote.Replace('${BUILD_NUMBER}', $env:BUILD_NUMBER)
+                    $encoded = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($remote))
+                    & $ssh -i $env:SSH_KEY -o StrictHostKeyChecking=no $env:LIVE_HOST `
+                        "echo $encoded | base64 -d | bash"
+                    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+                '''
             }
         }
 
