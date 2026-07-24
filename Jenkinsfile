@@ -7,9 +7,8 @@ pipeline {
     }
 
     environment {
-        LIVE_HOST = 'root@88.99.138.84'
+        LIVE_HOST = '88.99.138.84'
         LIVE_ROOT = '/srv/www/vhosts/crm.anesda.de/public/legacy'
-        SSH_KEY = 'C:\\key\\key\\private_openssh'
     }
 
     stages {
@@ -32,20 +31,23 @@ pipeline {
 
         stage('PHP-Tests') {
             steps {
-                powershell '''
-                    $ErrorActionPreference = 'Stop'
-                    $ssh = (Get-Command ssh -ErrorAction Stop).Source
-                    $scp = (Get-Command scp -ErrorAction Stop).Source
-                    if (-not (Test-Path -LiteralPath $env:SSH_KEY)) {
-                        throw "SSH-Schlüssel fehlt: $env:SSH_KEY"
-                    }
-                    $testArchive = Join-Path $PWD 'dist\\crm-speedphone-tests.zip'
-                    Compress-Archive -Path module,tests -DestinationPath $testArchive -Force
-                    & $scp -i $env:SSH_KEY -o StrictHostKeyChecking=no `
-                        $testArchive "${env:LIVE_HOST}:/tmp/crm-speedphone-tests.zip"
-                    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+                withCredentials([sshUserPrivateKey(
+                    credentialsId: 'crm-live-ssh-key',
+                    keyFileVariable: 'LIVE_SSH_KEY',
+                    usernameVariable: 'LIVE_SSH_USER'
+                )]) {
+                    powershell '''
+                        $ErrorActionPreference = 'Stop'
+                        $ssh = (Get-Command ssh -ErrorAction Stop).Source
+                        $scp = (Get-Command scp -ErrorAction Stop).Source
+                        $target = "${env:LIVE_SSH_USER}@${env:LIVE_HOST}"
+                        $testArchive = Join-Path $PWD 'dist\\crm-speedphone-tests.zip'
+                        Compress-Archive -Path module,tests -DestinationPath $testArchive -Force
+                        & $scp -i $env:LIVE_SSH_KEY -o StrictHostKeyChecking=no `
+                            $testArchive "${target}:/tmp/crm-speedphone-tests.zip"
+                        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-                    $remote = @'
+                        $remote = @'
 set -euo pipefail
 test_root="/tmp/crm-speedphone-ci-${BUILD_NUMBER}"
 [[ "$test_root" == /tmp/crm-speedphone-ci-* ]]
@@ -56,12 +58,13 @@ cd "$test_root"
 php tests/run.php
 find module -type f -name '*.php' -print0 | xargs -0 -n1 php -l >/dev/null
 '@
-                    $remote = $remote.Replace('${BUILD_NUMBER}', $env:BUILD_NUMBER)
-                    $encoded = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($remote))
-                    & $ssh -i $env:SSH_KEY -o StrictHostKeyChecking=no $env:LIVE_HOST `
-                        "echo $encoded | base64 -d | bash"
-                    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-                '''
+                        $remote = $remote.Replace('${BUILD_NUMBER}', $env:BUILD_NUMBER)
+                        $encoded = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($remote))
+                        & $ssh -i $env:LIVE_SSH_KEY -o StrictHostKeyChecking=no $target `
+                            "echo $encoded | base64 -d | bash"
+                        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+                    '''
+                }
             }
         }
 
@@ -72,26 +75,29 @@ find module -type f -name '*.php' -print0 | xargs -0 -n1 php -l >/dev/null
                 }
             }
             steps {
-                powershell '''
-                    $ErrorActionPreference = 'Stop'
-                    $ssh = (Get-Command ssh -ErrorAction Stop).Source
-                    $scp = (Get-Command scp -ErrorAction Stop).Source
-                    if (-not (Test-Path -LiteralPath $env:SSH_KEY)) {
-                        throw "SSH-Schlüssel fehlt: $env:SSH_KEY"
-                    }
-                    $zip = Get-ChildItem -LiteralPath dist -Filter 'de.anesda.crmspeedphone-*.zip' |
-                        Sort-Object LastWriteTime -Descending |
-                        Select-Object -First 1
-                    if ($null -eq $zip) { throw 'Installationspaket fehlt.' }
+                withCredentials([sshUserPrivateKey(
+                    credentialsId: 'crm-live-ssh-key',
+                    keyFileVariable: 'LIVE_SSH_KEY',
+                    usernameVariable: 'LIVE_SSH_USER'
+                )]) {
+                    powershell '''
+                        $ErrorActionPreference = 'Stop'
+                        $ssh = (Get-Command ssh -ErrorAction Stop).Source
+                        $scp = (Get-Command scp -ErrorAction Stop).Source
+                        $target = "${env:LIVE_SSH_USER}@${env:LIVE_HOST}"
+                        $zip = Get-ChildItem -LiteralPath dist -Filter 'de.anesda.crmspeedphone-*.zip' |
+                            Sort-Object LastWriteTime -Descending |
+                            Select-Object -First 1
+                        if ($null -eq $zip) { throw 'Installationspaket fehlt.' }
 
-                    & $scp -i $env:SSH_KEY -o StrictHostKeyChecking=no `
-                        $zip.FullName "${env:LIVE_HOST}:/tmp/crm-speedphone.zip"
-                    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-                    & $scp -i $env:SSH_KEY -o StrictHostKeyChecking=no `
-                        'tools/install-live.php' "${env:LIVE_HOST}:/tmp/crm-speedphone-install.php"
-                    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+                        & $scp -i $env:LIVE_SSH_KEY -o StrictHostKeyChecking=no `
+                            $zip.FullName "${target}:/tmp/crm-speedphone.zip"
+                        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+                        & $scp -i $env:LIVE_SSH_KEY -o StrictHostKeyChecking=no `
+                            'tools/install-live.php' "${target}:/tmp/crm-speedphone-install.php"
+                        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-                    $remote = @'
+                        $remote = @'
 set -euo pipefail
 legacy=/srv/www/vhosts/crm.anesda.de/public/legacy
 deploy=/tmp/crm-speedphone-deploy
@@ -125,12 +131,13 @@ php -l custom/CRM/SpeedPhone/dialer_setup.php
 grep -q crmSpeedPhoneDialerSetup custom/application/Ext/EntryPointRegistry/entry_point_registry.ext.php
 curl -fsS -o /dev/null "https://crm.anesda.de/legacy/index.php?entryPoint=crmSpeedPhoneDialerSetup"
 '@
-                    $remote = $remote.Replace('${BUILD_NUMBER}', $env:BUILD_NUMBER)
-                    $encoded = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($remote))
-                    & $ssh -i $env:SSH_KEY -o StrictHostKeyChecking=no $env:LIVE_HOST `
-                        "echo $encoded | base64 -d | bash"
-                    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-                '''
+                        $remote = $remote.Replace('${BUILD_NUMBER}', $env:BUILD_NUMBER)
+                        $encoded = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($remote))
+                        & $ssh -i $env:LIVE_SSH_KEY -o StrictHostKeyChecking=no $target `
+                            "echo $encoded | base64 -d | bash"
+                        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+                    '''
+                }
             }
         }
     }
