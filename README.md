@@ -88,7 +88,7 @@ Diese Datei wird bei Updates nicht überschrieben und ist nicht Teil des veröff
 - `callback_escalation_days`: nach wie vielen Tagen ein nicht erledigter externer Rückruf intern sichtbar wird; über die Oberfläche änderbar
 - `external_stale_days`: nach wie vielen Tagen ohne Kontaktversuch ein extern betreuter Kontakt intern sichtbar wird; über die Oberfläche änderbar
 - `dialer_android_store_url`: öffentliche Google-Play-Adresse der Dialer-App
-- `dialer_ios_store_url`: öffentliche App-Store-Adresse der iOS-App; bleibt leer, solange die iOS-App noch nicht veröffentlicht ist
+- `dialer_ios_store_url`: feste App-Store-Adresse der iOS-App; die Standardkonfiguration verweist auf Apple-App-ID `6794342212`
 
 ## Datenmodell
 

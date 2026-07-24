@@ -16,5 +16,5 @@ return [
     'positive_patterns' => [],
     'exclude_patterns' => [],
     'dialer_android_store_url' => 'https://play.google.com/store/apps/details?id=de.anesda.crmspeedphone.dialer',
-    'dialer_ios_store_url' => '',
+    'dialer_ios_store_url' => 'https://apps.apple.com/app/id6794342212',
 ];
