@@ -25,6 +25,12 @@ if (empty($_SESSION['crm_speedphone_csrf'])) {
 
 $config = Config::load(__DIR__);
 $accessService = new UserAccessService($db, $current_user);
+try {
+    $accessService->assertAllowed();
+} catch (Throwable) {
+    ACLController::displayNoAccess(true);
+    return;
+}
 $assignmentService = new AssignmentService($config, $db, $current_user, $accessService);
 $lockService = new Anesda\CRM\SpeedPhone\LockService($config, $db, $current_user);
 $queue = new QueueService($config, $db, $current_user, $lockService, $accessService, $assignmentService);

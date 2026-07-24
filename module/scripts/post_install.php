@@ -62,30 +62,41 @@ function speedPhoneInstallDashboardDashlets(\DBManager $db): void
             $preferences['pages'][0]['columns'][0] = ['width' => '100%', 'dashlets' => []];
         }
 
-        $alreadyInstalled = false;
-        foreach ((array) ($preferences['dashlets'] ?? []) as $dashlet) {
+        $dashletId = null;
+        foreach ((array) ($preferences['dashlets'] ?? []) as $existingDashletId => $dashlet) {
             if (($dashlet['className'] ?? '') === 'CRMSpeedPhoneDashlet') {
-                $alreadyInstalled = true;
+                $dashletId = (string) $existingDashletId;
                 break;
             }
         }
-        if ($alreadyInstalled) {
-            continue;
+        if ($dashletId === null) {
+            $dashletId = function_exists('create_guid') ? create_guid() : speedPhoneCreateGuid();
         }
 
-        $dashletId = function_exists('create_guid') ? create_guid() : speedPhoneCreateGuid();
         $preferences['dashlets'][$dashletId] = [
             'className' => 'CRMSpeedPhoneDashlet',
-            'module' => 'Prospects',
+            'module' => 'Home',
             'forceColumn' => 0,
             'fileLocation' => 'custom/modules/Home/Dashlets/CRMSpeedPhoneDashlet/CRMSpeedPhoneDashlet.php',
             'options' => [],
         ];
-        $columnDashlets = &$preferences['pages'][0]['columns'][0]['dashlets'];
-        if (!is_array($columnDashlets)) {
-            $columnDashlets = [];
+
+        $isPlaced = false;
+        foreach ($preferences['pages'] as $page) {
+            foreach ((array) ($page['columns'] ?? []) as $column) {
+                if (in_array($dashletId, (array) ($column['dashlets'] ?? []), true)) {
+                    $isPlaced = true;
+                    break 2;
+                }
+            }
         }
-        array_unshift($columnDashlets, $dashletId);
+        if (!$isPlaced) {
+            $columnDashlets = &$preferences['pages'][0]['columns'][0]['dashlets'];
+            if (!is_array($columnDashlets)) {
+                $columnDashlets = [];
+            }
+            array_unshift($columnDashlets, $dashletId);
+        }
 
         $contents = base64_encode(serialize($preferences));
         $db->query("UPDATE user_preferences
@@ -319,3 +330,4 @@ speedPhoneInstallDashboardDashlets($db);
 
 $repair = new RepairAndClear();
 $repair->repairAndClearAll(['rebuildExtensions'], ['Prospect', 'Call', 'Home'], true, false);
+$repair->clearDashlets();

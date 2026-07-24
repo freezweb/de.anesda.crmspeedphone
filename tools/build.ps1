@@ -4,7 +4,12 @@ $projectRoot = Split-Path -Parent $PSScriptRoot
 $moduleRoot = Join-Path $projectRoot 'module'
 $distRoot = Join-Path $projectRoot 'dist'
 $buildRoot = Join-Path $projectRoot 'build\package'
-$zipPath = Join-Path $distRoot 'de.anesda.crmspeedphone-1.5.0.zip'
+$manifestPath = Join-Path $moduleRoot 'manifest.php'
+$version = (& php -r "include '$($manifestPath.Replace('\', '/'))'; echo `$manifest['version'];").Trim()
+if ($version -notmatch '^\d+\.\d+\.\d+$') {
+    throw "Ungültige Modulversion im Manifest: $version"
+}
+$zipPath = Join-Path $distRoot "de.anesda.crmspeedphone-$version.zip"
 
 if (Test-Path $buildRoot) {
     Remove-Item -LiteralPath $buildRoot -Recurse -Force

@@ -5,7 +5,7 @@ if (!defined('sugarEntry') || !sugarEntry) {
 }
 
 $dashletMeta['CRMSpeedPhoneDashlet'] = [
-    'module' => 'Prospects',
+    'module' => 'Home',
     'title' => 'CRM SpeedPhone',
     'description' => 'Direkter Einstieg in die gemeinsame Telefonwarteschlange',
     'category' => 'Module Views',

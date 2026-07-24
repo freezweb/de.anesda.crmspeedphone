@@ -19,7 +19,15 @@ final class CRMSpeedPhoneDashlet extends Dashlet
 
     public function display()
     {
-        global $sugar_config;
+        global $sugar_config, $current_user, $db;
+
+        require_once 'custom/CRM/SpeedPhone/bootstrap.php';
+        try {
+            (new Anesda\CRM\SpeedPhone\UserAccessService($db, $current_user))->assertAllowed();
+        } catch (Throwable) {
+            return parent::display()
+                . '<p style="padding:18px;text-align:center;">SpeedPhone ist für diesen Benutzer nicht freigeschaltet.</p>';
+        }
 
         $siteUrl = preg_replace('~/legacy$~', '', rtrim((string) ($sugar_config['site_url'] ?? ''), '/'));
         $url = htmlspecialchars($siteUrl . '/#/prospects/speedphone', ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');

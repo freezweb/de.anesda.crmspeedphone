@@ -6,7 +6,13 @@ final class ProspectsViewSpeedphone extends SugarView
 {
     public function display(): void
     {
-        if (!ACLController::checkAccess('Prospects', 'list', true)) {
+        require_once 'custom/CRM/SpeedPhone/bootstrap.php';
+
+        global $current_user, $db;
+
+        try {
+            (new Anesda\CRM\SpeedPhone\UserAccessService($db, $current_user))->assertAllowed();
+        } catch (Throwable) {
             ACLController::displayNoAccess(true);
             return;
         }

@@ -206,6 +206,34 @@ check(
     str_contains($installerSource, 'crm_speedphone_incoming_calls'),
     'Installer legt die UUID-basierte Tabelle für Rückrufereignisse nicht an.'
 );
+check(
+    str_contains($installerSource, '$repair->clearDashlets()'),
+    'Installer leert den Dashlet-Cache nicht, damit der Dashboard-Einstieg registriert wird.'
+);
+check(
+    str_contains($installerSource, "'module' => 'Home'"),
+    'Dashboard-Einstieg darf nicht vom Listenrecht der Zielkontakte abhängen.'
+);
+
+$speedPhoneViewSource = file_get_contents(
+    __DIR__ . '/../module/copy/custom/modules/Prospects/views/view.speedphone.php'
+);
+check(
+    !str_contains($speedPhoneViewSource, "checkAccess('Prospects', 'list'"),
+    'SpeedPhone darf für externe Mitarbeiter nicht am absichtlich gesperrten Zielkontakt-Listenrecht scheitern.'
+);
+check(
+    str_contains($speedPhoneViewSource, 'UserAccessService'),
+    'SpeedPhone-Ansicht prüft nicht die eigene Modulfreigabe.'
+);
+
+$speedPhoneMenuSource = file_get_contents(
+    __DIR__ . '/../module/copy/custom/Extension/modules/Prospects/Ext/Menus/crm_speedphone.php'
+);
+check(
+    !str_contains($speedPhoneMenuSource, "checkAccess('Prospects', 'list'"),
+    'SpeedPhone-Menü darf nicht vom allgemeinen Zielkontakt-Listenrecht abhängen.'
+);
 
 $teamUsers = [[
     'id' => 'befc6200-da8e-47a5-9fc8-3b30e8451018',
