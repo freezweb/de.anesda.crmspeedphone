@@ -19,6 +19,7 @@ CRM SpeedPhone ist eine schnelle, abarbeitbare Telefonakquise-Warteschlange für
 - dauerhafte Provisionszuordnung an den externen Mitarbeiter, der das Interesse protokolliert
 - sichtbarer Kontaktverlauf mit Mitarbeiter, Zeitpunkt, Ergebnis und Notiz
 - Live-Aktualisierung von Kontakt-, Verlauf-, E-Mail-, Kennzahlen- und Dialerstatus alle zehn Sekunden per AJAX
+- getrennte Tageskennzahlen für die eigenen und alle tatsächlich protokollierten SpeedPhone-Anrufe
 - automatische Verlängerung während der gesamten geöffneten Bearbeitung und Freigabe nach dem Ergebnis
 - automatische Freigabe abgelaufener Reservierungen nach konfigurierbarer Zeit
 - vorhandene Kampagnensignale wie Link-Klick und E-Mail-Öffnung als nachvollziehbare Priorisierung

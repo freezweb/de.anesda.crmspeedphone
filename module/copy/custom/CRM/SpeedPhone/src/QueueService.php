@@ -158,6 +158,7 @@ final class QueueService
         $this->locks->cleanupExpired();
         $listId = $this->getSourceListId();
         $userCondition = $this->assignments->sqlAccessCondition();
+        [$todayStartUtc, $tomorrowStartUtc] = $this->todayUtcRange();
         $common = " FROM prospects p
                     INNER JOIN prospect_lists_prospects plp
                         ON plp.related_id=p.id AND plp.related_type='Prospects'
@@ -166,6 +167,27 @@ final class QueueService
                     LEFT JOIN crm_speedphone_assignments spa ON spa.prospect_id=p.id
                     LEFT JOIN crm_speedphone_user_settings sp_creator ON sp_creator.user_id=p.created_by
                     WHERE p.deleted=0 AND p.do_not_call=0 AND {$userCondition}";
+        $processedCommon = " FROM calls c
+                    LEFT JOIN calls_cstm cc ON cc.id_c=c.id
+                    INNER JOIN prospects p ON p.id=c.parent_id AND p.deleted=0
+                    INNER JOIN prospect_lists_prospects plp
+                        ON plp.related_id=p.id AND plp.related_type='Prospects'
+                       AND plp.prospect_list_id='" . $this->db->quote($listId) . "' AND plp.deleted=0
+                    WHERE c.deleted=0
+                      AND c.parent_type='Prospects'
+                      AND c.status='Held'
+                      AND c.direction='Outbound'
+                      AND (
+                          COALESCE(cc.speedphone_result_c, '')<>''
+                          OR c.name LIKE 'SpeedPhone:%'
+                      )
+                      AND c.date_start>='" . $this->db->quote($todayStartUtc) . "'
+                      AND c.date_start<'" . $this->db->quote($tomorrowStartUtc) . "'";
+        $processedTodayMine = $this->scalar(
+            "SELECT COUNT(DISTINCT c.id) n {$processedCommon}
+             AND c.assigned_user_id='" . $this->db->quote((string) $this->currentUser->id) . "'"
+        );
+        $processedTodayAll = $this->scalar("SELECT COUNT(DISTINCT c.id) n {$processedCommon}");
 
         return [
             'open' => $this->scalar("SELECT COUNT(*) n {$common}
@@ -174,8 +196,10 @@ final class QueueService
             'callbacks_due' => $this->scalar("SELECT COUNT(*) n {$common}
                 AND pc.speedphone_status_c='callback'
                 AND pc.speedphone_next_call_c<=UTC_TIMESTAMP()"),
-            'processed_today' => $this->scalar("SELECT COUNT(*) n {$common}
-                AND DATE(pc.speedphone_last_call_c)=UTC_DATE()"),
+            // Der bisherige Schlüssel bleibt für bestehende API-Nutzer erhalten.
+            'processed_today' => $processedTodayMine,
+            'processed_today_mine' => $processedTodayMine,
+            'processed_today_all' => $processedTodayAll,
             'interested' => $this->scalar("SELECT COUNT(*) n {$common}
                 AND pc.speedphone_status_c='interested'"),
             'locked' => $this->scalar("SELECT COUNT(*) n
@@ -185,6 +209,33 @@ final class QueueService
                     ON plp.related_id=p.id AND plp.related_type='Prospects'
                    AND plp.prospect_list_id='" . $this->db->quote($listId) . "' AND plp.deleted=0
                 WHERE spl.expires_at>UTC_TIMESTAMP()"),
+        ];
+    }
+
+    /**
+     * Liefert den lokalen Tagesanfang des Benutzers als UTC-Zeitfenster.
+     *
+     * Dadurch zählen Anrufe kurz nach Mitternacht auch während der Sommerzeit
+     * zuverlässig zum erwarteten Kalendertag.
+     *
+     * @return array{0: string, 1: string}
+     */
+    private function todayUtcRange(): array
+    {
+        $timezoneName = (string) ($this->currentUser->getPreference('timezone') ?: 'Europe/Berlin');
+        try {
+            $timezone = new \DateTimeZone($timezoneName);
+        } catch (\Throwable) {
+            $timezone = new \DateTimeZone('Europe/Berlin');
+        }
+
+        $localStart = new \DateTimeImmutable('today', $timezone);
+        $localEnd = $localStart->modify('+1 day');
+        $utc = new \DateTimeZone('UTC');
+
+        return [
+            $localStart->setTimezone($utc)->format('Y-m-d H:i:s'),
+            $localEnd->setTimezone($utc)->format('Y-m-d H:i:s'),
         ];
     }
 

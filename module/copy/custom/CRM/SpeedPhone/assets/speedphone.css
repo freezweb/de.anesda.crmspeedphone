@@ -26,7 +26,7 @@
 .speedphone__header h1 { font-size: clamp(32px, 4vw, 48px); margin: 2px 0 4px; letter-spacing: -0.04em; }
 .speedphone__header p { margin: 0; color: var(--sp-muted); }
 .speedphone__eyebrow { color: var(--sp-brand) !important; font-size: 12px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
-.speedphone .stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 18px; }
+.speedphone .stats { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; margin-bottom: 18px; }
 .speedphone .stats article { background: var(--sp-card); border: 1px solid var(--sp-border); border-radius: 16px; padding: 18px; display: flex; flex-direction: column; }
 .speedphone .stats strong { font-size: 28px; }
 .speedphone .stats span { color: var(--sp-muted); }

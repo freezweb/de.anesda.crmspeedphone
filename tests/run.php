@@ -181,6 +181,22 @@ check(
     str_contains($queueSource, 'erwirbt bewusst keine neue Reservierung'),
     'Live-Aktualisierung muss ausdrücklich ohne neue Kontaktreservierung arbeiten.'
 );
+check(
+    str_contains($queueSource, "'processed_today_mine' => \$processedTodayMine")
+        && str_contains($queueSource, "'processed_today_all' => \$processedTodayAll"),
+    'Tagesstatistik wird nicht getrennt für den aktuellen Mitarbeiter und das gesamte Team geliefert.'
+);
+check(
+    str_contains($queueSource, "c.status='Held'")
+        && str_contains($queueSource, "c.name LIKE 'SpeedPhone:%'")
+        && str_contains($queueSource, 'COUNT(DISTINCT c.id)'),
+    'Tagesstatistik zählt nicht ausschließlich tatsächlich protokollierte SpeedPhone-Anrufe.'
+);
+check(
+    str_contains($queueSource, "c.assigned_user_id='")
+        && str_contains($queueSource, 'todayUtcRange'),
+    'Persönliche Tagesstatistik berücksichtigt weder Mitarbeiter noch lokalen Kalendertag.'
+);
 
 $javascriptSource = file_get_contents(__DIR__ . '/../module/copy/custom/CRM/SpeedPhone/assets/speedphone.js');
 check(str_contains($javascriptSource, "data.set('operation', 'refresh_current')"), 'Browser fragt keine aktuellen Kontaktdaten per AJAX ab.');
@@ -199,6 +215,13 @@ check(
 
 $manifestSource = file_get_contents(__DIR__ . '/../module/manifest.php');
 $pageSource = file_get_contents(__DIR__ . '/../module/copy/custom/CRM/SpeedPhone/page.php');
+check(
+    str_contains($pageSource, 'data-stat="processed_today_mine"')
+        && str_contains($pageSource, 'data-stat="processed_today_all"')
+        && str_contains($pageSource, 'heute · ich')
+        && str_contains($pageSource, 'heute · alle'),
+    'Oberfläche zeigt die Tageszahlen für den Mitarbeiter und das gesamte Team nicht getrennt an.'
+);
 $versionMatch = [];
 check(
     preg_match("/'version'\\s*=>\\s*'([^']+)'/", $manifestSource, $versionMatch) === 1,

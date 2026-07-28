@@ -14,9 +14,9 @@ $manifest = [
     'icon' => '',
     'is_uninstallable' => true,
     'name' => 'CRM SpeedPhone',
-    'published_date' => '24.07.2026',
+    'published_date' => '28.07.2026',
     'type' => 'module',
-    'version' => '1.6.3',
+    'version' => '1.6.4',
 ];
 
 $installdefs = [

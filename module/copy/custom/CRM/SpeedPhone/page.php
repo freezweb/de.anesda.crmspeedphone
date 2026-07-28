@@ -36,7 +36,14 @@ $lockService = new Anesda\CRM\SpeedPhone\LockService($config, $db, $current_user
 $queue = new QueueService($config, $db, $current_user, $lockService, $accessService, $assignmentService);
 $error = '';
 $candidate = null;
-$statistics = ['open' => 0, 'callbacks_due' => 0, 'processed_today' => 0, 'interested' => 0, 'locked' => 0];
+$statistics = [
+    'open' => 0,
+    'callbacks_due' => 0,
+    'processed_today_mine' => 0,
+    'processed_today_all' => 0,
+    'interested' => 0,
+    'locked' => 0,
+];
 $currentProfile = $accessService->currentProfile();
 $canManageTeam = $accessService->canManageTeam();
 $teamUsers = [];
@@ -62,7 +69,7 @@ $assetBase = $legacyBase . '/custom/CRM/SpeedPhone/assets';
 $userTimezone = (string) ($current_user->getPreference('timezone') ?: 'Europe/Berlin');
 
 ?>
-<link rel="stylesheet" href="<?= speedPhoneEscape($assetBase) ?>/speedphone.css?v=1.6.3">
+<link rel="stylesheet" href="<?= speedPhoneEscape($assetBase) ?>/speedphone.css?v=1.6.4">
 <main class="speedphone" data-api-url="index.php?entryPoint=crmSpeedPhoneApi" data-csrf="<?= speedPhoneEscape($_SESSION['crm_speedphone_csrf']) ?>">
     <header class="speedphone__header">
         <div>
@@ -102,7 +109,8 @@ $userTimezone = (string) ($current_user->getPreference('timezone') ?: 'Europe/Be
     <section class="stats" aria-label="Tagesübersicht">
         <article><strong data-stat="open"><?= (int) $statistics['open'] ?></strong><span>offen</span></article>
         <article><strong data-stat="callbacks_due"><?= (int) $statistics['callbacks_due'] ?></strong><span>Rückrufe fällig</span></article>
-        <article><strong data-stat="processed_today"><?= (int) $statistics['processed_today'] ?></strong><span>heute bearbeitet</span></article>
+        <article><strong data-stat="processed_today_mine"><?= (int) $statistics['processed_today_mine'] ?></strong><span>heute · ich</span></article>
+        <article><strong data-stat="processed_today_all"><?= (int) $statistics['processed_today_all'] ?></strong><span>heute · alle</span></article>
         <article><strong data-stat="interested"><?= (int) $statistics['interested'] ?></strong><span>Interessenten</span></article>
         <article><strong data-stat="locked"><?= (int) $statistics['locked'] ?></strong><span>gerade reserviert</span></article>
     </section>
@@ -124,4 +132,4 @@ $userTimezone = (string) ($current_user->getPreference('timezone') ?: 'Europe/Be
     <div class="speedphone__footer">CRM SpeedPhone © anesda</div>
 </main>
 <script src="<?= speedPhoneEscape($assetBase) ?>/vendor/qrcode-generator/qrcode.js?v=2.0.4"></script>
-<script src="<?= speedPhoneEscape($assetBase) ?>/speedphone.js?v=1.6.3"></script>
+<script src="<?= speedPhoneEscape($assetBase) ?>/speedphone.js?v=1.6.4"></script>
