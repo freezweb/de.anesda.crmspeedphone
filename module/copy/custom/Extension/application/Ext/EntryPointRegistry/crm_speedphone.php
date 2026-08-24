@@ -19,3 +19,8 @@ $entry_point_registry['crmSpeedPhoneDialerSetup'] = [
     'file' => 'custom/CRM/SpeedPhone/dialer_setup.php',
     'auth' => false,
 ];
+
+$entry_point_registry['anesdaMailWebhook'] = [
+    'file' => 'custom/CRM/SpeedPhone/mail_webhook.php',
+    'auth' => false,
+];

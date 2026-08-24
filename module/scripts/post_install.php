@@ -237,6 +237,24 @@ $db->query("CREATE TABLE IF NOT EXISTS `crm_speedphone_incoming_calls` (
     KEY `idx_speedphone_incoming_prospect` (`prospect_id`, `received_at`)
 ) ENGINE=InnoDB");
 
+$db->query("CREATE TABLE IF NOT EXISTS `crm_speedphone_mail_webhook_events` (
+    `event_id` char(36) NOT NULL,
+    `event_type` varchar(40) NOT NULL,
+    `email_address` varchar(255) NOT NULL,
+    `payload_json` longtext NOT NULL,
+    `payload_hash` char(64) NOT NULL,
+    `state` varchar(20) NOT NULL,
+    `attempts` int NOT NULL DEFAULT 1,
+    `campaign_log_id` char(36) NULL,
+    `last_error` varchar(1000) NULL,
+    `created_at` datetime NOT NULL,
+    `processed_at` datetime NULL,
+    PRIMARY KEY (`event_id`),
+    KEY `idx_speedphone_mail_event_time` (`created_at`),
+    KEY `idx_speedphone_mail_event_email` (`email_address`, `created_at`),
+    KEY `idx_speedphone_mail_event_state` (`state`, `created_at`)
+) ENGINE=InnoDB");
+
 $db->query("INSERT IGNORE INTO crm_speedphone_user_settings
     (user_id, user_type, commission_percent, can_receive_unassigned, can_manage, date_modified)
     SELECT id,

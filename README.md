@@ -23,6 +23,8 @@ CRM SpeedPhone ist eine schnelle, abarbeitbare Telefonakquise-Warteschlange für
 - automatische Verlängerung während der gesamten geöffneten Bearbeitung und Freigabe nach dem Ergebnis
 - automatische Freigabe abgelaufener Reservierungen nach konfigurierbarer Zeit
 - vorhandene Kampagnensignale wie Link-Klick und E-Mail-Öffnung als nachvollziehbare Priorisierung
+- signierte, idempotente Webhooks der eigenen Anesda-Mailplattform für Zustellung, Bounce, Beschwerde, Öffnung, Klick und Abmeldung
+- automatische Kennzeichnung ungültiger oder abgemeldeter Adressen aus der eigenen Zustellkette
 - chronologische Liste gesendeter Direkt- und Kampagnenmails mit Datum, Uhrzeit, Empfängeradresse und Betreff direkt am aktuellen Kontakt
 - Kontaktwechsel und aktualisierte Kennzahlen per AJAX ohne vollständiges Neuladen der Seite
 - beliebig wiederholbare Handywahl für denselben Kontakt, etwa wenn besetzt war oder ein Anruf neu gestartet werden muss
@@ -78,6 +80,9 @@ Diese Datei wird bei Updates nicht überschrieben und ist nicht Teil des veröff
 - `source_list_name`: Name der vorhandenen Zielkontaktliste
 - `email_template_name`: Name der SuiteCRM-E-Mail-Vorlage
 - `email_sending_enabled`: tatsächlichen Versand aktivieren
+- `mail_webhook_secret`: einmalig vom Mailserver erzeugtes HMAC-Geheimnis; ausschließlich in `config.local.php` mit restriktiven Dateirechten speichern
+- `mail_api_enabled`: SpeedPhone-Direktmails über die eigene empfängerbezogene Versand-API senden
+- `mail_api_url`, `mail_api_key`, `mail_api_tenant_id`, `mail_api_account_id`: geschützte Zugangsdaten und vorhandene Mandanten-/Konto-IDs der Anesda-Mailplattform
 - `retry_days`: Abstände der erneuten Anrufversuche
 - `max_attempts`: maximale Zahl automatischer Versuche
 - `candidate_scan_limit`: maximale Zahl geprüfter Warteschlangeneinträge pro Abruf
@@ -102,6 +107,8 @@ Die Tabelle `crm_speedphone_locks` enthält ausschließlich kurzlebige Reservier
 Die Dialer-Tabellen speichern Geräte, kurzlebige Kopplungen und Anrufaufträge. Jeder Auftrag referenziert den vorhandenen Zielkontakt ausschließlich über dessen UUID. Kopplungscodes und dauerhafte Gerätetoken werden serverseitig nur als SHA-256-Hash gespeichert; Telefonnummern in Anrufaufträgen verfallen nach zwei Minuten.
 
 `crm_speedphone_incoming_calls` speichert bei einem zugeordneten Rückruf ausschließlich Ereignis-, Geräte-, Benutzer- und Zielkontakt-UUID sowie Eingangs- und Öffnungszeitpunkt. Die eingehende Telefonnummer wird nicht in einer zusätzlichen SpeedPhone-Tabelle gespeichert. Nicht zuordenbare Nummern erzeugen keinen Ereignisdatensatz.
+
+`crm_speedphone_mail_webhook_events` hält die eindeutige Ereignis-UUID, den signierten Nutzdaten-Hash, Verarbeitungszustand und die referenzierte Kampagnenaktivität. Dadurch bleiben Wiederholungsversuche nachvollziehbar, erzeugen aber keine doppelten Öffnungs-, Klick- oder Bounce-Aktivitäten. Das Webhook-Geheimnis wird weder in dieser Tabelle noch im Paket gespeichert.
 
 Der Installer erzeugt eine bislang fehlende `*_cstm`-Tabelle idempotent. Dadurch ist die Installation auch möglich, wenn im Modul „Anrufe“ zuvor noch kein benutzerdefiniertes Feld existierte.
 Beim Update werden außerdem ältere SpeedPhone-Anrufnamen einmalig in das strukturierte Ergebnisfeld übernommen. Nur tatsächlich erreichte Gespräche erzeugen daraus eine Betreuung; „nicht erreicht“, „falsche Nummer“ und reine Verschiebungen tun das nicht.

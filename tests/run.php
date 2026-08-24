@@ -9,6 +9,7 @@ require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/InputValidator
 require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/AssignmentService.php';
 require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/DialerService.php';
 require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/IncomingCallService.php';
+require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/MailWebhookService.php';
 require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/render.php';
 
 use Anesda\CRM\SpeedPhone\BusinessDayCalculator;
@@ -16,6 +17,7 @@ use Anesda\CRM\SpeedPhone\InputValidator;
 use Anesda\CRM\SpeedPhone\AssignmentService;
 use Anesda\CRM\SpeedPhone\DialerService;
 use Anesda\CRM\SpeedPhone\IncomingCallService;
+use Anesda\CRM\SpeedPhone\MailWebhookService;
 
 $failures = [];
 
@@ -168,6 +170,20 @@ check(!str_contains($workspace, 'data-speedphone-dialer-call="work" disabled'), 
 check(str_contains($emailServiceSource, 'explicitOneTimeRequest'), 'Einmalige ausdrückliche Versandfreigabe fehlt im E-Mail-Dienst.');
 check(str_contains($emailServiceSource, 'die globale E-Mail-Sperre bleibt bestehen'), 'Fortbestand der globalen E-Mail-Sperre wird nicht bestätigt.');
 check(!preg_match('/UPDATE\s+email_addresses/i', $emailServiceSource), 'Die einmalige Freigabe darf globale E-Mail-Sperrmerkmale nicht löschen.');
+check(str_contains($emailServiceSource, 'sendThroughMailApi'), 'SpeedPhone kann Direktmails nicht über die eigene Mail-API senden.');
+check(str_contains($emailServiceSource, "'crm_target_id'"), 'Mail-API-Sendungen enthalten keine vorhandene CRM-Zielkontakt-UUID.');
+check(str_contains($emailServiceSource, 'CURLOPT_PROTOCOLS => CURLPROTO_HTTPS'), 'Mail-API-Zugang ist nicht auf HTTPS beschränkt.');
+
+check(
+    MailWebhookService::signature('secret', '1724500000', '{"event":"delivered"}')
+        === 'v1=4e8bc89b80543fda19bb3735cdab3aef5785920a641ed77f99fcd8874ad6867f',
+    'Die CRM-Signaturprüfung ist nicht mit dem Mailserver-Protokoll kompatibel.'
+);
+$mailWebhookSource = file_get_contents(__DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/MailWebhookService.php');
+check(str_contains($mailWebhookSource, 'hash_equals'), 'Webhook-Signaturen werden nicht timing-sicher geprüft.');
+check(str_contains($mailWebhookSource, 'MAX_CLOCK_SKEW'), 'Webhook-Wiederholungen besitzen kein begrenztes Zeitfenster.');
+check(str_contains($mailWebhookSource, 'ON DUPLICATE KEY UPDATE'), 'Webhook-Verarbeitung ist nicht idempotent wiederholbar.');
+check(str_contains($mailWebhookSource, "'unique_opened'"), 'Eindeutige Öffnungen werden nicht als CRM-Aktivität übernommen.');
 
 $apiSource = file_get_contents(__DIR__ . '/../module/copy/custom/CRM/SpeedPhone/api.php');
 check(str_contains($apiSource, "'dialer_pairing'"), 'API-Aktion zur QR-Kopplung fehlt.');

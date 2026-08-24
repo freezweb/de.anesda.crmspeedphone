@@ -46,38 +46,55 @@ final class EmailService
         $bodyHtml = strtr((string) $template->body_html, $replacements);
         $bodyText = trim(strip_tags(strtr((string) $template->body, $replacements) ?: $bodyHtml));
 
-        require_once 'include/SugarPHPMailer.php';
         $emailBean = \BeanFactory::newBean('Emails');
         $defaults = $emailBean->getSystemDefaultEmail();
-        $mail = new \SugarPHPMailer();
-        $mail->setMailerForSystem();
-        $mail->From = $defaults['email'];
-        $mail->FromName = $defaults['name'];
-        $mail->ClearAllRecipients();
-        $mail->ClearReplyTos();
-        $mail->AddAddress($email);
-        $mail->Subject = from_html($subject);
-        $mail->Body = $bodyHtml;
-        $mail->AltBody = $bodyText;
-        $mail->isHTML(true);
-        $mail->prepForOutbound();
-
-        if (!$mail->Send()) {
-            throw new \RuntimeException('Die Informationsmail konnte nicht versendet werden: ' . $mail->ErrorInfo);
+        $mailSubject = from_html($subject);
+        $transportReference = null;
+        if ((bool) $this->config->get('mail_api_enabled', false)) {
+            $transportReference = $this->sendThroughMailApi(
+                $prospect,
+                $email,
+                $mailSubject,
+                $bodyHtml,
+                $bodyText,
+                (string) $defaults['email'],
+                (string) $defaults['name'],
+                $suppressionBypassed
+            );
+        } else {
+            require_once 'include/SugarPHPMailer.php';
+            $mail = new \SugarPHPMailer();
+            $mail->setMailerForSystem();
+            $mail->From = $defaults['email'];
+            $mail->FromName = $defaults['name'];
+            $mail->ClearAllRecipients();
+            $mail->ClearReplyTos();
+            $mail->AddAddress($email);
+            $mail->Subject = $mailSubject;
+            $mail->Body = $bodyHtml;
+            $mail->AltBody = $bodyText;
+            $mail->isHTML(true);
+            $mail->prepForOutbound();
+            if (!$mail->Send()) {
+                throw new \RuntimeException('Die Informationsmail konnte nicht versendet werden: ' . $mail->ErrorInfo);
+            }
         }
 
         $emailBean->to_addrs = $email;
         $emailBean->type = 'out';
         $emailBean->status = 'sent';
-        $emailBean->name = $mail->Subject;
-        $emailBean->description = $mail->AltBody;
-        $emailBean->description_html = $mail->Body;
-        $emailBean->from_addr = $mail->From;
-        $emailBean->from_name = $mail->FromName;
+        $emailBean->name = $mailSubject;
+        $emailBean->description = $bodyText;
+        $emailBean->description_html = $bodyHtml;
+        $emailBean->from_addr = (string) $defaults['email'];
+        $emailBean->from_name = (string) $defaults['name'];
         $emailBean->parent_type = 'Prospects';
         $emailBean->parent_id = $prospect->id;
         $emailBean->assigned_user_id = $this->currentUser->id;
         $emailBean->date_sent_received = \TimeDate::getInstance()->nowDb();
+        if ($transportReference !== null) {
+            $emailBean->description = "Anesda-Mail-ID: {$transportReference}\n\n" . $emailBean->description;
+        }
         if ($suppressionBypassed) {
             $emailBean->description = "Einmaliger Versand auf ausdrückliche telefonische Anforderung.\n\n"
                 . $emailBean->description;
@@ -90,7 +107,72 @@ final class EmailService
                 ? 'Die ausdrücklich angeforderte Informationsmail wurde einmalig versendet und protokolliert; die globale E-Mail-Sperre bleibt bestehen.'
                 : 'Informationsmail wurde versendet und protokolliert.',
             'one_time_override' => $suppressionBypassed,
+            'anesda_message_id' => $transportReference,
         ];
+    }
+
+    private function sendThroughMailApi(
+        \Prospect $prospect,
+        string $email,
+        string $subject,
+        string $bodyHtml,
+        string $bodyText,
+        string $fromAddress,
+        string $fromName,
+        bool $suppressionBypassed
+    ): string {
+        $url = $this->config->requireString('mail_api_url');
+        $apiKey = $this->config->requireString('mail_api_key');
+        $tenantId = (int) $this->config->get('mail_api_tenant_id', 0);
+        $accountId = (int) $this->config->get('mail_api_account_id', 0);
+        if ($tenantId < 1 || $accountId < 1 || !str_starts_with($url, 'https://')) {
+            throw new \RuntimeException('Die Anesda-Mail-API ist unvollständig oder unsicher konfiguriert.');
+        }
+        $payload = json_encode([
+            'tenant_id' => $tenantId,
+            'account_id' => $accountId,
+            'from_address' => strtolower($fromAddress),
+            'from_name' => $fromName,
+            'to' => [['email' => strtolower($email)]],
+            'subject' => $subject,
+            'text' => $bodyText,
+            'html' => $bodyHtml,
+            'tags' => ['speedphone'],
+            'metadata' => [
+                'source' => 'suitecrm-speedphone',
+                'crm_target_id' => (string) $prospect->id,
+                'crm_target_type' => 'Prospects',
+                'one_time_override' => $suppressionBypassed,
+            ],
+            'track_opens' => true,
+            'track_clicks' => true,
+            'allow_suppressed' => $suppressionBypassed,
+        ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+
+        $handle = curl_init($url);
+        curl_setopt_array($handle, [
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => $payload,
+            CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'X-API-Key: ' . $apiKey],
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_CONNECTTIMEOUT => 10,
+            CURLOPT_TIMEOUT => 30,
+            CURLOPT_PROTOCOLS => CURLPROTO_HTTPS,
+        ]);
+        $response = curl_exec($handle);
+        $status = (int) curl_getinfo($handle, CURLINFO_RESPONSE_CODE);
+        $error = curl_error($handle);
+        curl_close($handle);
+        if (!is_string($response) || $status !== 202) {
+            throw new \RuntimeException('Anesda-Mail-API hat den Versand nicht angenommen: '
+                . ($error !== '' ? $error : 'HTTP ' . $status));
+        }
+        $decoded = json_decode($response, true, 16, JSON_THROW_ON_ERROR);
+        $messageId = (string) ($decoded['message_id'] ?? '');
+        if (preg_match('/^[0-9a-f-]{36}$/', $messageId) !== 1) {
+            throw new \RuntimeException('Anesda-Mail-API lieferte keine gültige Nachrichten-ID.');
+        }
+        return $messageId;
     }
 
     private function assertAddressMayReceiveEmail(
