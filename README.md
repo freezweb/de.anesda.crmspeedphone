@@ -75,6 +75,10 @@ Instanzbezogene Werte gehören ausschließlich nach:
 
 `custom/CRM/SpeedPhone/config.local.php`
 
+Mail-API- und Webhook-Geheimnisse werden getrennt mit Dateirecht `0640` in
+`custom/CRM/SpeedPhone/mail.local.php` gehalten. Diese Datei ist ebenfalls kein
+Paketbestandteil und wird bei Updates nicht überschrieben.
+
 Diese Datei wird bei Updates nicht überschrieben und ist nicht Teil des veröffentlichten Pakets. Unterstützte Optionen sind unter anderem:
 
 - `source_list_name`: Name der vorhandenen Zielkontaktliste

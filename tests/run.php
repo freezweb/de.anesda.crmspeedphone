@@ -179,6 +179,8 @@ check(
         === 'v1=4e8bc89b80543fda19bb3735cdab3aef5785920a641ed77f99fcd8874ad6867f',
     'Die CRM-Signaturprüfung ist nicht mit dem Mailserver-Protokoll kompatibel.'
 );
+$configSource = file_get_contents(__DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/Config.php');
+check(str_contains($configSource, "'/mail.local.php'"), 'Mail-Geheimnisse besitzen keine getrennte lokale Konfigurationsdatei.');
 $mailWebhookSource = file_get_contents(__DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/MailWebhookService.php');
 check(str_contains($mailWebhookSource, 'hash_equals'), 'Webhook-Signaturen werden nicht timing-sicher geprüft.');
 check(str_contains($mailWebhookSource, 'MAX_CLOCK_SKEW'), 'Webhook-Wiederholungen besitzen kein begrenztes Zeitfenster.');

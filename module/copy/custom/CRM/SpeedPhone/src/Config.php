@@ -16,12 +16,14 @@ final class Config
         $defaults = require $baseDirectory . '/config.php';
         $localFile = $baseDirectory . '/config.local.php';
         $local = is_file($localFile) ? require $localFile : [];
+        $mailLocalFile = $baseDirectory . '/mail.local.php';
+        $mailLocal = is_file($mailLocalFile) ? require $mailLocalFile : [];
 
-        if (!is_array($defaults) || !is_array($local)) {
+        if (!is_array($defaults) || !is_array($local) || !is_array($mailLocal)) {
             throw new \RuntimeException('Die SpeedPhone-Konfiguration ist ungültig.');
         }
 
-        return new self(array_replace_recursive($defaults, $local));
+        return new self(array_replace_recursive($defaults, $local, $mailLocal));
     }
 
     public function get(string $key, mixed $default = null): mixed
@@ -44,4 +46,3 @@ final class Config
         return $this->values;
     }
 }
-
