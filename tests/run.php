@@ -11,6 +11,7 @@ require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/DialerService.
 require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/IncomingCallService.php';
 require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/MailWebhookService.php';
 require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/EmailTemplateBrandService.php';
+require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/EmailService.php';
 require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/render.php';
 
 use Anesda\CRM\SpeedPhone\BusinessDayCalculator;
@@ -20,6 +21,7 @@ use Anesda\CRM\SpeedPhone\DialerService;
 use Anesda\CRM\SpeedPhone\IncomingCallService;
 use Anesda\CRM\SpeedPhone\MailWebhookService;
 use Anesda\CRM\SpeedPhone\EmailTemplateBrandService;
+use Anesda\CRM\SpeedPhone\EmailService;
 
 $failures = [];
 
@@ -193,6 +195,14 @@ check(str_contains($informationTemplateContent, 'https://anesda-nord.de/kontakt'
 check(!str_contains($informationTemplateContent, 'anesda.de'), 'SpeedPhone-Infomail enthält noch die alte Domain.');
 check(!str_contains($informationTemplateContent, 'Anesda UG'), 'SpeedPhone-Infomail enthält noch die alte Gesellschaftsbezeichnung.');
 check(!str_contains($informationTemplateContent, 'Memmingen'), 'SpeedPhone-Infomail enthält noch den alten Ort.');
+check(
+    str_starts_with(EmailService::decodeStoredHtml($informationTemplate['body_html']), '<!DOCTYPE html>'),
+    'SuiteCRM-kodiertes HTML der SpeedPhone-Infomail wird vor dem Versand nicht dekodiert.'
+);
+check(
+    EmailService::decodeStoredHtml('<p>Bereits echtes HTML</p>') === '<p>Bereits echtes HTML</p>',
+    'Bereits dekodiertes Vorlagen-HTML darf nicht verändert werden.'
+);
 
 check(
     MailWebhookService::signature('secret', '1724500000', '{"event":"delivered"}')

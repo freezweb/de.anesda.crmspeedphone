@@ -43,7 +43,7 @@ final class EmailService
             '$last_name' => (string) $prospect->last_name,
         ];
         $subject = strtr((string) $template->subject, $replacements);
-        $bodyHtml = strtr((string) $template->body_html, $replacements);
+        $bodyHtml = self::decodeStoredHtml(strtr((string) $template->body_html, $replacements));
         $bodyText = trim(strip_tags(strtr((string) $template->body, $replacements) ?: $bodyHtml));
 
         $emailBean = \BeanFactory::newBean('Emails');
@@ -109,6 +109,15 @@ final class EmailService
             'one_time_override' => $suppressionBypassed,
             'anesda_message_id' => $transportReference,
         ];
+    }
+
+    public static function decodeStoredHtml(string $html): string
+    {
+        if (preg_match('/^\s*&lt;(?:!DOCTYPE|html|table|div|p)\b/i', $html) !== 1) {
+            return $html;
+        }
+
+        return html_entity_decode($html, ENT_QUOTES | ENT_HTML5, 'UTF-8');
     }
 
     private function sendThroughMailApi(
