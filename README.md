@@ -114,6 +114,11 @@ Die Dialer-Tabellen speichern Geräte, kurzlebige Kopplungen und Anrufaufträge.
 
 `crm_speedphone_mail_webhook_events` hält die eindeutige Ereignis-UUID, den signierten Nutzdaten-Hash, Verarbeitungszustand und die referenzierte Kampagnenaktivität. Dadurch bleiben Wiederholungsversuche nachvollziehbar, erzeugen aber keine doppelten Öffnungs-, Klick- oder Bounce-Aktivitäten. Das Webhook-Geheimnis wird weder in dieser Tabelle noch im Paket gespeichert.
 
+Nach der Umstellung werden der frühere öffentliche Brevo-Webhook und das
+Brevo-Backfill-Skript durch die Vorlagen unter `tools/brevo-*-retired.php`
+ersetzt. Die Vorlagen enthalten bewusst weder Datenbankkennwörter noch Brevo-
+API-Schlüssel; historische CRM-Aktivitäten bleiben unverändert erhalten.
+
 Der Installer erzeugt eine bislang fehlende `*_cstm`-Tabelle idempotent. Dadurch ist die Installation auch möglich, wenn im Modul „Anrufe“ zuvor noch kein benutzerdefiniertes Feld existierte.
 Beim Update werden außerdem ältere SpeedPhone-Anrufnamen einmalig in das strukturierte Ergebnisfeld übernommen. Nur tatsächlich erreichte Gespräche erzeugen daraus eine Betreuung; „nicht erreicht“, „falsche Nummer“ und reine Verschiebungen tun das nicht.
 
