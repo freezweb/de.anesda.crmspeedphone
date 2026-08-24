@@ -10,6 +10,7 @@ require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/AssignmentServ
 require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/DialerService.php';
 require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/IncomingCallService.php';
 require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/MailWebhookService.php';
+require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/EmailTemplateBrandService.php';
 require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/render.php';
 
 use Anesda\CRM\SpeedPhone\BusinessDayCalculator;
@@ -18,6 +19,7 @@ use Anesda\CRM\SpeedPhone\AssignmentService;
 use Anesda\CRM\SpeedPhone\DialerService;
 use Anesda\CRM\SpeedPhone\IncomingCallService;
 use Anesda\CRM\SpeedPhone\MailWebhookService;
+use Anesda\CRM\SpeedPhone\EmailTemplateBrandService;
 
 $failures = [];
 
@@ -173,6 +175,24 @@ check(!preg_match('/UPDATE\s+email_addresses/i', $emailServiceSource), 'Die einm
 check(str_contains($emailServiceSource, 'sendThroughMailApi'), 'SpeedPhone kann Direktmails nicht über die eigene Mail-API senden.');
 check(str_contains($emailServiceSource, "'crm_target_id'"), 'Mail-API-Sendungen enthalten keine vorhandene CRM-Zielkontakt-UUID.');
 check(str_contains($emailServiceSource, 'CURLOPT_PROTOCOLS => CURLPROTO_HTTPS'), 'Mail-API-Zugang ist nicht auf HTTPS beschränkt.');
+
+$legacyTemplate = 'Anesda UG, St.-Josefs-Kirchplatz 4, 87700 Memmingen, 08331 7568490, https://anesda.de, info@anesda.de';
+$migratedTemplate = EmailTemplateBrandService::rewriteLegacyBranding($legacyTemplate);
+check(str_contains($migratedTemplate, 'Anesda Nord UG'), 'Alte Gesellschaftsbezeichnung wird in Vorlagen nicht ersetzt.');
+check(str_contains($migratedTemplate, 'Parkstr. 5, 19309 Lanz'), 'Alte Firmenanschrift wird in Vorlagen nicht ersetzt.');
+check(str_contains($migratedTemplate, '+49 38780 579999'), 'Alte Telefonnummer wird in Vorlagen nicht ersetzt.');
+check(str_contains($migratedTemplate, 'https://anesda-nord.de'), 'Alte Webdomain wird in Vorlagen nicht ersetzt.');
+check(str_contains($migratedTemplate, 'info@anesda-nord.de'), 'Alte E-Mail-Domain wird in Vorlagen nicht ersetzt.');
+$informationTemplate = EmailTemplateBrandService::informationTemplate();
+$informationTemplateContent = implode("\n", $informationTemplate);
+check(str_contains($informationTemplate['subject'], 'Anesda Nord'), 'SpeedPhone-Infomail hat noch den alten Betreff.');
+check(str_contains($informationTemplateContent, 'Anesda Nord UG (haftungsbeschränkt)'), 'SpeedPhone-Infomail nennt nicht die neue Gesellschaft.');
+check(str_contains($informationTemplateContent, 'Parkstr. 5'), 'SpeedPhone-Infomail enthält nicht die neue Anschrift.');
+check(str_contains($informationTemplateContent, 'info@anesda-nord.de'), 'SpeedPhone-Infomail enthält nicht die neue E-Mail-Adresse.');
+check(str_contains($informationTemplateContent, 'https://anesda-nord.de/kontakt'), 'SpeedPhone-Infomail verlinkt nicht auf den neuen Kontaktweg.');
+check(!str_contains($informationTemplateContent, 'anesda.de'), 'SpeedPhone-Infomail enthält noch die alte Domain.');
+check(!str_contains($informationTemplateContent, 'Anesda UG'), 'SpeedPhone-Infomail enthält noch die alte Gesellschaftsbezeichnung.');
+check(!str_contains($informationTemplateContent, 'Memmingen'), 'SpeedPhone-Infomail enthält noch den alten Ort.');
 
 check(
     MailWebhookService::signature('secret', '1724500000', '{"event":"delivered"}')

@@ -15,6 +15,7 @@ foreach ([
     'LockService',
     'QueueService',
     'EmailService',
+    'EmailTemplateBrandService',
     'ActionService',
     'DialerService',
     'IncomingCallService',

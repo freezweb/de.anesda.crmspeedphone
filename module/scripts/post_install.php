@@ -342,6 +342,9 @@ $db->query("UPDATE crm_speedphone_assignments
             WHERE last_result='interested' AND won_by_user_id IS NULL");
 
 require_once 'custom/CRM/SpeedPhone/bootstrap.php';
+(new Anesda\CRM\SpeedPhone\EmailTemplateBrandService($db))->migrate(
+    Anesda\CRM\SpeedPhone\Config::load('custom/CRM/SpeedPhone')->requireString('email_template_name')
+);
 (new Anesda\CRM\SpeedPhone\AclRoleService($db))->synchronize();
 
 speedPhoneInstallDashboardDashlets($db);
