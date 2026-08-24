@@ -25,3 +25,13 @@ $current_user = BeanFactory::getBean('Users', (string) $adminRow['id']);
 $GLOBALS['current_user'] = $current_user;
 
 require '/tmp/crm-speedphone-deploy/scripts/post_install.php';
+
+$mailWebhookTable = (int) $db->getOne(
+    "SELECT COUNT(*) FROM information_schema.tables
+     WHERE table_schema=DATABASE() AND table_name='crm_speedphone_mail_webhook_events'"
+);
+if ($mailWebhookTable !== 1) {
+    throw new RuntimeException('Die Mail-Webhook-Ereignistabelle fehlt nach der Installation.');
+}
+
+echo "CRM SpeedPhone wurde installiert; Mail-Webhook-Tabelle ist vorhanden.\n";
