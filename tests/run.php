@@ -5,6 +5,8 @@ if (!defined('sugarEntry')) {
 }
 
 require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/BusinessDayCalculator.php';
+require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/Config.php';
+require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/CandidatePriorityService.php';
 require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/InputValidator.php';
 require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/AssignmentService.php';
 require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/DialerService.php';
@@ -15,6 +17,8 @@ require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/EmailService.p
 require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/render.php';
 
 use Anesda\CRM\SpeedPhone\BusinessDayCalculator;
+use Anesda\CRM\SpeedPhone\Config;
+use Anesda\CRM\SpeedPhone\CandidatePriorityService;
 use Anesda\CRM\SpeedPhone\InputValidator;
 use Anesda\CRM\SpeedPhone\AssignmentService;
 use Anesda\CRM\SpeedPhone\DialerService;
@@ -82,6 +86,55 @@ try {
     check(false, 'MMI-Steuercodes dürfen nicht als Telefonnummer akzeptiert werden.');
 } catch (InvalidArgumentException) {
 }
+
+$priorityConfig = Config::load(__DIR__ . '/../module/copy/custom/CRM/SpeedPhone');
+$priorityService = new CandidatePriorityService($priorityConfig);
+$edeka = $priorityService->classify(['account_name' => 'EDEKA Böge', 'description' => 'Supermarkt']);
+check($edeka['excluded'], 'EDEKA-Märkte müssen als zentral versorgte Handelskette ausgeschlossen werden.');
+check(
+    !$priorityService->isExcluded(['account_name' => 'Kolls im Rewe Markt', 'description' => 'Eigenständiger Betrieb']),
+    'Ein eigenständiger Betrieb mit bloßer Standortangabe im Rewe-Markt darf nicht als Handelskette gelten.'
+);
+$school = $priorityService->classify(['account_name' => 'Grundschule Lanz', 'description' => '']);
+check(
+    $school['tier'] === CandidatePriorityService::TIER_LATE,
+    'Schulen müssen nach dem Mittelstand eingeordnet werden.'
+);
+$ergo = $priorityService->classify(['account_name' => 'Praxis für Ergotherapie Muster', 'description' => '']);
+check(
+    $ergo['tier'] === CandidatePriorityService::TIER_LATE && $ergo['base_score'] === 0,
+    'Kleine Ergotherapiepraxen müssen am Ende der regulären Akquise stehen.'
+);
+$mediumPractice = $priorityService->classify([
+    'account_name' => 'Therapieverbund Nord GmbH',
+    'description' => 'Physiotherapie an mehreren Standorten',
+]);
+check(
+    $mediumPractice['tier'] === CandidatePriorityService::TIER_MEDIUM,
+    'Eine als GmbH erkennbare größere Praxis darf nicht pauschal als Kleinstformat gelten.'
+);
+$medium = $priorityService->classify([
+    'account_name' => 'Muster Maschinenbau GmbH',
+    'description' => '',
+]);
+check(
+    $medium['tier'] === CandidatePriorityService::TIER_MEDIUM && $medium['base_score'] === 100,
+    'Erkennbarer Mittelstand muss die höchste reguläre Grundpriorität erhalten.'
+);
+$standard = $priorityService->classify(['account_name' => 'Blumenhaus Muster', 'description' => '']);
+check(
+    $standard['tier'] === CandidatePriorityService::TIER_STANDARD && $standard['base_score'] === 50,
+    'Normale Gewerbebetriebe benötigen eine Priorität zwischen Mittelstand und Kleinstformat.'
+);
+$tierSql = $priorityService->sqlTierExpression(
+    'company_name',
+    'company_text',
+    static fn (string $value): string => addslashes($value)
+);
+check(
+    str_contains($tierSql, 'company_name REGEXP') && str_contains($tierSql, 'company_text REGEXP'),
+    'Die Geschäftsgrößen-Priorität muss direkt in der Datenbankabfrage sortierbar sein.'
+);
 
 require_once __DIR__ . '/../module/copy/custom/modules/Prospects/SpeedPhoneProspectHook.php';
 $existingProspect = new SugarBean();
@@ -198,6 +251,24 @@ check(!str_contains($informationTemplateContent, 'Memmingen'), 'SpeedPhone-Infom
 check(
     str_starts_with(EmailService::decodeStoredHtml($informationTemplate['body_html']), '<!DOCTYPE html>'),
     'SuiteCRM-kodiertes HTML der SpeedPhone-Infomail wird vor dem Versand nicht dekodiert.'
+);
+check(
+    preg_match('/praxis/iu', implode(' ', $exampleConfig['positive_patterns'])) !== 1,
+    'Das pauschale Signal „Praxis“ darf Kleinstpraxen nicht mehr aufwerten.'
+);
+$queueSource = file_get_contents(__DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/QueueService.php');
+check(
+    strpos($queueSource, 'speedphone_priority_tier,')
+        < strpos($queueSource, 'COALESCE(eng.clicked, 0) DESC'),
+    'Die Geschäftsgrößen-Priorität muss vor allgemeinen Mailreaktionen sortiert werden.'
+);
+check(
+    str_contains($queueSource, '$canIncreasePriority'),
+    'Mailöffnung und Regionalität dürfen Schulen oder Kleinstpraxen nicht wieder hochstufen.'
+);
+check(
+    str_contains($queueSource, 'centralRetailAllowedSql'),
+    'Zentral versorgte Handelsketten müssen bereits in der SQL-Auswahl ausgeschlossen werden.'
 );
 check(
     EmailService::decodeStoredHtml('<p>Bereits echtes HTML</p>') === '<p>Bereits echtes HTML</p>',

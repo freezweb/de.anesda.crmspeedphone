@@ -13,6 +13,7 @@ foreach ([
     'UserAccessService',
     'AssignmentService',
     'LockService',
+    'CandidatePriorityService',
     'QueueService',
     'EmailService',
     'EmailTemplateBrandService',

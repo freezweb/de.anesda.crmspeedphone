@@ -18,7 +18,7 @@ return [
     'external_stale_days' => 14,
     'local_postcode_patterns' => ['/^19/', '/^168/', '/^169/'],
     'positive_patterns' => [
-        '/restaurant|hotel|handwerk|praxis|werkstatt|ferien|service/iu',
+        '/restaurant|hotel|handwerk|werkstatt|ferien|service/iu',
     ],
     'exclude_patterns' => [
         '/ministerium|bundesamt|landesamt|stadtverwaltung|rathaus/iu',

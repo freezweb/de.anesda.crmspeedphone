@@ -21,6 +21,12 @@ return [
     'local_postcode_patterns' => [],
     'positive_patterns' => [],
     'exclude_patterns' => [],
+    // Diese Muster werden sowohl in PHP als auch mit MariaDB REGEXP verwendet
+    // und enthalten deshalb bewusst keine Regex-Begrenzer oder Flags.
+    'central_retail_name_pattern' => '^(edeka|e[ -]?center|marktkauf|nah[[:space:]]*&[[:space:]]*gut|netto[[:space:]]+marken-discount|aldi|lidl|kaufland|rewe|penny|norma|globus[[:space:]]+baumarkt|toom[[:space:]]+baumarkt|obi([[:space:]]+markt)?|hagebau(markt)?|dm[[:space:]]+drogerie([[:space:]]+markt)?|rossmann|müller[[:space:]]+drogerie|tedox|kik|tedi|action|jysk|dänisches[[:space:]]+bettenlager|deichmann|fressnapf|mediamarkt|saturn)([^[:alnum:]]|$)',
+    'school_pattern' => '(^|[^[:alnum:]])(schule|grundschule|oberschule|gesamtschule|gymnasium|berufsschule|förderschule|volkshochschule)([^[:alnum:]]|$)',
+    'small_business_pattern' => '(^|[^[:alnum:]])(ergotherapie|ergotherapeut|ergo[ -]?praxis|physiotherapie|logopädie|logopaedie|podologie|heilpraktiker|psychotherapie|hebamme|massagepraxis)([^[:alnum:]]|$)',
+    'medium_business_pattern' => '(^|[^[:alnum:]])(gmbh|mbh|ug[[:space:]]*\\(haftungsbeschränkt\\)|ohg|kg|e\\.?[[:space:]]*k\\.?|genossenschaft|maschinenbau|anlagenbau|metallbau|stahlbau|werkzeugbau|elektrotechnik|automation|automatisierung|ingenieur(büro|gesellschaft)|systemhaus|softwarehaus|it-service|logistik|spedition|produktion|industrie|fertigung|bauunternehmen|autohaus|druckerei|verlag|hotel|pflegeheim|wohnungsbau|immobilienverwaltung)([^[:alnum:]]|$)',
     'dialer_android_store_url' => 'https://play.google.com/store/apps/details?id=de.anesda.crmspeedphone.dialer',
     'dialer_ios_store_url' => 'https://apps.apple.com/app/id6794342212',
 ];

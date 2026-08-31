@@ -4,6 +4,8 @@ namespace Anesda\CRM\SpeedPhone;
 
 final class QueueService
 {
+    private readonly CandidatePriorityService $priorities;
+
     public function __construct(
         private readonly Config $config,
         private readonly \DBManager $db,
@@ -12,6 +14,7 @@ final class QueueService
         private readonly UserAccessService $access,
         private readonly AssignmentService $assignments
     ) {
+        $this->priorities = new CandidatePriorityService($config);
     }
 
     public function assertUserAllowed(): void
@@ -43,15 +46,19 @@ final class QueueService
                       WHERE spl.prospect_id=p.id AND spl.expires_at>UTC_TIMESTAMP()
                   )
                 ORDER BY
+                    CASE COALESCE(pc.speedphone_status_c, '')
+                        WHEN 'callback' THEN 0
+                        ELSE 1
+                    END,
                     CASE
                         WHEN spa.owner_user_id='" . $this->db->quote((string) $this->currentUser->id) . "' THEN 0
                         WHEN spa.owner_type='external' THEN 1
                         ELSE 2
                     END,
+                    speedphone_priority_tier,
                     CASE COALESCE(pc.speedphone_status_c, '')
-                        WHEN 'callback' THEN 0
-                        WHEN 'retry' THEN 1
-                        ELSE 2
+                        WHEN 'retry' THEN 0
+                        ELSE 1
                     END,
                     COALESCE(pc.speedphone_next_call_c, '1970-01-01 00:00:00'),
                     COALESCE(eng.clicked, 0) DESC,
@@ -166,7 +173,8 @@ final class QueueService
                     LEFT JOIN prospects_cstm pc ON pc.id_c=p.id
                     LEFT JOIN crm_speedphone_assignments spa ON spa.prospect_id=p.id
                     LEFT JOIN crm_speedphone_user_settings sp_creator ON sp_creator.user_id=p.created_by
-                    WHERE p.deleted=0 AND p.do_not_call=0 AND {$userCondition}";
+                    WHERE p.deleted=0 AND p.do_not_call=0 AND {$userCondition}
+                      AND " . $this->centralRetailAllowedSql();
         $processedCommon = " FROM calls c
                     LEFT JOIN calls_cstm cc ON cc.id_c=c.id
                     INNER JOIN prospects p ON p.id=c.parent_id AND p.deleted=0
@@ -277,6 +285,10 @@ final class QueueService
 
     private function isExcluded(array $candidate): bool
     {
+        if ($this->priorities->isExcluded($candidate)) {
+            return true;
+        }
+
         $haystack = implode(' ', [
             $candidate['first_name'] ?? '',
             $candidate['last_name'] ?? '',
@@ -303,37 +315,45 @@ final class QueueService
         $candidate['name'] = trim((string) ($prospect->account_name ?: trim($prospect->first_name . ' ' . $prospect->last_name)));
         $candidate['email'] = (string) ($prospect->emailAddress?->getPrimaryAddress($prospect) ?? '');
         $candidate['website'] = $this->extractWebsite((string) $prospect->description);
-        $candidate['score'] = 0;
-        $candidate['reasons'] = [];
+        $priority = $this->priorities->classify($candidate);
+        $candidate['priority_tier'] = $priority['tier'];
+        $candidate['priority_label'] = $priority['label'];
+        $candidate['score'] = $priority['base_score'];
+        $candidate['reasons'] = [$priority['label']];
+        $canIncreasePriority = $priority['tier'] !== CandidatePriorityService::TIER_LATE;
 
         if ((int) $candidate['clicked'] === 1) {
-            $candidate['score'] += 100;
+            if ($canIncreasePriority) {
+                $candidate['score'] += 100;
+            }
             $candidate['reasons'][] = 'Link in einer Kampagnenmail angeklickt';
         }
         if ((int) $candidate['viewed'] === 1) {
-            $candidate['score'] += 30;
+            if ($canIncreasePriority) {
+                $candidate['score'] += 30;
+            }
             $candidate['reasons'][] = 'Kampagnenmail geöffnet';
         }
 
         foreach ((array) $this->config->get('local_postcode_patterns', []) as $pattern) {
             if (@preg_match((string) $pattern, (string) $candidate['primary_address_postalcode']) === 1) {
-                $candidate['score'] += 20;
+                if ($canIncreasePriority) {
+                    $candidate['score'] += 20;
+                }
                 $candidate['reasons'][] = 'Regionaler Betrieb';
                 break;
             }
         }
 
         $haystack = implode(' ', [$candidate['name'], $candidate['description'] ?? '']);
-        foreach ((array) $this->config->get('positive_patterns', []) as $pattern) {
-            if (@preg_match((string) $pattern, $haystack) === 1) {
-                $candidate['score'] += 10;
-                $candidate['reasons'][] = 'Passende Unternehmensart';
-                break;
+        if ($priority['tier'] !== CandidatePriorityService::TIER_LATE) {
+            foreach ((array) $this->config->get('positive_patterns', []) as $pattern) {
+                if (@preg_match((string) $pattern, $haystack) === 1) {
+                    $candidate['score'] += 10;
+                    $candidate['reasons'][] = 'Passende Unternehmensart';
+                    break;
+                }
             }
-        }
-
-        if ($candidate['reasons'] === []) {
-            $candidate['reasons'][] = 'Telefonnummer und aktive Listenzuordnung vorhanden';
         }
 
         $candidate['recent_calls'] = $this->getRecentCalls($candidate['id']);
@@ -482,6 +502,13 @@ final class QueueService
     private function candidateSelectSql(string $listId, string $userCondition, bool $onlyDue = true): string
     {
         $escalatedExpression = $this->assignments->sqlEscalatedExpression();
+        $nameExpression = $this->candidateNameSql();
+        $textExpression = "LOWER(CONCAT_WS(' ', {$nameExpression}, COALESCE(p.description, '')))";
+        $priorityExpression = $this->priorities->sqlTierExpression(
+            $nameExpression,
+            $textExpression,
+            fn (string $value): string => $this->db->quote($value)
+        );
         $dueCondition = $onlyDue
             ? "AND COALESCE(pc.speedphone_status_c, '') NOT IN
                       ('interested', 'no_interest', 'invalid_phone', 'blocked', 'paused')
@@ -498,7 +525,8 @@ final class QueueService
                        spa.owner_type speedphone_owner_type,
                        CASE WHEN {$escalatedExpression} THEN 1 ELSE 0 END speedphone_is_escalated,
                        COALESCE(eng.clicked, 0) clicked,
-                       COALESCE(eng.viewed, 0) viewed
+                       COALESCE(eng.viewed, 0) viewed,
+                       {$priorityExpression} speedphone_priority_tier
                 FROM prospects p
                 INNER JOIN prospect_lists_prospects plp
                     ON plp.related_id=p.id
@@ -519,8 +547,25 @@ final class QueueService
                 WHERE p.deleted=0
                   AND p.do_not_call=0
                   AND {$userCondition}
+                  AND " . $this->centralRetailAllowedSql() . "
                   AND (TRIM(COALESCE(p.phone_work, ''))<>'' OR TRIM(COALESCE(p.phone_mobile, ''))<>'')
                   {$dueCondition}";
+    }
+
+    private function candidateNameSql(): string
+    {
+        return "LOWER(TRIM(CASE
+                    WHEN TRIM(COALESCE(p.account_name, ''))<>'' THEN p.account_name
+                    ELSE CONCAT_WS(' ', p.first_name, p.last_name)
+                END))";
+    }
+
+    private function centralRetailAllowedSql(): string
+    {
+        return $this->priorities->sqlAllowedCondition(
+            $this->candidateNameSql(),
+            fn (string $value): string => $this->db->quote($value)
+        );
     }
 
     private function findCandidateById(string $baseSql, string $prospectId): ?array

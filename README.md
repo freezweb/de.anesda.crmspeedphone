@@ -93,12 +93,22 @@ Diese Datei wird bei Updates nicht überschrieben und ist nicht Teil des veröff
 - `local_postcode_patterns`: regionale Priorisierung
 - `positive_patterns`: zusätzliche Prioritätssignale
 - `exclude_patterns`: harte Ausschlussregeln
+- `central_retail_name_pattern`: dauerhaft ausgeschlossene, zentral versorgte Handelsketten
+- `medium_business_pattern`: erkennbare mittelständische Betriebe mit höchster regulärer Grundpriorität
+- `school_pattern`, `small_business_pattern`: Schulen und Kleinstformate, die erst nach dem Mittelstand erscheinen
 - `lock_minutes`: Laufzeit einer Reservierung ohne erfolgreiche Verlängerung
 - `default_callback_days`: Vorbelegung des änderbaren Rückrufdatums ohne Uhrzeit, standardmäßig `7` Tage; eine optionale Uhrzeit erzeugt zusätzlich einen festen CRM-Termin
 - `callback_escalation_days`: nach wie vielen Tagen ein nicht erledigter externer Rückruf intern sichtbar wird; über die Oberfläche änderbar
 - `external_stale_days`: nach wie vielen Tagen ohne Kontaktversuch ein extern betreuter Kontakt intern sichtbar wird; über die Oberfläche änderbar
 - `dialer_android_store_url`: öffentliche Google-Play-Adresse der Dialer-App
 - `dialer_ios_store_url`: feste App-Store-Adresse der iOS-App; die Standardkonfiguration verweist auf Apple-App-ID `6794342212`
+
+Die Warteschlange behandelt fällige Rückrufe weiterhin zuerst. Danach folgen
+innerhalb der zulässigen Zuordnung erkennbarer Mittelstand, normale
+Gewerbebetriebe und erst zuletzt Schulen sowie Kleinstpraxen. Linkklicks,
+Mailöffnungen, Regionalität und Versuche sortieren nur noch innerhalb dieser
+Geschäftsgrößen-Stufe. Zentral versorgte Handelsketten werden gar nicht als
+Kandidaten angeboten.
 
 ## Datenmodell
 
