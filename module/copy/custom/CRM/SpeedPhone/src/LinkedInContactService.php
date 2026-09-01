@@ -130,6 +130,14 @@ final class LinkedInContactService
             libxml_use_internal_errors($previous);
         }
 
+        // DOMDocument verbindet Text um <br> sonst ohne Leerzeichen. Das würde
+        // z. B. den nächsten Registereintrag an einen Personennamen anhängen.
+        foreach (iterator_to_array($document->getElementsByTagName('br')) as $break) {
+            if ($break->parentNode !== null) {
+                $break->parentNode->insertBefore($document->createTextNode(' | '), $break);
+            }
+        }
+
         $contacts = [];
         $seen = [];
         $xpath = new \DOMXPath($document);
@@ -800,6 +808,7 @@ final class LinkedInContactService
         $roles = [
             '/geschäftsführerin/iu' => 'Geschäftsführerin',
             '/geschäftsführer/iu' => 'Geschäftsführer',
+            '/geschäftsführung/iu' => 'Geschäftsführung',
             '/geschäftsleitung/iu' => 'Geschäftsleitung',
             '/inhaberin/iu' => 'Inhaberin',
             '/inhaber/iu' => 'Inhaber',

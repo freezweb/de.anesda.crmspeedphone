@@ -370,7 +370,7 @@ check(
 );
 $imprintOnlyFixture = <<<'HTML'
 <!doctype html>
-<html><body><address>Geschäftsführer: Max Mustermann</address></body></html>
+<html><body><address>Geschäftsführer: Max Mustermann<br>Amtsgericht Hamburg HRB 12345</address></body></html>
 HTML;
 $imprintContacts = LinkedInContactService::parseCompanyWebsiteHtml(
     $imprintOnlyFixture,
