@@ -414,15 +414,19 @@ final class LinkedInContactService
                 continue;
             }
             $clean = ($parts['scheme'] ?? $baseScheme) . '://' . $baseHost . ($parts['path'] ?? '/');
-            if (!isset($links[$clean])) {
-                $links[$clean] = true;
-            }
-            if (count($links) >= 3) {
-                break;
-            }
+            $score = preg_match('/team|mitarbeiter|ansprechpartner/u', self::normalize($clean)) === 1 ? 100 : 0;
+            $score += preg_match('/impressum|imprint/u', self::normalize($clean)) === 1 ? 80 : 0;
+            $score += preg_match('/ueber uns|about/u', self::normalize($clean)) === 1 ? 40 : 0;
+            $links[$clean] = max($score, (int) ($links[$clean] ?? 0));
         }
 
-        return array_keys($links);
+        $root = $baseScheme . '://' . $baseHost;
+        $links[$root . '/impressum'] = max(70, (int) ($links[$root . '/impressum'] ?? 0));
+        $links[$root . '/team'] = max(60, (int) ($links[$root . '/team'] ?? 0));
+        $links[$root . '/ueber-uns'] = max(50, (int) ($links[$root . '/ueber-uns'] ?? 0));
+        arsort($links, SORT_NUMERIC);
+
+        return array_slice(array_keys($links), 0, 3);
     }
 
     private function normalizePublicWebsiteUrl(string $website): string
