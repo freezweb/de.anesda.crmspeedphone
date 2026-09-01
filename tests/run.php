@@ -326,6 +326,27 @@ check(
     ($linkedInContacts[0]['confidence'] ?? 0) === 100,
     'Firmen-, Rollen- und Ortsübereinstimmung müssen die höchste Zuordnungssicherheit ergeben.'
 );
+$googleLinkedInFixture = <<<'HTML'
+<!doctype html>
+<html><body>
+<div>
+  <a href="/url?q=https%3A%2F%2Fwww.linkedin.com%2Fin%2Fcarolalilienthal%2F&amp;sa=U">
+    <h3>Dr. Carola Lilienthal - Geschäftsführerin WPS – Workplace Solutions GmbH | LinkedIn</h3>
+  </a>
+</div>
+</body></html>
+HTML;
+$googleLinkedInContacts = LinkedInContactService::parseSearchHtml(
+    $googleLinkedInFixture,
+    'WPS – Workplace Solutions GmbH',
+    '',
+    5
+);
+check(
+    count($googleLinkedInContacts) === 1
+        && ($googleLinkedInContacts[0]['profile_url'] ?? '') === 'https://www.linkedin.com/in/carolalilienthal/',
+    'Direkte LinkedIn-Profile aus der öffentlichen Google-Ergebnisansicht werden nicht erkannt.'
+);
 check(
     str_contains(
         LinkedInContactService::buildLinkedInPeopleSearchUrl('Muster GmbH', 'Lanz'),

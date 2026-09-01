@@ -28,7 +28,7 @@ return [
     'small_business_pattern' => '(^|[^[:alnum:]])(ergotherapie|ergotherapeut|ergo[ -]?praxis|physiotherapie|logopädie|logopaedie|podologie|heilpraktiker|psychotherapie|hebamme|massagepraxis)([^[:alnum:]]|$)',
     'medium_business_pattern' => '(^|[^[:alnum:]])(gmbh|mbh|ug[[:space:]]*\\(haftungsbeschränkt\\)|ohg|kg|e\\.?[[:space:]]*k\\.?|genossenschaft|maschinenbau|anlagenbau|metallbau|stahlbau|werkzeugbau|elektrotechnik|automation|automatisierung|ingenieur(büro|gesellschaft)|systemhaus|softwarehaus|it-service|logistik|spedition|produktion|industrie|fertigung|bauunternehmen|autohaus|druckerei|verlag|hotel|pflegeheim|wohnungsbau|immobilienverwaltung)([^[:alnum:]]|$)',
     'linkedin_discovery_enabled' => true,
-    'linkedin_discovery_search_endpoint' => 'https://html.duckduckgo.com/html/',
+    'linkedin_discovery_search_endpoint' => 'https://www.google.com/search',
     'linkedin_discovery_timeout_seconds' => 5,
     'linkedin_discovery_cache_days' => 30,
     'linkedin_discovery_max_results' => 5,

@@ -127,7 +127,9 @@ final class LinkedInContactService
         }
 
         $xpath = new \DOMXPath($document);
-        $anchors = $xpath->query("//a[contains(concat(' ', normalize-space(@class), ' '), ' result__a ')]");
+        $anchors = $xpath->query(
+            "//a[contains(concat(' ', normalize-space(@class), ' '), ' result__a ')] | //a[.//h3]"
+        );
         if ($anchors === false) {
             return [];
         }
@@ -191,15 +193,19 @@ final class LinkedInContactService
             'https://html.duckduckgo.com/html/'
         ));
         $endpointParts = parse_url($endpoint);
+        $allowedHosts = ['html.duckduckgo.com', 'www.google.com'];
         if (
             !is_array($endpointParts)
             || ($endpointParts['scheme'] ?? '') !== 'https'
-            || ($endpointParts['host'] ?? '') !== 'html.duckduckgo.com'
+            || !in_array((string) ($endpointParts['host'] ?? ''), $allowedHosts, true)
         ) {
             throw new \RuntimeException('Die LinkedIn-Suchquelle ist nicht freigegeben.');
         }
 
         $url = $endpoint . (str_contains($endpoint, '?') ? '&' : '?') . 'q=' . rawurlencode($query);
+        if (($endpointParts['host'] ?? '') === 'www.google.com') {
+            $url .= '&num=10&hl=de&filter=0';
+        }
         $timeout = max(2, min(10, (int) $this->config->get('linkedin_discovery_timeout_seconds', 5)));
         $handle = curl_init($url);
         if ($handle === false) {
@@ -207,11 +213,13 @@ final class LinkedInContactService
         }
         curl_setopt_array($handle, [
             CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_FOLLOWLOCATION => false,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_MAXREDIRS => 3,
             CURLOPT_CONNECTTIMEOUT => $timeout,
             CURLOPT_TIMEOUT => $timeout,
             CURLOPT_PROTOCOLS => CURLPROTO_HTTPS,
-            CURLOPT_USERAGENT => 'CRM-SpeedPhone/1.9 (+https://anesda-nord.de)',
+            CURLOPT_REDIR_PROTOCOLS => CURLPROTO_HTTPS,
+            CURLOPT_USERAGENT => 'Mozilla/5.0 (compatible; CRM-SpeedPhone/1.9; +https://anesda-nord.de)',
             CURLOPT_HTTPHEADER => ['Accept: text/html,application/xhtml+xml'],
         ]);
         $body = curl_exec($handle);
@@ -345,10 +353,21 @@ final class LinkedInContactService
         if (str_starts_with($href, '//')) {
             $href = 'https:' . $href;
         }
+        if (str_starts_with($href, '/url?')) {
+            $href = 'https://www.google.com' . $href;
+        }
         $parts = parse_url($href);
         if (is_array($parts) && str_ends_with((string) ($parts['host'] ?? ''), 'duckduckgo.com')) {
             parse_str((string) ($parts['query'] ?? ''), $query);
             $href = (string) ($query['uddg'] ?? '');
+        }
+        if (
+            is_array($parts)
+            && str_ends_with((string) ($parts['host'] ?? ''), 'google.com')
+            && ($parts['path'] ?? '') === '/url'
+        ) {
+            parse_str((string) ($parts['query'] ?? ''), $query);
+            $href = (string) ($query['q'] ?? '');
         }
 
         $parts = parse_url($href);
