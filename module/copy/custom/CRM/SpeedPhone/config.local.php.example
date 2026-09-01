@@ -23,6 +23,9 @@ return [
     'exclude_patterns' => [
         '/ministerium|bundesamt|landesamt|stadtverwaltung|rathaus/iu',
     ],
+    'linkedin_discovery_enabled' => true,
+    'linkedin_discovery_cache_days' => 30,
+    'linkedin_discovery_max_results' => 5,
     'dialer_android_store_url' => 'https://play.google.com/store/apps/details?id=de.anesda.crmspeedphone.dialer',
     'dialer_ios_store_url' => 'https://apps.apple.com/app/id6794342212',
 ];

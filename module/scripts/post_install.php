@@ -266,6 +266,33 @@ $db->query("INSERT IGNORE INTO crm_speedphone_user_settings
     FROM users
     WHERE deleted=0 AND status='Active' AND employee_status='Active'");
 
+$db->query("CREATE TABLE IF NOT EXISTS crm_speedphone_linkedin_searches (
+    prospect_id char(36) NOT NULL,
+    status varchar(20) NOT NULL,
+    search_query varchar(1000) NOT NULL,
+    result_count int NOT NULL DEFAULT 0,
+    searched_at datetime NOT NULL,
+    last_error varchar(1000) NULL,
+    PRIMARY KEY (prospect_id),
+    KEY idx_speedphone_linkedin_search_time (searched_at),
+    KEY idx_speedphone_linkedin_search_status (status, searched_at)
+) ENGINE=InnoDB");
+
+$db->query("CREATE TABLE IF NOT EXISTS crm_speedphone_linkedin_contacts (
+    id char(36) NOT NULL,
+    prospect_id char(36) NOT NULL,
+    person_name varchar(255) NOT NULL,
+    role_name varchar(500) NOT NULL,
+    company_name varchar(255) NOT NULL,
+    profile_url varchar(1000) NOT NULL,
+    confidence int NOT NULL DEFAULT 0,
+    found_at datetime NOT NULL,
+    last_verified_at datetime NOT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY idx_speedphone_linkedin_profile (prospect_id, profile_url(191)),
+    KEY idx_speedphone_linkedin_prospect (prospect_id, confidence)
+) ENGINE=InnoDB");
+
 // Frühere Modulversionen haben das Ergebnis bei einzelnen SuiteCRM-Setups nur
 // im lesbaren Anrufnamen gespeichert. Diese regulären CRM-Anrufe werden einmalig
 // normalisiert, damit Historie und Zuordnung beim Update erhalten bleiben.

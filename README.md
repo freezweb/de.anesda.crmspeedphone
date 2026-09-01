@@ -96,6 +96,8 @@ Diese Datei wird bei Updates nicht überschrieben und ist nicht Teil des veröff
 - `central_retail_name_pattern`: dauerhaft ausgeschlossene, zentral versorgte Handelsketten
 - `medium_business_pattern`: erkennbare mittelständische Betriebe mit höchster regulärer Grundpriorität
 - `school_pattern`, `small_business_pattern`: Schulen und Kleinstformate, die erst nach dem Mittelstand erscheinen
+- `linkedin_discovery_enabled`: öffentliche Suche nach passenden LinkedIn-Ansprechpartnern beim ersten Öffnen eines Firmenkontakts
+- `linkedin_discovery_cache_days`, `linkedin_discovery_max_results`: Cache-Dauer und maximale Zahl angezeigter Profile
 - `lock_minutes`: Laufzeit einer Reservierung ohne erfolgreiche Verlängerung
 - `default_callback_days`: Vorbelegung des änderbaren Rückrufdatums ohne Uhrzeit, standardmäßig `7` Tage; eine optionale Uhrzeit erzeugt zusätzlich einen festen CRM-Termin
 - `callback_escalation_days`: nach wie vielen Tagen ein nicht erledigter externer Rückruf intern sichtbar wird; über die Oberfläche änderbar
@@ -109,6 +111,13 @@ Gewerbebetriebe und erst zuletzt Schulen sowie Kleinstpraxen. Linkklicks,
 Mailöffnungen, Regionalität und Versuche sortieren nur noch innerhalb dieser
 Geschäftsgrößen-Stufe. Zentral versorgte Handelsketten werden gar nicht als
 Kandidaten angeboten.
+
+Für jeden im SpeedPhone geöffneten Firmenkontakt wird außerdem automatisch
+nach öffentlich indexierten LinkedIn-Personenprofilen gesucht. Angezeigt werden
+Name, öffentlich sichtbare Funktion, direkter Profil-Link und eine
+Zuordnungssicherheit. Die Ergebnisse werden je vorhandener Prospect-UUID
+zwischengespeichert. Es werden weder LinkedIn-Zugangsdaten verwendet noch
+Einladungen oder Nachrichten automatisch versendet.
 
 ## Datenmodell
 

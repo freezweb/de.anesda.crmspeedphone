@@ -66,6 +66,53 @@
                 <?php endif; ?>
             </div>
 
+            <?php
+                $linkedIn = $candidate['linkedin'] ?? [];
+                $linkedInContacts = (array) ($linkedIn['contacts'] ?? []);
+                $linkedInSearchUrl = (string) ($linkedIn['search_url'] ?? (
+                    'https://www.linkedin.com/search/results/people/?keywords='
+                    . rawurlencode((string) $candidate['name'])
+                ));
+                $linkedInStatus = (string) ($linkedIn['status'] ?? 'not_loaded');
+            ?>
+            <section class="linkedin-contacts" aria-label="LinkedIn-Ansprechpartner">
+                <div class="linkedin-contacts__heading">
+                    <div>
+                        <h3>LinkedIn-Ansprechpartner</h3>
+                        <span>Automatisch öffentlich gefundene Firmenkontakte</span>
+                    </div>
+                    <strong><?= count($linkedInContacts) ?></strong>
+                </div>
+                <?php if ($linkedInContacts !== []): ?>
+                    <div class="linkedin-contacts__list">
+                        <?php foreach ($linkedInContacts as $linkedInContact): ?>
+                            <a
+                                class="linkedin-contact"
+                                href="<?= speedPhoneEscape($linkedInContact['profile_url']) ?>"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            >
+                                <span>
+                                    <strong><?= speedPhoneEscape($linkedInContact['person_name']) ?></strong>
+                                    <small><?= speedPhoneEscape($linkedInContact['role']) ?></small>
+                                </span>
+                                <em><?= (int) $linkedInContact['confidence'] ?> % Treffer</em>
+                            </a>
+                        <?php endforeach; ?>
+                    </div>
+                <?php elseif ($linkedInStatus === 'error'): ?>
+                    <p class="linkedin-contacts__empty">Die automatische Profilsuche war gerade nicht erreichbar.</p>
+                <?php else: ?>
+                    <p class="linkedin-contacts__empty">Noch kein eindeutig zur Firma passendes öffentliches Profil gefunden.</p>
+                <?php endif; ?>
+                <div class="linkedin-contacts__footer">
+                    <a href="<?= speedPhoneEscape($linkedInSearchUrl) ?>" target="_blank" rel="noopener noreferrer">
+                        Weitere Personen bei LinkedIn suchen
+                    </a>
+                    <small>Berufliche Profildaten aus öffentlicher Suche · Zuordnung vor einer Ansprache prüfen.</small>
+                </div>
+            </section>
+
             <?php if (!empty($candidate['phone_work']) || !empty($candidate['phone_mobile'])): ?>
                 <div class="mobile-dial-actions" data-speedphone-dialer-ready="<?= $dialerReady ? '1' : '0' ?>">
                     <div>

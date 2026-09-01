@@ -7,6 +7,7 @@ if (!defined('sugarEntry')) {
 require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/BusinessDayCalculator.php';
 require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/Config.php';
 require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/CandidatePriorityService.php';
+require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/LinkedInContactService.php';
 require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/InputValidator.php';
 require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/AssignmentService.php';
 require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/DialerService.php';
@@ -19,6 +20,7 @@ require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/render.php';
 use Anesda\CRM\SpeedPhone\BusinessDayCalculator;
 use Anesda\CRM\SpeedPhone\Config;
 use Anesda\CRM\SpeedPhone\CandidatePriorityService;
+use Anesda\CRM\SpeedPhone\LinkedInContactService;
 use Anesda\CRM\SpeedPhone\InputValidator;
 use Anesda\CRM\SpeedPhone\AssignmentService;
 use Anesda\CRM\SpeedPhone\DialerService;
@@ -164,6 +166,17 @@ $workspace = speedPhoneRenderWorkspace([
     'phone_mobile' => '',
     'email' => 'info@example.org',
     'website' => 'https://example.org',
+    'linkedin' => [
+        'contacts' => [[
+            'person_name' => 'Erika Beispiel',
+            'role' => 'Geschäftsführerin',
+            'profile_url' => 'https://www.linkedin.com/in/erika-beispiel/',
+            'confidence' => 90,
+        ]],
+        'search_url' => 'https://www.linkedin.com/search/results/people/?keywords=Beispielbetrieb',
+        'status' => 'found',
+        'searched_at' => '2026-09-01 08:00:00',
+    ],
     'reasons' => ['Passende Unternehmensart'],
     'speedphone_attempts' => 1,
     'sent_emails' => [[
@@ -204,6 +217,9 @@ $workspace = speedPhoneRenderWorkspace([
     'is_ready' => 1,
 ]]);
 check(str_contains($workspace, 'Gesendete E-Mails'), 'E-Mail-Historie fehlt im gerenderten Kontakt.');
+check(str_contains($workspace, 'LinkedIn-Ansprechpartner'), 'LinkedIn-Ansprechpartner fehlen im SpeedPhone-Kontakt.');
+check(str_contains($workspace, 'Erika Beispiel'), 'Ein gefundener LinkedIn-Ansprechpartner wird nicht angezeigt.');
+check(str_contains($workspace, '90 % Treffer'), 'Die Zuordnungssicherheit eines LinkedIn-Profils fehlt.');
 check(str_contains($workspace, 'info@example.org'), 'Empfängeradresse fehlt in der E-Mail-Historie.');
 check(str_contains($workspace, 'value="email_callback"'), 'Aktion „E-Mail jetzt senden + wieder anrufen“ fehlt.');
 check(preg_match('/name="callback_date"[^>]*value="\d{4}-\d{2}-\d{2}"/', $workspace) === 1, 'Rückrufdatum ist nicht vorbelegt.');
@@ -269,6 +285,59 @@ check(
 check(
     str_contains($queueSource, 'centralRetailAllowedSql'),
     'Zentral versorgte Handelsketten müssen bereits in der SQL-Auswahl ausgeschlossen werden.'
+);
+
+$linkedInFixture = <<<'HTML'
+<!doctype html>
+<html><body>
+<div class="result">
+  <h2>
+    <a class="result__a" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fde.linkedin.com%2Fin%2Fmanuel-mang-43a70498%2F&amp;rut=test">
+      Manuel Mang - Geschäftsführer bei INTERAUTOMATION Deutschland GmbH | LinkedIn
+    </a>
+  </h2>
+  <div class="result__snippet">Manuel Mang verantwortet die INTERAUTOMATION Deutschland GmbH in Berlin.</div>
+</div>
+<div class="result">
+  <h2>
+    <a class="result__a" href="https://www.linkedin.com/in/fremdes-profil/">
+      Fremde Person - Geschäftsführung bei Andere GmbH | LinkedIn
+    </a>
+  </h2>
+</div>
+</body></html>
+HTML;
+$linkedInContacts = LinkedInContactService::parseSearchHtml(
+    $linkedInFixture,
+    'INTERAUTOMATION Deutschland GmbH',
+    'Berlin',
+    5
+);
+check(count($linkedInContacts) === 1, 'Die öffentliche LinkedIn-Suche muss Fremdfirmen herausfiltern.');
+check(
+    ($linkedInContacts[0]['person_name'] ?? '') === 'Manuel Mang',
+    'Der Name eines LinkedIn-Ansprechpartners wird nicht zuverlässig ausgelesen.'
+);
+check(
+    ($linkedInContacts[0]['profile_url'] ?? '') === 'https://de.linkedin.com/in/manuel-mang-43a70498/',
+    'Der direkte LinkedIn-Profil-Link wird nicht sicher normalisiert.'
+);
+check(
+    ($linkedInContacts[0]['confidence'] ?? 0) === 100,
+    'Firmen-, Rollen- und Ortsübereinstimmung müssen die höchste Zuordnungssicherheit ergeben.'
+);
+check(
+    str_contains(
+        LinkedInContactService::buildLinkedInPeopleSearchUrl('Muster GmbH', 'Lanz'),
+        'linkedin.com/search/results/people/'
+    ),
+    'Der manuelle LinkedIn-Fallback fehlt.'
+);
+$postInstallSource = file_get_contents(__DIR__ . '/../module/scripts/post_install.php');
+check(
+    str_contains($postInstallSource, 'crm_speedphone_linkedin_searches')
+        && str_contains($postInstallSource, 'crm_speedphone_linkedin_contacts'),
+    'Die LinkedIn-Fundstellen haben keine idempotent installierten Cache-Tabellen.'
 );
 check(
     EmailService::decodeStoredHtml('<p>Bereits echtes HTML</p>') === '<p>Bereits echtes HTML</p>',

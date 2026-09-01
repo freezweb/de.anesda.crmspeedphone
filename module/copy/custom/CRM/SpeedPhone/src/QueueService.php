@@ -5,6 +5,7 @@ namespace Anesda\CRM\SpeedPhone;
 final class QueueService
 {
     private readonly CandidatePriorityService $priorities;
+    private readonly LinkedInContactService $linkedInContacts;
 
     public function __construct(
         private readonly Config $config,
@@ -15,6 +16,7 @@ final class QueueService
         private readonly AssignmentService $assignments
     ) {
         $this->priorities = new CandidatePriorityService($config);
+        $this->linkedInContacts = new LinkedInContactService($config, $db);
     }
 
     public function assertUserAllowed(): void
@@ -315,6 +317,11 @@ final class QueueService
         $candidate['name'] = trim((string) ($prospect->account_name ?: trim($prospect->first_name . ' ' . $prospect->last_name)));
         $candidate['email'] = (string) ($prospect->emailAddress?->getPrimaryAddress($prospect) ?? '');
         $candidate['website'] = $this->extractWebsite((string) $prospect->description);
+        $candidate['linkedin'] = $this->linkedInContacts->discover(
+            (string) $candidate['id'],
+            (string) $candidate['name'],
+            (string) ($candidate['primary_address_city'] ?? '')
+        );
         $priority = $this->priorities->classify($candidate);
         $candidate['priority_tier'] = $priority['tier'];
         $candidate['priority_label'] = $priority['label'];
