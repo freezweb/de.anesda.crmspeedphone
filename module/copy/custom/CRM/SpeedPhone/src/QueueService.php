@@ -320,7 +320,8 @@ final class QueueService
         $candidate['linkedin'] = $this->linkedInContacts->discover(
             (string) $candidate['id'],
             (string) $candidate['name'],
-            (string) ($candidate['primary_address_city'] ?? '')
+            (string) ($candidate['primary_address_city'] ?? ''),
+            (string) $candidate['website']
         );
         $priority = $this->priorities->classify($candidate);
         $candidate['priority_tier'] = $priority['tier'];

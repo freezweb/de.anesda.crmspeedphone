@@ -18,7 +18,12 @@ final class LinkedInContactService
      *   searched_at: string
      * }
      */
-    public function discover(string $prospectId, string $company, string $city = ''): array
+    public function discover(
+        string $prospectId,
+        string $company,
+        string $city = '',
+        string $website = ''
+    ): array
     {
         $company = trim($company);
         $city = trim($city);
@@ -43,15 +48,37 @@ final class LinkedInContactService
             ];
         }
 
+        $query = self::buildDiscoveryQuery($company, $city);
+        $limit = max(1, min(10, (int) $this->config->get('linkedin_discovery_max_results', 5)));
+        $contacts = [];
+        $errors = [];
+        $completedSource = false;
         try {
-            $query = self::buildDiscoveryQuery($company, $city);
-            $html = $this->fetchSearchHtml($query);
-            $contacts = self::parseSearchHtml(
-                $html,
-                $company,
-                $city,
-                max(1, min(10, (int) $this->config->get('linkedin_discovery_max_results', 5)))
-            );
+            try {
+                $html = $this->fetchSearchHtml($query);
+                $contacts = self::parseSearchHtml($html, $company, $city, $limit);
+                $completedSource = true;
+            } catch (\Throwable $error) {
+                $errors[] = $error->getMessage();
+            }
+
+            if (count($contacts) < $limit && trim($website) !== '') {
+                try {
+                    $websiteContacts = $this->discoverFromCompanyWebsite(
+                        $website,
+                        $company,
+                        $limit - count($contacts)
+                    );
+                    $contacts = self::mergeContacts($contacts, $websiteContacts, $limit);
+                    $completedSource = true;
+                } catch (\Throwable $error) {
+                    $errors[] = $error->getMessage();
+                }
+            }
+
+            if (!$completedSource) {
+                throw new \RuntimeException(implode(' ', array_filter($errors)) ?: 'Keine Suchquelle erreichbar.');
+            }
             $this->storeSuccessfulSearch($prospectId, $query, $contacts);
 
             return [
@@ -70,6 +97,111 @@ final class LinkedInContactService
                 'searched_at' => (string) ($cached['searched_at'] ?? ''),
             ];
         }
+    }
+
+    /**
+     * Liest Ansprechpartner ausschließlich von der angegebenen öffentlichen
+     * Firmenwebsite. Direkte LinkedIn-Profile werden bevorzugt. Wird dort nur
+     * die Geschäftsführung genannt, entsteht ein präziser LinkedIn-Suchlink.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public static function parseCompanyWebsiteHtml(
+        string $html,
+        string $company,
+        string $pageUrl,
+        int $limit = 5
+    ): array {
+        if ($html === '' || strlen($html) > 2_000_000) {
+            return [];
+        }
+
+        $document = new \DOMDocument();
+        $previous = libxml_use_internal_errors(true);
+        try {
+            if (!$document->loadHTML(
+                '<?xml encoding="UTF-8">' . $html,
+                LIBXML_NONET | LIBXML_NOWARNING | LIBXML_NOERROR
+            )) {
+                return [];
+            }
+        } finally {
+            libxml_clear_errors();
+            libxml_use_internal_errors($previous);
+        }
+
+        $contacts = [];
+        $seen = [];
+        $xpath = new \DOMXPath($document);
+        $anchors = $xpath->query("//a[contains(translate(@href, 'LINKEDIN', 'linkedin'), 'linkedin.com/in/')]");
+        if ($anchors !== false) {
+            foreach ($anchors as $anchor) {
+                if (!$anchor instanceof \DOMElement) {
+                    continue;
+                }
+                $profileUrl = self::extractLinkedInProfileUrl($anchor->getAttribute('href'));
+                if ($profileUrl === '' || isset($seen[$profileUrl])) {
+                    continue;
+                }
+                $contextNode = $anchor->parentNode?->parentNode ?? $anchor->parentNode ?? $anchor;
+                $context = self::cleanText($contextNode->textContent ?? '');
+                $personName = self::extractPersonName(self::cleanText($anchor->textContent));
+                if ($personName === '') {
+                    $personName = self::extractPersonName($context);
+                }
+                if ($personName === '') {
+                    continue;
+                }
+                $role = self::extractRole($context);
+                $seen[$profileUrl] = true;
+                $seen[self::normalize($personName)] = true;
+                $contacts[] = [
+                    'person_name' => $personName,
+                    'role' => $role !== '' ? $role : 'Funktion im LinkedIn-Profil prüfen',
+                    'company_name' => $company,
+                    'profile_url' => $profileUrl,
+                    'confidence' => $role !== '' ? 90 : 80,
+                ];
+                if (count($contacts) >= $limit) {
+                    return $contacts;
+                }
+            }
+        }
+
+        $blocks = $xpath->query('//p | //li | //address | //td | //div[string-length(normalize-space(.)) < 500]');
+        if ($blocks === false) {
+            return $contacts;
+        }
+        foreach ($blocks as $block) {
+            $text = self::cleanText($block->textContent ?? '');
+            if (
+                $text === ''
+                || preg_match('/geschäftsführ|geschäftsleitung|inhaber|vertreten durch|vorstand/iu', $text) !== 1
+            ) {
+                continue;
+            }
+            $role = self::extractRole($text);
+            foreach (self::extractDecisionMakerNames($text) as $personName) {
+                $key = self::normalize($personName);
+                if ($key === '' || isset($seen[$key])) {
+                    continue;
+                }
+                $seen[$key] = true;
+                $contacts[] = [
+                    'person_name' => $personName,
+                    'role' => $role !== '' ? $role : 'Geschäftsleitung laut Firmenwebsite',
+                    'company_name' => $company,
+                    'profile_url' => self::buildLinkedInPeopleSearchUrl($personName . ' ' . $company),
+                    'confidence' => 65,
+                    'evidence_url' => $pageUrl,
+                ];
+                if (count($contacts) >= $limit) {
+                    return $contacts;
+                }
+            }
+        }
+
+        return $contacts;
     }
 
     public static function buildLinkedInPeopleSearchUrl(string $company, string $city = ''): string
@@ -184,6 +316,197 @@ final class LinkedInContactService
         );
 
         return $contacts;
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    private function discoverFromCompanyWebsite(string $website, string $company, int $limit): array
+    {
+        $website = $this->normalizePublicWebsiteUrl($website);
+        $homepage = $this->fetchPublicWebsiteUrl($website);
+        $contacts = self::parseCompanyWebsiteHtml($homepage, $company, $website, $limit);
+        if (count($contacts) >= $limit) {
+            return $contacts;
+        }
+
+        foreach (self::extractRelevantWebsiteLinks($homepage, $website) as $pageUrl) {
+            try {
+                $html = $this->fetchPublicWebsiteUrl($pageUrl);
+                $contacts = self::mergeContacts(
+                    $contacts,
+                    self::parseCompanyWebsiteHtml($html, $company, $pageUrl, $limit),
+                    $limit
+                );
+            } catch (\Throwable) {
+                continue;
+            }
+            if (count($contacts) >= $limit) {
+                break;
+            }
+        }
+
+        return $contacts;
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    private static function mergeContacts(array $first, array $second, int $limit): array
+    {
+        $merged = [];
+        $seen = [];
+        foreach (array_merge($first, $second) as $contact) {
+            $key = self::normalize((string) ($contact['person_name'] ?? ''));
+            $profile = strtolower((string) ($contact['profile_url'] ?? ''));
+            if ($key === '' || isset($seen[$key]) || ($profile !== '' && isset($seen[$profile]))) {
+                continue;
+            }
+            $seen[$key] = true;
+            if ($profile !== '') {
+                $seen[$profile] = true;
+            }
+            $merged[] = $contact;
+            if (count($merged) >= $limit) {
+                break;
+            }
+        }
+
+        usort($merged, static fn (array $a, array $b): int => (int) $b['confidence'] <=> (int) $a['confidence']);
+
+        return $merged;
+    }
+
+    /** @return array<int, string> */
+    private static function extractRelevantWebsiteLinks(string $html, string $baseUrl): array
+    {
+        $document = new \DOMDocument();
+        $previous = libxml_use_internal_errors(true);
+        try {
+            if (!$document->loadHTML(
+                '<?xml encoding="UTF-8">' . $html,
+                LIBXML_NONET | LIBXML_NOWARNING | LIBXML_NOERROR
+            )) {
+                return [];
+            }
+        } finally {
+            libxml_clear_errors();
+            libxml_use_internal_errors($previous);
+        }
+
+        $base = parse_url($baseUrl);
+        if (!is_array($base) || empty($base['host'])) {
+            return [];
+        }
+        $baseHost = strtolower((string) $base['host']);
+        $baseScheme = (string) ($base['scheme'] ?? 'https');
+        $links = [];
+        foreach ($document->getElementsByTagName('a') as $anchor) {
+            $href = html_entity_decode(trim($anchor->getAttribute('href')), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            $label = self::normalize($anchor->textContent . ' ' . $href);
+            if (preg_match('/impressum|imprint|ueber uns|uber uns|about|team|mitarbeiter|ansprechpartner/u', $label) !== 1) {
+                continue;
+            }
+            if (str_starts_with($href, '/')) {
+                $href = $baseScheme . '://' . $baseHost . $href;
+            } elseif (!preg_match('#^https?://#i', $href)) {
+                $directory = rtrim(str_replace('\\', '/', dirname((string) ($base['path'] ?? '/'))), '/');
+                $href = $baseScheme . '://' . $baseHost . ($directory !== '' ? $directory : '') . '/' . ltrim($href, '/');
+            }
+            $parts = parse_url($href);
+            if (!is_array($parts) || strtolower((string) ($parts['host'] ?? '')) !== $baseHost) {
+                continue;
+            }
+            $clean = ($parts['scheme'] ?? $baseScheme) . '://' . $baseHost . ($parts['path'] ?? '/');
+            if (!isset($links[$clean])) {
+                $links[$clean] = true;
+            }
+            if (count($links) >= 3) {
+                break;
+            }
+        }
+
+        return array_keys($links);
+    }
+
+    private function normalizePublicWebsiteUrl(string $website): string
+    {
+        $website = trim($website);
+        if (!preg_match('#^https?://#i', $website)) {
+            $website = 'https://' . $website;
+        }
+        $parts = parse_url($website);
+        if (!is_array($parts) || !in_array(strtolower((string) ($parts['scheme'] ?? '')), ['http', 'https'], true)) {
+            throw new \RuntimeException('Die Firmenwebsite besitzt keine gültige öffentliche Adresse.');
+        }
+        $host = strtolower(rtrim((string) ($parts['host'] ?? ''), '.'));
+        if ($host === '' || $host === 'localhost' || !self::hostResolvesPublicly($host)) {
+            throw new \RuntimeException('Die Firmenwebsite zeigt nicht auf ein öffentliches Ziel.');
+        }
+
+        return $website;
+    }
+
+    private static function hostResolvesPublicly(string $host): bool
+    {
+        $addresses = filter_var($host, FILTER_VALIDATE_IP) ? [$host] : (gethostbynamel($host) ?: []);
+        if ($addresses === []) {
+            return false;
+        }
+        foreach ($addresses as $address) {
+            if (filter_var(
+                $address,
+                FILTER_VALIDATE_IP,
+                FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE
+            ) === false) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private function fetchPublicWebsiteUrl(string $url): string
+    {
+        $timeout = max(2, min(6, (int) $this->config->get('linkedin_website_timeout_seconds', 4)));
+        for ($redirects = 0; $redirects <= 2; ++$redirects) {
+            $url = $this->normalizePublicWebsiteUrl($url);
+            $handle = curl_init($url);
+            if ($handle === false) {
+                throw new \RuntimeException('Die Firmenwebsite konnte nicht initialisiert werden.');
+            }
+            curl_setopt_array($handle, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_FOLLOWLOCATION => false,
+                CURLOPT_CONNECTTIMEOUT => $timeout,
+                CURLOPT_TIMEOUT => $timeout,
+                CURLOPT_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS,
+                CURLOPT_USERAGENT => 'Mozilla/5.0 (compatible; CRM-SpeedPhone/1.10; +https://anesda-nord.de)',
+                CURLOPT_HTTPHEADER => ['Accept: text/html,application/xhtml+xml'],
+                CURLOPT_HEADER => true,
+            ]);
+            $response = curl_exec($handle);
+            $status = (int) curl_getinfo($handle, CURLINFO_RESPONSE_CODE);
+            $headerSize = (int) curl_getinfo($handle, CURLINFO_HEADER_SIZE);
+            curl_close($handle);
+            if (!is_string($response)) {
+                throw new \RuntimeException('Die Firmenwebsite ist vorübergehend nicht erreichbar.');
+            }
+            $headers = substr($response, 0, $headerSize);
+            $body = substr($response, $headerSize);
+            if ($status >= 300 && $status < 400 && preg_match('/^location:\s*(.+)$/mi', $headers, $match) === 1) {
+                $location = trim($match[1]);
+                if (str_starts_with($location, '/')) {
+                    $parts = parse_url($url);
+                    $location = ($parts['scheme'] ?? 'https') . '://' . ($parts['host'] ?? '') . $location;
+                }
+                $url = $location;
+                continue;
+            }
+            if ($status !== 200 || $body === '' || strlen($body) > 2_000_000) {
+                throw new \RuntimeException('Die Firmenwebsite liefert derzeit keine auswertbare Seite.');
+            }
+
+            return $body;
+        }
+
+        throw new \RuntimeException('Die Firmenwebsite leitet zu oft weiter.');
     }
 
     private function fetchSearchHtml(string $query): string
@@ -421,6 +744,74 @@ final class LinkedInContactService
         }
 
         return false;
+    }
+
+    private static function extractPersonName(string $text): string
+    {
+        $text = preg_replace('/\b(linkedin|profil|profile|kontakt|mehr erfahren)\b/iu', ' ', $text) ?? $text;
+        $text = self::cleanText($text);
+        if (preg_match(
+            '/\b((?:(?:Prof\.|Dr\.)\s+){0,2}[\p{Lu}][\p{L}\'’.-]+(?:\s+[\p{Lu}][\p{L}\'’.-]+){1,3})\b/u',
+            $text,
+            $match
+        ) !== 1) {
+            return '';
+        }
+        $name = self::cleanText($match[1]);
+        if (preg_match('/^(LinkedIn|Geschäftsführung|Geschäftsführer|Inhaber|Kontakt)/iu', $name) === 1) {
+            return '';
+        }
+
+        return $name;
+    }
+
+    /** @return array<int, string> */
+    private static function extractDecisionMakerNames(string $text): array
+    {
+        $names = [];
+        $rolePattern = '(?:Geschäftsführer(?:in|innen)?|Geschäftsführung|Geschäftsleitung|Inhaber(?:in)?|Vorstand|Vertreten\s+durch)';
+        $namePattern = '((?:(?:Prof\.|Dr\.)\s+){0,2}[\p{Lu}][\p{L}\'’.-]+(?:\s+[\p{Lu}][\p{L}\'’.-]+){1,3})';
+        preg_match_all(
+            '/' . $rolePattern
+            . '(?:\s+(?:ist|sind|wird\s+vertreten\s+durch|den\s+Geschäftsführer|die\s+Geschäftsführerin))?'
+            . '\s*[:\-–,]?\s*(?:Herrn?|Frau)?\s*' . $namePattern . '/u',
+            $text,
+            $matches
+        );
+        foreach ((array) ($matches[1] ?? []) as $name) {
+            $name = self::cleanText((string) $name);
+            if (
+                $name !== ''
+                && preg_match('/^(Geschäftsführer|Geschäftsführung|Geschäftsleitung|Vertreten|Inhaber)/iu', $name) !== 1
+            ) {
+                $names[self::normalize($name)] = $name;
+            }
+        }
+
+        return array_values($names);
+    }
+
+    private static function extractRole(string $text): string
+    {
+        $roles = [
+            '/geschäftsführerin/iu' => 'Geschäftsführerin',
+            '/geschäftsführer/iu' => 'Geschäftsführer',
+            '/geschäftsleitung/iu' => 'Geschäftsleitung',
+            '/inhaberin/iu' => 'Inhaberin',
+            '/inhaber/iu' => 'Inhaber',
+            '/\bvorstand\b/iu' => 'Vorstand',
+            '/it[- ]?leiterin/iu' => 'IT-Leiterin',
+            '/it[- ]?leiter/iu' => 'IT-Leiter',
+            '/betriebsleiterin/iu' => 'Betriebsleiterin',
+            '/betriebsleiter/iu' => 'Betriebsleiter',
+        ];
+        foreach ($roles as $pattern => $label) {
+            if (preg_match($pattern, $text) === 1) {
+                return $label . ' laut Firmenwebsite';
+            }
+        }
+
+        return '';
     }
 
     private static function normalizedContains(string $haystack, string $needle): bool

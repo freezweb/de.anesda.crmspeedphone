@@ -293,6 +293,10 @@ $db->query("CREATE TABLE IF NOT EXISTS crm_speedphone_linkedin_contacts (
     KEY idx_speedphone_linkedin_prospect (prospect_id, confidence)
 ) ENGINE=InnoDB");
 
+// Trefferlose Caches aus der reinen Suchmaschinen-Variante einmalig verwerfen.
+// Beim nächsten Öffnen kann die Firmenwebsite als zusätzliche Quelle greifen.
+$db->query("DELETE FROM crm_speedphone_linkedin_searches WHERE status='no_results'");
+
 // Frühere Modulversionen haben das Ergebnis bei einzelnen SuiteCRM-Setups nur
 // im lesbaren Anrufnamen gespeichert. Diese regulären CRM-Anrufe werden einmalig
 // normalisiert, damit Historie und Zuordnung beim Update erhalten bleiben.

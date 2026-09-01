@@ -347,6 +347,43 @@ check(
         && ($googleLinkedInContacts[0]['profile_url'] ?? '') === 'https://www.linkedin.com/in/carolalilienthal/',
     'Direkte LinkedIn-Profile aus der öffentlichen Google-Ergebnisansicht werden nicht erkannt.'
 );
+$companyWebsiteFixture = <<<'HTML'
+<!doctype html>
+<html><body>
+  <main>
+    <p>Vertreten durch die Geschäftsführerin: Dr. Carola Lilienthal</p>
+    <a href="https://www.linkedin.com/in/carolalilienthal/">Dr. Carola Lilienthal</a>
+  </main>
+</body></html>
+HTML;
+$companyWebsiteContacts = LinkedInContactService::parseCompanyWebsiteHtml(
+    $companyWebsiteFixture,
+    'WPS – Workplace Solutions GmbH',
+    'https://www.wps.de/impressum',
+    5
+);
+check(
+    count($companyWebsiteContacts) === 1
+        && ($companyWebsiteContacts[0]['person_name'] ?? '') === 'Dr. Carola Lilienthal'
+        && ($companyWebsiteContacts[0]['confidence'] ?? 0) >= 80,
+    'Direkte LinkedIn-Ansprechpartner müssen auch auf der Firmenwebsite erkannt werden.'
+);
+$imprintOnlyFixture = <<<'HTML'
+<!doctype html>
+<html><body><address>Geschäftsführer: Max Mustermann</address></body></html>
+HTML;
+$imprintContacts = LinkedInContactService::parseCompanyWebsiteHtml(
+    $imprintOnlyFixture,
+    'Muster Mittelstand GmbH',
+    'https://muster.example/impressum',
+    5
+);
+check(
+    count($imprintContacts) === 1
+        && ($imprintContacts[0]['person_name'] ?? '') === 'Max Mustermann'
+        && str_contains((string) ($imprintContacts[0]['profile_url'] ?? ''), 'linkedin.com/search/results/people/'),
+    'Geschäftsführer aus dem Impressum müssen mit einer LinkedIn-Personensuche aufgelistet werden.'
+);
 check(
     str_contains(
         LinkedInContactService::buildLinkedInPeopleSearchUrl('Muster GmbH', 'Lanz'),
