@@ -1,0 +1,26 @@
+<?php
+
+return [
+    'pbx_enabled' => true,
+
+    // Variante 1: eingeschränktes SSH-Gateway aus infra/freepbx/.
+    'pbx_gateway_command' => [
+        '/usr/bin/timeout', '30',
+        '/usr/bin/ssh',
+        '-i', '/etc/crm-speedphone-pbx/id_ed25519',
+        '-o', 'BatchMode=yes',
+        '-o', 'IdentitiesOnly=yes',
+        '-o', 'StrictHostKeyChecking=yes',
+        '-o', 'UserKnownHostsFile=/etc/crm-speedphone-pbx/known_hosts',
+        'crm-speedphone-call@telefonanlage.example.org',
+    ],
+
+    // Variante 2: direkter Asterisk-AMI-Benutzer. Das SSH-Gateway hat Vorrang,
+    // wenn pbx_gateway_command nicht leer ist.
+    'pbx_ami_host' => '',
+    'pbx_ami_port' => 5038,
+    'pbx_ami_username' => '',
+    'pbx_ami_secret' => '',
+    'pbx_ami_context' => 'from-internal',
+    'pbx_ami_timeout_seconds' => 10,
+];

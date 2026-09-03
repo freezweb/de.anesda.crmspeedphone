@@ -28,6 +28,8 @@ CRM SpeedPhone ist eine schnelle, abarbeitbare Telefonakquise-Warteschlange für
 - chronologische Liste gesendeter Direkt- und Kampagnenmails mit Datum, Uhrzeit, Empfängeradresse und Betreff direkt am aktuellen Kontakt
 - Kontaktwechsel und aktualisierte Kennzahlen per AJAX ohne vollständiges Neuladen der Seite
 - beliebig wiederholbare Handywahl für denselben Kontakt, etwa wenn besetzt war oder ein Anruf neu gestartet werden muss
+- Festnetz-Click-to-Call über Asterisk/FreePBX: zuerst klingelt die persönliche Mitarbeiter-Durchwahl, nach dem Abheben wird die Zielrufnummer aufgebaut
+- pro Mitarbeiter administrierbare Festnetz-Durchwahl und nachvollziehbares Journal aller PBX-Wahlaufträge
 - automatische Rückruferkennung über die gekoppelte Android-App: eingehende bekannte Nummern öffnen den vorhandenen Zielkontakt im laufenden Portal
 - Rückrufereignisse bleiben benutzerbezogen und respektieren bestehende Mehrbenutzer-Reservierungen
 - optionale SpeedPhone-Dialer-App für Android und iOS: ein Klick im CRM übergibt die vorhandene Telefonnummer sicher an das eigene Handy
@@ -60,8 +62,9 @@ CRM SpeedPhone ist eine schnelle, abarbeitbare Telefonakquise-Warteschlange für
 3. Paket installieren und anschließend einmal **Quick Repair and Rebuild** ausführen, falls der Installer dies nicht automatisch erledigt hat.
 4. `custom/CRM/SpeedPhone/config.local.php.example` nach `config.local.php` kopieren und mindestens `source_list_name` konfigurieren.
 5. Auf dem Dashboard **SpeedPhone starten** oder im Zielkontakte-Menü **CRM SpeedPhone** öffnen.
-6. Als berechtigter interner Benutzer über **Team & Provision** die Mitarbeiterrollen, Provisionssätze und Eskalationsfristen einstellen.
+6. Als berechtigter interner Benutzer über **Team & Provision** die Mitarbeiterrollen, Provisionssätze, Festnetz-Durchwahlen und Eskalationsfristen einstellen.
 7. Für die Handywahl **Handy koppeln** öffnen und den QR-Code mit der separaten App „SpeedPhone Dialer“ scannen.
+8. Für die Festnetz-Wahl das eingeschränkte Gateway aus `infra/freepbx/` auf der Asterisk-/FreePBX-Anlage installieren und `pbx_gateway_command` instanzbezogen konfigurieren.
 
 Beim Speichern erzeugt das Modul die Rollen `CRM SpeedPhone Extern` und `CRM SpeedPhone Intern` und weist sie den freigeschalteten Benutzern zu. Andere vorhandene SuiteCRM-Rollen werden nicht verändert. Externe erhalten keinen Zugriff auf die allgemeine Zielkontaktliste, können aber den in SpeedPhone angezeigten Datensatz bearbeiten und ihre eigenen Leads öffnen.
 
@@ -78,6 +81,10 @@ Instanzbezogene Werte gehören ausschließlich nach:
 Mail-API- und Webhook-Geheimnisse werden getrennt mit Dateirecht `0640` in
 `custom/CRM/SpeedPhone/mail.local.php` gehalten. Diese Datei ist ebenfalls kein
 Paketbestandteil und wird bei Updates nicht überschrieben.
+
+Telefonanlagen-Zugangsdaten werden entsprechend mit Dateirecht `0640` in
+`custom/CRM/SpeedPhone/pbx.local.php` gehalten. Eine Vorlage liegt als
+`pbx.local.php.example` bei; die echte Datei wird nicht paketiert oder überschrieben.
 
 Diese Datei wird bei Updates nicht überschrieben und ist nicht Teil des veröffentlichten Pakets. Unterstützte Optionen sind unter anderem:
 
@@ -104,6 +111,16 @@ Diese Datei wird bei Updates nicht überschrieben und ist nicht Teil des veröff
 - `external_stale_days`: nach wie vielen Tagen ohne Kontaktversuch ein extern betreuter Kontakt intern sichtbar wird; über die Oberfläche änderbar
 - `dialer_android_store_url`: öffentliche Google-Play-Adresse der Dialer-App
 - `dialer_ios_store_url`: feste App-Store-Adresse der iOS-App; die Standardkonfiguration verweist auf Apple-App-ID `6794342212`
+- `pbx_enabled`: Festnetz-Click-to-Call aktivieren
+- `pbx_gateway_command`: shellfreie Argumentliste für den SSH-Aufruf des eingeschränkten Telefonanlagen-Gateways; Schlüssel und Known-Hosts-Datei bleiben außerhalb des Webroots
+- `pbx_ami_host`, `pbx_ami_port`, `pbx_ami_username`, `pbx_ami_secret`: alternative direkte Anbindung an einen auf den CRM-Server beschränkten Asterisk-AMI-Benutzer
+- `pbx_ami_context`, `pbx_ami_timeout_seconds`: Dialplan-Kontext und Verbindungszeitlimit der AMI-Anbindung
+
+### Telefonanlagen-Gateway
+
+Das Gateway unter `infra/freepbx/` nimmt ausschließlich JSON-Wahlaufträge über einen erzwungenen SSH-Befehl an. Es akzeptiert nur explizit freigegebene Mitarbeiter-Durchwahlen und normale Rufnummern, keine MMI-, Feature- oder Dialplan-Steuercodes. Der Asterisk-Callfile ruft zuerst die Mitarbeiter-Durchwahl im Kontext `from-internal` an. Erst wenn dort abgehoben wird, führt Asterisk die Zielrufnummer im selben Kontext aus. Alternativ unterstützt SpeedPhone denselben Ablauf nativ über Asterisk AMI; der AMI-Benutzer sollte dafür nur `call` und `originate` schreiben dürfen und per `permit` auf die Adresse des CRM-Servers begrenzt werden.
+
+Auf der Telefonanlage wird `infra/freepbx/install.sh /pfad/zum/öffentlichen-schlüssel.pub` als `root` ausgeführt. Anschließend werden in `/etc/crm-speedphone-call/config.json` die zulässigen Durchwahlen eingetragen. Der zugehörige private Schlüssel und der feste Host-Key liegen auf dem CRM-Server beispielsweise unter `/etc/crm-speedphone-pbx/`; ein Muster für den vollständigen Befehl steht in `config.local.php.example`.
 
 Die Warteschlange behandelt fällige Rückrufe weiterhin zuerst. Danach folgen
 innerhalb der zulässigen Zuordnung erkennbarer Mittelstand, normale
@@ -125,11 +142,13 @@ CRM SpeedPhone erweitert `prospects_cstm` und `calls_cstm`. Die Primärschlüsse
 
 Die Tabelle `crm_speedphone_locks` enthält ausschließlich kurzlebige Reservierungsdaten (`prospect_id`, `user_id`, Token und Zeitstempel). Sie referenziert damit die vorhandenen UUIDs und kopiert keine Kontaktinformationen. Eindeutige Datenbankindizes verhindern doppelte Reservierungen auch bei exakt gleichzeitigen Abrufen.
 
-`crm_speedphone_user_settings` speichert pro vorhandener Benutzer-UUID die SpeedPhone-Rolle, den Provisionssatz und die Modulrechte. `crm_speedphone_assignments` referenziert ausschließlich Zielkontakt- und Benutzer-UUIDs und hält Betreuung, letzten Kontaktversuch sowie die bei einem Erfolg eingefrorene Provisionszuordnung fest. Ein Eintrag entsteht beim ersten erreichten Gespräch oder sofort für einen von einem externen Benutzer selbst angelegten Zielkontakt. `crm_speedphone_options` enthält die beiden Eskalationsfristen. Es werden weiterhin keine Kontaktkopien angelegt.
+`crm_speedphone_user_settings` speichert pro vorhandener Benutzer-UUID die SpeedPhone-Rolle, den Provisionssatz, die Modulrechte und optional die persönliche Festnetz-Durchwahl. `crm_speedphone_assignments` referenziert ausschließlich Zielkontakt- und Benutzer-UUIDs und hält Betreuung, letzten Kontaktversuch sowie die bei einem Erfolg eingefrorene Provisionszuordnung fest. Ein Eintrag entsteht beim ersten erreichten Gespräch oder sofort für einen von einem externen Benutzer selbst angelegten Zielkontakt. `crm_speedphone_options` enthält die beiden Eskalationsfristen. Es werden weiterhin keine Kontaktkopien angelegt.
 
 Die Dialer-Tabellen speichern Geräte, kurzlebige Kopplungen und Anrufaufträge. Jeder Auftrag referenziert den vorhandenen Zielkontakt ausschließlich über dessen UUID. Kopplungscodes und dauerhafte Gerätetoken werden serverseitig nur als SHA-256-Hash gespeichert; Telefonnummern in Anrufaufträgen verfallen nach zwei Minuten.
 
 `crm_speedphone_incoming_calls` speichert bei einem zugeordneten Rückruf ausschließlich Ereignis-, Geräte-, Benutzer- und Zielkontakt-UUID sowie Eingangs- und Öffnungszeitpunkt. Die eingehende Telefonnummer wird nicht in einer zusätzlichen SpeedPhone-Tabelle gespeichert. Nicht zuordenbare Nummern erzeugen keinen Ereignisdatensatz.
+
+`crm_speedphone_pbx_calls` protokolliert jeden Festnetz-Wahlauftrag mit vorhandener Benutzer- und Zielkontakt-UUID, verwendeter Durchwahl, Zielrufnummer, Zeitstempel sowie Annahme oder Fehlermeldung des Gateways. Das eigentliche Gesprächsergebnis wird weiterhin erst über die Schnellaktion als regulärer SuiteCRM-Anruf dokumentiert.
 
 `crm_speedphone_mail_webhook_events` hält die eindeutige Ereignis-UUID, den signierten Nutzdaten-Hash, Verarbeitungszustand und die referenzierte Kampagnenaktivität. Dadurch bleiben Wiederholungsversuche nachvollziehbar, erzeugen aber keine doppelten Öffnungs-, Klick- oder Bounce-Aktivitäten. Das Webhook-Geheimnis wird weder in dieser Tabelle noch im Paket gespeichert.
 

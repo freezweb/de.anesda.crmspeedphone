@@ -16,6 +16,7 @@ use Anesda\CRM\SpeedPhone\EmailService;
 use Anesda\CRM\SpeedPhone\InputValidator;
 use Anesda\CRM\SpeedPhone\IncomingCallService;
 use Anesda\CRM\SpeedPhone\LockService;
+use Anesda\CRM\SpeedPhone\PbxService;
 use Anesda\CRM\SpeedPhone\QueueService;
 use Anesda\CRM\SpeedPhone\UserAccessService;
 
@@ -43,6 +44,7 @@ try {
     $queue = new QueueService($config, $db, $current_user, $lockService, $accessService, $assignmentService);
     $queue->assertUserAllowed();
     $dialerService = new DialerService($db, $current_user);
+    $pbxService = new PbxService($config, $db, $current_user, $accessService);
 
     if ((string) ($_POST['operation'] ?? '') === 'dialer_pairing') {
         $siteUrl = rtrim((string) ($sugar_config['site_url'] ?? ''), '/');
@@ -64,6 +66,18 @@ try {
         }
         $lockService->assertOwned($prospectId, (string) ($_POST['lock_token'] ?? ''));
         $result = $dialerService->queueCall($prospectId, (string) ($_POST['phone_kind'] ?? 'work'));
+        echo json_encode(['success' => true, 'data' => $result], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        exit;
+    }
+
+    if ((string) ($_POST['operation'] ?? '') === 'pbx_call') {
+        $validator = new InputValidator();
+        $prospectId = $validator->uuid((string) ($_POST['prospect_id'] ?? ''));
+        if (!$queue->canEditProspect($prospectId) || !ACLController::checkAccess('Prospects', 'edit', true)) {
+            throw new RuntimeException('Kein Zugriff auf diesen Zielkontakt.');
+        }
+        $lockService->assertOwned($prospectId, (string) ($_POST['lock_token'] ?? ''));
+        $result = $pbxService->queueCall($prospectId, (string) ($_POST['phone_kind'] ?? 'work'));
         echo json_encode(['success' => true, 'data' => $result], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         exit;
     }
@@ -127,7 +141,8 @@ try {
                     $candidate,
                     $userTimezone,
                     (int) $config->get('default_callback_days', 7),
-                    $devices
+                    $devices,
+                    $pbxService->status()
                 ),
                 'statistics' => $queue->getStatistics(),
                 'devices' => $devices,
@@ -153,7 +168,8 @@ try {
                     $candidate,
                     $userTimezone,
                     (int) $config->get('default_callback_days', 7),
-                    $dialerService->listDevices()
+                    $dialerService->listDevices(),
+                    $pbxService->status()
                 ),
                 'statistics' => $statistics,
                 'prospect_id' => $candidate['id'] ?? null,

@@ -27,6 +27,10 @@ $localConfig = Join-Path $buildRoot 'copy\custom\CRM\SpeedPhone\config.local.php
 if (Test-Path $localConfig) {
     Remove-Item -LiteralPath $localConfig -Force
 }
+$pbxLocalConfig = Join-Path $buildRoot 'copy\custom\CRM\SpeedPhone\pbx.local.php'
+if (Test-Path $pbxLocalConfig) {
+    Remove-Item -LiteralPath $pbxLocalConfig -Force
+}
 
 if (Test-Path $zipPath) {
     Remove-Item -LiteralPath $zipPath -Force

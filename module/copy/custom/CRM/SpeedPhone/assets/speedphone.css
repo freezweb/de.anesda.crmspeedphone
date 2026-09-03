@@ -101,11 +101,16 @@
 .speedphone .button--muted { background: #5d6975; }
 .speedphone .button--danger { background: var(--sp-danger); }
 .speedphone .button--dialer { background: #075985; }
-.speedphone .mobile-dial-actions { align-items: center; background: #eaf7fb; border: 1px solid #9fd4e2; border-radius: 13px; display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; padding: 12px 14px; }
-.speedphone .mobile-dial-actions > div { flex: 1 1 220px; }
-.speedphone .mobile-dial-actions strong, .speedphone .mobile-dial-actions span { display: block; }
-.speedphone .mobile-dial-actions span { color: var(--sp-muted); font-size: 13px; margin-top: 2px; }
-.speedphone .mobile-dial-actions .button { min-height: 40px; }
+.speedphone .button--pbx { background: #5b3ea6; }
+.speedphone .call-launcher { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
+.speedphone .call-launcher__method { align-items: center; border: 1px solid; border-radius: 13px; display: flex; gap: 10px; justify-content: space-between; min-width: 0; padding: 12px 14px; }
+.speedphone .call-launcher__method--mobile { background: #eaf7fb; border-color: #9fd4e2; }
+.speedphone .call-launcher__method--pbx { background: #f3efff; border-color: #cbbcf1; }
+.speedphone .call-launcher__heading { flex: 1 1 150px; min-width: 0; }
+.speedphone .call-launcher__heading strong, .speedphone .call-launcher__heading span { display: block; }
+.speedphone .call-launcher__heading span { color: var(--sp-muted); font-size: 12px; margin-top: 2px; }
+.speedphone .call-launcher__buttons { display: flex; flex: 0 0 auto; flex-wrap: wrap; gap: 7px; justify-content: flex-end; }
+.speedphone .call-launcher .button { min-height: 40px; min-width: 76px; }
 .speedphone .dialer-panel { background: var(--sp-card); border: 1px solid var(--sp-border); border-radius: 20px; box-shadow: 0 10px 32px rgba(23, 32, 42, .06); margin-bottom: 20px; padding: 24px; }
 .speedphone .dialer-panel__heading { align-items: flex-start; display: flex; gap: 24px; justify-content: space-between; }
 .speedphone .dialer-panel__heading h2 { font-size: 26px; margin: 3px 0 6px; }
@@ -142,9 +147,10 @@
 .speedphone .team-settings__table th, .speedphone .team-settings__table td { border-bottom: 1px solid var(--sp-border); padding: 11px 10px; text-align: left; vertical-align: middle; }
 .speedphone .team-settings__table th { color: var(--sp-muted); font-size: 12px; text-transform: uppercase; letter-spacing: .05em; }
 .speedphone .team-settings__table td > span { display: block; color: var(--sp-muted); font-size: 12px; }
-.speedphone .team-settings select, .speedphone .team-settings input[type="number"] { border: 1px solid #bac6d0; border-radius: 9px; padding: 9px 10px; font: inherit; background: #fff; }
+.speedphone .team-settings select, .speedphone .team-settings input[type="number"], .speedphone .team-settings input[type="text"] { border: 1px solid #bac6d0; border-radius: 9px; padding: 9px 10px; font: inherit; background: #fff; }
 .speedphone .team-settings__commission { display: flex; align-items: center; gap: 6px; }
 .speedphone .team-settings__commission input { width: 90px; }
+.speedphone .team-settings__extension { width: 110px; }
 .speedphone .team-settings__check { text-align: center !important; }
 .speedphone .team-settings__check input { width: 20px; height: 20px; }
 .speedphone .team-settings__rules { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 20px; }
@@ -177,6 +183,7 @@
     .speedphone .stats { grid-template-columns: repeat(3, 1fr); }
     .speedphone .team-settings__rules { grid-template-columns: 1fr; }
     .speedphone .dialer-panel__body { grid-template-columns: 1fr; }
+    .speedphone .call-launcher { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 650px) {
@@ -189,4 +196,6 @@
     .speedphone .email-history__meta { align-items: flex-start; white-space: normal; }
     .speedphone .candidate__main, .speedphone .quick-form { padding: 17px; }
     .speedphone .linkedin-contacts__footer small { text-align: left; }
+    .speedphone .call-launcher__method { align-items: flex-start; flex-direction: column; }
+    .speedphone .call-launcher__buttons { justify-content: flex-start; width: 100%; }
 }

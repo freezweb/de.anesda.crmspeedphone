@@ -10,6 +10,7 @@ require_once __DIR__ . '/render.php';
 use Anesda\CRM\SpeedPhone\Config;
 use Anesda\CRM\SpeedPhone\DialerService;
 use Anesda\CRM\SpeedPhone\AssignmentService;
+use Anesda\CRM\SpeedPhone\PbxService;
 use Anesda\CRM\SpeedPhone\QueueService;
 use Anesda\CRM\SpeedPhone\UserAccessService;
 
@@ -50,11 +51,13 @@ $teamUsers = [];
 $escalationOptions = [];
 $ownedContacts = [];
 $dialerDevices = [];
+$pbxStatus = [];
 try {
     $candidate = $queue->getNextCandidate();
     $statistics = $queue->getStatistics();
     $ownedContacts = $assignmentService->listOwnedByCurrentUser();
     $dialerDevices = (new DialerService($db, $current_user))->listDevices();
+    $pbxStatus = (new PbxService($config, $db, $current_user, $accessService))->status();
     if ($canManageTeam) {
         $teamUsers = $accessService->listTeamUsers();
         $escalationOptions = $accessService->escalationOptions($config);
@@ -69,7 +72,7 @@ $assetBase = $legacyBase . '/custom/CRM/SpeedPhone/assets';
 $userTimezone = (string) ($current_user->getPreference('timezone') ?: 'Europe/Berlin');
 
 ?>
-<link rel="stylesheet" href="<?= speedPhoneEscape($assetBase) ?>/speedphone.css?v=1.10.0">
+<link rel="stylesheet" href="<?= speedPhoneEscape($assetBase) ?>/speedphone.css?v=1.11.0">
 <main class="speedphone" data-api-url="index.php?entryPoint=crmSpeedPhoneApi" data-csrf="<?= speedPhoneEscape($_SESSION['crm_speedphone_csrf']) ?>">
     <header class="speedphone__header">
         <div>
@@ -125,11 +128,11 @@ $userTimezone = (string) ($current_user->getPreference('timezone') ?: 'Europe/Be
                 <p>Prüfe <code>custom/CRM/SpeedPhone/config.local.php</code> und führe anschließend „Quick Repair and Rebuild“ aus.</p>
             </section>
         <?php else: ?>
-            <?= speedPhoneRenderWorkspace($candidate, $userTimezone, (int) $config->get('default_callback_days', 7), $dialerDevices) ?>
+            <?= speedPhoneRenderWorkspace($candidate, $userTimezone, (int) $config->get('default_callback_days', 7), $dialerDevices, $pbxStatus) ?>
         <?php endif; ?>
     </div>
 
     <div class="speedphone__footer">CRM SpeedPhone © anesda</div>
 </main>
 <script src="<?= speedPhoneEscape($assetBase) ?>/vendor/qrcode-generator/qrcode.js?v=2.0.4"></script>
-<script src="<?= speedPhoneEscape($assetBase) ?>/speedphone.js?v=1.10.0"></script>
+<script src="<?= speedPhoneEscape($assetBase) ?>/speedphone.js?v=1.11.0"></script>

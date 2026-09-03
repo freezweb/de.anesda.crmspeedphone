@@ -2,4 +2,5 @@
 /build/
 /.phpunit.result.cache
 /module/copy/custom/CRM/SpeedPhone/config.local.php
-
+__pycache__/
+*.pyc

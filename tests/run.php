@@ -11,6 +11,7 @@ require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/LinkedInContac
 require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/InputValidator.php';
 require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/AssignmentService.php';
 require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/DialerService.php';
+require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/PbxService.php';
 require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/IncomingCallService.php';
 require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/MailWebhookService.php';
 require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/EmailTemplateBrandService.php';
@@ -24,6 +25,7 @@ use Anesda\CRM\SpeedPhone\LinkedInContactService;
 use Anesda\CRM\SpeedPhone\InputValidator;
 use Anesda\CRM\SpeedPhone\AssignmentService;
 use Anesda\CRM\SpeedPhone\DialerService;
+use Anesda\CRM\SpeedPhone\PbxService;
 use Anesda\CRM\SpeedPhone\IncomingCallService;
 use Anesda\CRM\SpeedPhone\MailWebhookService;
 use Anesda\CRM\SpeedPhone\EmailTemplateBrandService;
@@ -74,6 +76,10 @@ check(
     'Interne Benutzer können einen Rückrufer nicht unabhängig von der Provisionszuordnung öffnen.'
 );
 check(DialerService::normalizePhone('+49 (0) 431 265189') === '+490431265189', 'Telefonnummer wird nicht sicher normalisiert.');
+check(PbxService::normalizeExtension('6010') === '6010', 'Gültige Festnetz-Durchwahl wurde abgelehnt.');
+check(PbxService::toPbxDialNumber('+490431265189') === '0431265189', 'Optionale deutsche Ortsnull wird für die Telefonanlage nicht normalisiert.');
+check(PbxService::toPbxDialNumber('+49431265189') === '0431265189', 'Deutsche E.164-Rufnummer wird für die Telefonanlage nicht normalisiert.');
+check(PbxService::toPbxDialNumber('+31201234567') === '0031201234567', 'Internationale Rufnummer wird für die Telefonanlage nicht normalisiert.');
 check(
     IncomingCallService::phoneVariants('+49 (0) 331 2882214')
         === ['4903312882214', '493312882214', '03312882214'],
@@ -86,6 +92,16 @@ check(
 try {
     DialerService::normalizePhone('*21*123#');
     check(false, 'MMI-Steuercodes dürfen nicht als Telefonnummer akzeptiert werden.');
+} catch (InvalidArgumentException) {
+}
+try {
+    PbxService::normalizeExtension('60#10');
+    check(false, 'Steuercodes dürfen nicht als Festnetz-Durchwahl akzeptiert werden.');
+} catch (InvalidArgumentException) {
+}
+try {
+    PbxService::toPbxDialNumber('6010');
+    check(false, 'Eine Kontakttelefonnummer darf nicht als interne Durchwahl ausgeführt werden.');
 } catch (InvalidArgumentException) {
 }
 
@@ -215,7 +231,12 @@ $workspace = speedPhoneRenderWorkspace([
     'device_name' => 'Testhandy',
     'platform' => 'android',
     'is_ready' => 1,
-]]);
+]], [
+    'enabled' => true,
+    'ready' => true,
+    'extension' => '6010',
+    'message' => 'Zuerst klingelt deine Durchwahl 6010.',
+]);
 check(str_contains($workspace, 'Gesendete E-Mails'), 'E-Mail-Historie fehlt im gerenderten Kontakt.');
 check(str_contains($workspace, 'LinkedIn-Ansprechpartner'), 'LinkedIn-Ansprechpartner fehlen im SpeedPhone-Kontakt.');
 check(str_contains($workspace, 'Erika Beispiel'), 'Ein gefundener LinkedIn-Ansprechpartner wird nicht angezeigt.');
@@ -240,6 +261,9 @@ check(speedPhoneResultLabel('not_reached') === 'Nicht erreicht', 'Anrufergebnis 
 $emailServiceSource = file_get_contents(__DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/EmailService.php');
 check(str_contains($workspace, 'data-speedphone-dialer-call="work"'), 'Schaltfläche zum Anruf über das gekoppelte Handy fehlt.');
 check(!str_contains($workspace, 'data-speedphone-dialer-call="work" disabled'), 'Handywahl bleibt trotz empfangsbereitem Gerät gesperrt.');
+check(str_contains($workspace, 'data-speedphone-pbx-call="work"'), 'Schaltfläche zum Anruf über die Telefonanlage fehlt.');
+check(!str_contains($workspace, 'data-speedphone-pbx-call="work" disabled'), 'Festnetz-Wahl bleibt trotz konfigurierter Durchwahl gesperrt.');
+check(str_contains($workspace, 'Festnetz · Durchwahl 6010'), 'Die verwendete Mitarbeiter-Durchwahl wird nicht angezeigt.');
 check(str_contains($emailServiceSource, 'explicitOneTimeRequest'), 'Einmalige ausdrückliche Versandfreigabe fehlt im E-Mail-Dienst.');
 check(str_contains($emailServiceSource, 'die globale E-Mail-Sperre bleibt bestehen'), 'Fortbestand der globalen E-Mail-Sperre wird nicht bestätigt.');
 check(!preg_match('/UPDATE\s+email_addresses/i', $emailServiceSource), 'Die einmalige Freigabe darf globale E-Mail-Sperrmerkmale nicht löschen.');
@@ -409,6 +433,7 @@ check(
 );
 $configSource = file_get_contents(__DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/Config.php');
 check(str_contains($configSource, "'/mail.local.php'"), 'Mail-Geheimnisse besitzen keine getrennte lokale Konfigurationsdatei.');
+check(str_contains($configSource, "'/pbx.local.php'"), 'Telefonanlagen-Geheimnisse besitzen keine getrennte lokale Konfigurationsdatei.');
 $mailWebhookSource = file_get_contents(__DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/MailWebhookService.php');
 check(str_contains($mailWebhookSource, 'hash_equals'), 'Webhook-Signaturen werden nicht timing-sicher geprüft.');
 check(str_contains($mailWebhookSource, 'MAX_CLOCK_SKEW'), 'Webhook-Wiederholungen besitzen kein begrenztes Zeitfenster.');
@@ -418,6 +443,7 @@ check(str_contains($mailWebhookSource, "'unique_opened'"), 'Eindeutige Öffnunge
 $apiSource = file_get_contents(__DIR__ . '/../module/copy/custom/CRM/SpeedPhone/api.php');
 check(str_contains($apiSource, "'dialer_pairing'"), 'API-Aktion zur QR-Kopplung fehlt.');
 check(str_contains($apiSource, "'dialer_call'"), 'API-Aktion zur Handywahl fehlt.');
+check(str_contains($apiSource, "'pbx_call'"), 'API-Aktion zur Festnetz-Wahl fehlt.');
 check(str_contains($apiSource, "'refresh_current'"), 'AJAX-Aktualisierung des reservierten Kontakts fehlt.');
 check(str_contains($apiSource, 'openPendingForCurrentUser'), 'Eingehende Rückrufe werden im Portal nicht automatisch geöffnet.');
 
@@ -458,6 +484,12 @@ check(
     preg_match('/finally\\s*\\{.*?dialButton\\.disabled\\s*=\\s*false;/s', $javascriptSource) === 1,
     'Handywahl wird nach einem Versuch nicht wieder freigegeben.'
 );
+check(str_contains($javascriptSource, "data.set('operation', 'pbx_call')"), 'Browser startet die Festnetz-Wahl nicht per AJAX.');
+check(str_contains($javascriptSource, 'data-speedphone-pbx-call'), 'Festnetz-Schaltflächen besitzen keinen AJAX-Handler.');
+$pbxServiceSource = file_get_contents(__DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/PbxService.php');
+check(str_contains($pbxServiceSource, "'Action' => 'Originate'"), 'Asterisk-AMI-Auftrag startet keinen nativen Originate-Ablauf.');
+check(str_contains($pbxServiceSource, "'Channel' => 'Local/'"), 'Festnetz-Wahl klingelt nicht zuerst die Mitarbeiter-Durchwahl an.');
+check(str_contains($pbxServiceSource, 'crm_speedphone_pbx_calls'), 'Festnetz-Wahlaufträge werden nicht nachvollziehbar protokolliert.');
 
 $manifestSource = file_get_contents(__DIR__ . '/../module/manifest.php');
 $pageSource = file_get_contents(__DIR__ . '/../module/copy/custom/CRM/SpeedPhone/page.php');
@@ -518,6 +550,11 @@ check(
     'Installer legt die UUID-basierte Tabelle für Rückrufereignisse nicht an.'
 );
 check(
+    str_contains($installerSource, 'crm_speedphone_pbx_calls')
+        && str_contains($installerSource, "'pbx_extension' =>"),
+    'Installer legt Durchwahl und nachvollziehbare Festnetz-Wahlaufträge nicht idempotent an.'
+);
+check(
     str_contains($installerSource, '$repair->clearDashlets()'),
     'Installer leert den Dashlet-Cache nicht, damit der Dashboard-Einstieg registriert wird.'
 );
@@ -555,6 +592,7 @@ $teamUsers = [[
     'commission_percent' => 20,
     'can_receive_unassigned' => true,
     'can_manage' => false,
+    'pbx_extension' => '6010',
     'assigned_count' => 4,
     'won_count' => 1,
 ]];
@@ -566,6 +604,8 @@ check(str_contains($teamSettingsHtml, 'Team, Rechte und Provision'), 'Teamverwal
 check(str_contains($teamSettingsHtml, 'value="external" selected'), 'Externe Rolle wird nicht vorausgewählt.');
 check(str_contains($teamSettingsHtml, 'value="20.00"'), 'Provisionssatz wird nicht bearbeitbar dargestellt.');
 check(str_contains($teamSettingsHtml, 'external_stale_days'), 'Eskalationsfrist bei Untätigkeit fehlt.');
+check(str_contains($teamSettingsHtml, 'name="pbx_extension['), 'Mitarbeiter-Durchwahl kann nicht verwaltet werden.');
+check(str_contains($teamSettingsHtml, 'value="6010"'), 'Gespeicherte Mitarbeiter-Durchwahl wird nicht angezeigt.');
 
 $aclRoleSource = file_get_contents(__DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/AclRoleService.php');
 check(str_contains($aclRoleSource, 'CRM SpeedPhone Extern'), 'Verwaltete externe SuiteCRM-Rolle fehlt.');

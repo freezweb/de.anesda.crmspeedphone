@@ -196,6 +196,38 @@
             return;
         }
 
+        const pbxButton = event.target.closest('[data-speedphone-pbx-call]');
+        if (pbxButton) {
+            const form = document.getElementById('speedphone-form');
+            if (!form) {
+                return;
+            }
+            const data = new FormData();
+            data.set('operation', 'pbx_call');
+            data.set('prospect_id', form.elements.prospect_id.value);
+            data.set('lock_token', form.elements.lock_token.value);
+            data.set('phone_kind', pbxButton.dataset.speedphonePbxCall || 'work');
+            data.set('csrf', root.dataset.csrf);
+            const pbxButtons = Array.from(root.querySelectorAll('[data-speedphone-pbx-call]'));
+            pbxButtons.forEach(function (button) { button.disabled = true; });
+            const originalText = pbxButton.textContent;
+            pbxButton.textContent = 'Wird aufgebaut …';
+            try {
+                const payload = await request(data);
+                pbxButton.textContent = 'Durchwahl klingelt';
+                showMessage(payload.data.message, false);
+            } catch (error) {
+                showMessage(error.message || String(error), true);
+            } finally {
+                if (document.body.contains(pbxButton)) {
+                    pbxButtons.forEach(function (button) { button.disabled = false; });
+                    pbxButton.textContent = originalText;
+                }
+                refreshCurrent();
+            }
+            return;
+        }
+
         const ownedEmailButton = event.target.closest('[data-speedphone-owned-email]');
         if (ownedEmailButton) {
             const contactName = ownedEmailButton.dataset.contactName || 'diesen Kontakt';

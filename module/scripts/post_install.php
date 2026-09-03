@@ -36,6 +36,26 @@ function speedPhoneEnsureCustomTableAndColumns(
     }
 }
 
+/**
+ * Ergänzt Spalten in einer bereits vorhandenen Modultabelle idempotent.
+ *
+ * @param array<string, string> $columns
+ */
+function speedPhoneEnsureTableColumns(\DBManager $db, string $table, array $columns): void
+{
+    $existing = [];
+    $result = $db->query("SHOW COLUMNS FROM `{$table}`");
+    while ($row = $db->fetchByAssoc($result)) {
+        $existing[(string) $row['Field']] = true;
+    }
+
+    foreach ($columns as $name => $definition) {
+        if (!isset($existing[$name])) {
+            $db->query("ALTER TABLE `{$table}` ADD COLUMN `{$name}` {$definition}");
+        }
+    }
+}
+
 function speedPhoneInstallDashboardDashlets(\DBManager $db): void
 {
     $result = $db->query("SELECT up.id, up.contents
@@ -146,6 +166,7 @@ $db->query("CREATE TABLE IF NOT EXISTS `crm_speedphone_user_settings` (
     `commission_percent` decimal(5,2) NOT NULL DEFAULT 0.00,
     `can_receive_unassigned` tinyint(1) NOT NULL DEFAULT 0,
     `can_manage` tinyint(1) NOT NULL DEFAULT 0,
+    `pbx_extension` varchar(12) NULL,
     `date_modified` datetime NOT NULL,
     PRIMARY KEY (`user_id`),
     KEY `idx_speedphone_user_type` (`user_type`)
@@ -235,6 +256,27 @@ $db->query("CREATE TABLE IF NOT EXISTS `crm_speedphone_incoming_calls` (
     PRIMARY KEY (`id`),
     KEY `idx_speedphone_incoming_user` (`user_id`, `opened_at`, `received_at`),
     KEY `idx_speedphone_incoming_prospect` (`prospect_id`, `received_at`)
+) ENGINE=InnoDB");
+speedPhoneEnsureTableColumns($db, 'crm_speedphone_user_settings', [
+    'pbx_extension' => 'varchar(12) NULL AFTER `can_manage`',
+]);
+
+$db->query("CREATE TABLE IF NOT EXISTS `crm_speedphone_pbx_calls` (
+    `id` char(36) NOT NULL,
+    `user_id` char(36) NOT NULL,
+    `prospect_id` char(36) NOT NULL,
+    `extension` varchar(12) NOT NULL,
+    `phone` varchar(40) NOT NULL,
+    `display_name` varchar(255) NOT NULL,
+    `status` varchar(20) NOT NULL,
+    `gateway_job_id` varchar(100) NULL,
+    `error_message` varchar(500) NULL,
+    `created_at` datetime NOT NULL,
+    `updated_at` datetime NOT NULL,
+    PRIMARY KEY (`id`),
+    KEY `idx_speedphone_pbx_user` (`user_id`, `created_at`),
+    KEY `idx_speedphone_pbx_prospect` (`prospect_id`, `created_at`),
+    KEY `idx_speedphone_pbx_status` (`status`, `created_at`)
 ) ENGINE=InnoDB");
 
 $db->query("CREATE TABLE IF NOT EXISTS `crm_speedphone_mail_webhook_events` (

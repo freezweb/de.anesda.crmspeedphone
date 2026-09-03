@@ -34,4 +34,13 @@ return [
     'linkedin_discovery_max_results' => 5,
     'dialer_android_store_url' => 'https://play.google.com/store/apps/details?id=de.anesda.crmspeedphone.dialer',
     'dialer_ios_store_url' => 'https://apps.apple.com/app/id6794342212',
+    'pbx_enabled' => false,
+    // Als Argumentliste, damit keine Shell-Auswertung stattfindet. Zugangsdaten gehören in config.local.php.
+    'pbx_gateway_command' => [],
+    'pbx_ami_host' => '',
+    'pbx_ami_port' => 5038,
+    'pbx_ami_username' => '',
+    'pbx_ami_secret' => '',
+    'pbx_ami_context' => 'from-internal',
+    'pbx_ami_timeout_seconds' => 10,
 ];

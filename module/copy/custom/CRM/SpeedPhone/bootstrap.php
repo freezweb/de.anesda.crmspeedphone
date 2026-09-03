@@ -20,6 +20,7 @@ foreach ([
     'EmailTemplateBrandService',
     'ActionService',
     'DialerService',
+    'PbxService',
     'IncomingCallService',
     'MailWebhookService',
 ] as $className) {

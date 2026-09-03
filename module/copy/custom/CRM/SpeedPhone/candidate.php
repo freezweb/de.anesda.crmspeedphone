@@ -114,18 +114,36 @@
             </section>
 
             <?php if (!empty($candidate['phone_work']) || !empty($candidate['phone_mobile'])): ?>
-                <div class="mobile-dial-actions" data-speedphone-dialer-ready="<?= $dialerReady ? '1' : '0' ?>">
-                    <div>
-                        <strong>Anruf über Handy starten</strong>
-                        <span><?= $dialerReady ? 'Die App ist empfangsbereit.' : 'App am Handy öffnen oder zuerst koppeln.' ?></span>
+                <section class="call-launcher" aria-label="Anruf starten">
+                    <div class="call-launcher__method call-launcher__method--mobile" data-speedphone-dialer-ready="<?= $dialerReady ? '1' : '0' ?>">
+                        <div class="call-launcher__heading">
+                            <strong>Handy</strong>
+                            <span><?= $dialerReady ? 'App ist empfangsbereit.' : 'App öffnen oder zuerst koppeln.' ?></span>
+                        </div>
+                        <div class="call-launcher__buttons">
+                            <?php if (!empty($candidate['phone_work'])): ?>
+                                <button type="button" class="button button--dialer button--compact" data-speedphone-dialer-call="work"<?= $dialerReady ? '' : ' disabled' ?>>Telefon</button>
+                            <?php endif; ?>
+                            <?php if (!empty($candidate['phone_mobile'])): ?>
+                                <button type="button" class="button button--dialer button--compact" data-speedphone-dialer-call="mobile"<?= $dialerReady ? '' : ' disabled' ?>>Mobil</button>
+                            <?php endif; ?>
+                        </div>
                     </div>
-                    <?php if (!empty($candidate['phone_work'])): ?>
-                        <button type="button" class="button button--dialer button--compact" data-speedphone-dialer-call="work"<?= $dialerReady ? '' : ' disabled' ?>>Telefon wählen</button>
-                    <?php endif; ?>
-                    <?php if (!empty($candidate['phone_mobile'])): ?>
-                        <button type="button" class="button button--dialer button--compact" data-speedphone-dialer-call="mobile"<?= $dialerReady ? '' : ' disabled' ?>>Mobil wählen</button>
-                    <?php endif; ?>
-                </div>
+                    <div class="call-launcher__method call-launcher__method--pbx" data-speedphone-pbx-ready="<?= $pbxReady ? '1' : '0' ?>">
+                        <div class="call-launcher__heading">
+                            <strong>Festnetz<?= $pbxExtension !== '' ? ' · Durchwahl ' . speedPhoneEscape($pbxExtension) : '' ?></strong>
+                            <span><?= speedPhoneEscape($pbxMessage) ?></span>
+                        </div>
+                        <div class="call-launcher__buttons">
+                            <?php if (!empty($candidate['phone_work'])): ?>
+                                <button type="button" class="button button--pbx button--compact" data-speedphone-pbx-call="work"<?= $pbxReady ? '' : ' disabled' ?>>Telefon</button>
+                            <?php endif; ?>
+                            <?php if (!empty($candidate['phone_mobile'])): ?>
+                                <button type="button" class="button button--pbx button--compact" data-speedphone-pbx-call="mobile"<?= $pbxReady ? '' : ' disabled' ?>>Mobil</button>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </section>
             <?php endif; ?>
 
             <div class="reasons">

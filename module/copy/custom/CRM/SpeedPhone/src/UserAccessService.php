@@ -24,7 +24,7 @@ final class UserAccessService
     }
 
     /**
-     * @return array{user_id:string,user_type:string,commission_percent:float,can_receive_unassigned:bool,can_manage:bool}
+     * @return array{user_id:string,user_type:string,commission_percent:float,can_receive_unassigned:bool,can_manage:bool,pbx_extension:string}
      */
     public function currentProfile(): array
     {
@@ -33,7 +33,7 @@ final class UserAccessService
         }
 
         $userId = (string) $this->currentUser->id;
-        $sql = "SELECT user_type, commission_percent, can_receive_unassigned, can_manage
+        $sql = "SELECT user_type, commission_percent, can_receive_unassigned, can_manage, pbx_extension
                 FROM " . self::TABLE . "
                 WHERE user_id='" . $this->db->quote($userId) . "' LIMIT 1";
         $row = $this->db->fetchByAssoc($this->db->query($sql));
@@ -44,6 +44,7 @@ final class UserAccessService
                 'commission_percent' => 0,
                 'can_receive_unassigned' => $isAdmin ? 1 : 0,
                 'can_manage' => $isAdmin ? 1 : 0,
+                'pbx_extension' => '',
             ];
         }
 
@@ -53,6 +54,7 @@ final class UserAccessService
             'commission_percent' => (float) $row['commission_percent'],
             'can_receive_unassigned' => (int) $row['can_receive_unassigned'] === 1,
             'can_manage' => (int) $row['can_manage'] === 1 && (string) $row['user_type'] === 'internal',
+            'pbx_extension' => trim((string) ($row['pbx_extension'] ?? '')),
         ];
 
         return $this->currentProfile;
@@ -88,6 +90,7 @@ final class UserAccessService
         $this->assertCanManageTeam();
         $sql = "SELECT u.id, u.user_name, u.first_name, u.last_name, u.is_admin,
                        s.user_type, s.commission_percent, s.can_receive_unassigned, s.can_manage,
+                       s.pbx_extension,
                        COALESCE(a.assigned_count, 0) assigned_count,
                        COALESCE(a.won_count, 0) won_count
                 FROM users u
@@ -118,6 +121,7 @@ final class UserAccessService
                     ? (int) $row['can_receive_unassigned'] === 1
                     : $isAdmin,
                 'can_manage' => $hasStoredSettings ? (int) $row['can_manage'] === 1 : $isAdmin,
+                'pbx_extension' => $hasStoredSettings ? trim((string) ($row['pbx_extension'] ?? '')) : '',
                 'assigned_count' => (int) $row['assigned_count'],
                 'won_count' => (int) $row['won_count'],
             ];
@@ -151,6 +155,7 @@ final class UserAccessService
         $commissions = is_array($input['commission_percent'] ?? null) ? $input['commission_percent'] : [];
         $receivers = is_array($input['can_receive_unassigned'] ?? null) ? $input['can_receive_unassigned'] : [];
         $managers = is_array($input['can_manage'] ?? null) ? $input['can_manage'] : [];
+        $pbxExtensions = is_array($input['pbx_extension'] ?? null) ? $input['pbx_extension'] : [];
 
         $activeUsers = [];
         $result = $this->db->query("SELECT id, is_admin FROM users
@@ -176,10 +181,14 @@ final class UserAccessService
             }
             $canReceive = $role !== 'disabled' && isset($receivers[$userId]);
             $canManage = $role === 'internal' && isset($managers[$userId]);
+            $pbxExtension = trim((string) ($pbxExtensions[$userId] ?? ''));
+            if ($pbxExtension !== '' && !preg_match('/^[1-9][0-9]{2,7}$/', $pbxExtension)) {
+                throw new \InvalidArgumentException('Die Festnetz-Durchwahl muss aus 3 bis 8 Ziffern bestehen.');
+            }
             if ($canManage) {
                 $managerCount++;
             }
-            $normalized[$userId] = compact('role', 'commissionValue', 'canReceive', 'canManage');
+            $normalized[$userId] = compact('role', 'commissionValue', 'canReceive', 'canManage', 'pbxExtension');
         }
         if ($managerCount < 1) {
             throw new \InvalidArgumentException('Mindestens ein interner Benutzer muss die Teamverwaltung behalten.');
@@ -195,15 +204,17 @@ final class UserAccessService
                 $commission = number_format($settings['commissionValue'], 2, '.', '');
                 $canReceive = $settings['canReceive'] ? 1 : 0;
                 $canManage = $settings['canManage'] ? 1 : 0;
+                $pbxExtension = $this->db->quote($settings['pbxExtension']);
                 $quotedUserId = $this->db->quote($userId);
                 $this->db->query("INSERT INTO " . self::TABLE . "
-                    (user_id, user_type, commission_percent, can_receive_unassigned, can_manage, date_modified)
-                    VALUES ('{$quotedUserId}', '{$role}', {$commission}, {$canReceive}, {$canManage}, UTC_TIMESTAMP())
+                    (user_id, user_type, commission_percent, can_receive_unassigned, can_manage, pbx_extension, date_modified)
+                    VALUES ('{$quotedUserId}', '{$role}', {$commission}, {$canReceive}, {$canManage}, '{$pbxExtension}', UTC_TIMESTAMP())
                     ON DUPLICATE KEY UPDATE
                         user_type=VALUES(user_type),
                         commission_percent=VALUES(commission_percent),
                         can_receive_unassigned=VALUES(can_receive_unassigned),
                         can_manage=VALUES(can_manage),
+                        pbx_extension=VALUES(pbx_extension),
                         date_modified=UTC_TIMESTAMP()");
             }
             $this->db->query("UPDATE crm_speedphone_assignments spa

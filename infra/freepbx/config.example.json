@@ -1,0 +1,6 @@
+{
+  "allowed_extensions": ["6010", "6020"],
+  "context": "from-internal",
+  "wait_time_seconds": 45,
+  "spool_root": "/var/spool/asterisk"
+}

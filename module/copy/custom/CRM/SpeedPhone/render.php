@@ -49,7 +49,13 @@ function speedPhoneStatusLabel(mixed $value): string
     ][(string) $value] ?? speedPhoneResultLabel($value);
 }
 
-function speedPhoneRenderWorkspace(?array $candidate, string $userTimezone, int $defaultCallbackDays = 7, array $dialerDevices = []): string
+function speedPhoneRenderWorkspace(
+    ?array $candidate,
+    string $userTimezone,
+    int $defaultCallbackDays = 7,
+    array $dialerDevices = [],
+    array $pbxStatus = []
+): string
 {
     $defaultCallbackDays = max(1, min(90, $defaultCallbackDays));
     try {
@@ -69,6 +75,9 @@ function speedPhoneRenderWorkspace(?array $candidate, string $userTimezone, int 
             break;
         }
     }
+    $pbxReady = !empty($pbxStatus['ready']);
+    $pbxExtension = trim((string) ($pbxStatus['extension'] ?? ''));
+    $pbxMessage = trim((string) ($pbxStatus['message'] ?? 'Die Telefonanlage ist noch nicht eingerichtet.'));
     ob_start();
     require __DIR__ . '/candidate.php';
 

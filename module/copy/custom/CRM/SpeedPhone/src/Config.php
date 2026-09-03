@@ -18,12 +18,14 @@ final class Config
         $local = is_file($localFile) ? require $localFile : [];
         $mailLocalFile = $baseDirectory . '/mail.local.php';
         $mailLocal = is_file($mailLocalFile) ? require $mailLocalFile : [];
+        $pbxLocalFile = $baseDirectory . '/pbx.local.php';
+        $pbxLocal = is_file($pbxLocalFile) ? require $pbxLocalFile : [];
 
-        if (!is_array($defaults) || !is_array($local) || !is_array($mailLocal)) {
+        if (!is_array($defaults) || !is_array($local) || !is_array($mailLocal) || !is_array($pbxLocal)) {
             throw new \RuntimeException('Die SpeedPhone-Konfiguration ist ungültig.');
         }
 
-        return new self(array_replace_recursive($defaults, $local, $mailLocal));
+        return new self(array_replace_recursive($defaults, $local, $mailLocal, $pbxLocal));
     }
 
     public function get(string $key, mixed $default = null): mixed

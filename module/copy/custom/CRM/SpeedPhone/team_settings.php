@@ -3,7 +3,7 @@
         <div>
             <p class="speedphone__eyebrow">Administration</p>
             <h2>Team, Rechte und Provision</h2>
-            <p>Externe sehen eigene und noch freie Kontakte aus dem gemeinsamen Pool. Erst ein erreichtes Gespräch ordnet einen freien Kontakt exklusiv zu; erfolglose Versuche tun das nicht.</p>
+            <p>Externe sehen eigene und noch freie Kontakte aus dem gemeinsamen Pool. Erst ein erreichtes Gespräch ordnet einen freien Kontakt exklusiv zu; erfolglose Versuche tun das nicht. Die Festnetz-Durchwahl bestimmt, welcher Apparat beim Click-to-Call zuerst klingelt.</p>
         </div>
         <button type="button" class="button button--secondary" data-speedphone-team-toggle>Schließen</button>
     </div>
@@ -16,6 +16,7 @@
                         <th>Mitarbeiter</th>
                         <th>SpeedPhone-Rolle</th>
                         <th>Provision</th>
+                        <th>Festnetz-Durchwahl</th>
                         <th>Freie Kontakte</th>
                         <th>Team verwalten</th>
                         <th>Betreut / gewonnen</th>
@@ -40,6 +41,19 @@
                                 <input type="number" min="0" max="100" step="0.01" name="commission_percent[<?= speedPhoneEscape($teamUser['id']) ?>]" value="<?= speedPhoneEscape(number_format((float) $teamUser['commission_percent'], 2, '.', '')) ?>">
                                 <span>%</span>
                             </label>
+                        </td>
+                        <td>
+                            <input
+                                class="team-settings__extension"
+                                type="text"
+                                inputmode="numeric"
+                                pattern="[1-9][0-9]{2,7}"
+                                maxlength="8"
+                                name="pbx_extension[<?= speedPhoneEscape($teamUser['id']) ?>]"
+                                value="<?= speedPhoneEscape($teamUser['pbx_extension']) ?>"
+                                placeholder="z. B. 6010"
+                                aria-label="Festnetz-Durchwahl von <?= speedPhoneEscape($teamUser['name']) ?>"
+                            >
                         </td>
                         <td class="team-settings__check">
                             <input type="checkbox" name="can_receive_unassigned[<?= speedPhoneEscape($teamUser['id']) ?>]" value="1"<?= $teamUser['can_receive_unassigned'] ? ' checked' : '' ?> aria-label="Darf freie Kontakte erhalten">
