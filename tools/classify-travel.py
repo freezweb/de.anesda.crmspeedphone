@@ -36,6 +36,7 @@ def main():
     parser.add_argument('--origin', required=True, help='Längengrad,Breitengrad')
     parser.add_argument('--limit', type=int, default=60)
     parser.add_argument('--margin', type=int, default=10)
+    parser.add_argument('--include-city', action='append', default=[], help='Ort unabhängig vom Zeitlimit freigeben')
     args = parser.parse_args()
     out = Path(args.output)
     cache_file = out.with_suffix('.routes-cache.json')
@@ -59,6 +60,7 @@ def main():
             places[cells[1]].append((name, point))
             cities[name].append(point)
     locations = json.loads(Path(args.input).read_text(encoding='utf-8'))
+    included_cities = {normalize(value) for value in args.include_city}
     selected = {}
     for row in locations:
         country = normalize(row['country'] or '')
@@ -111,10 +113,14 @@ def main():
         values = [cache['durations'].get(point_key(p)) for p in selected[row['key']]]
         status = classify(values, args.limit, args.margin)
         valid = [v for v in values if v is not None]
+        is_exception = normalize(row['city']) in included_cities and bool(valid)
+        if is_exception:
+            status = 'included_exception'
         assessments[row['key']] = {
             'status': status,
             'minutes': math.ceil(max(valid)/60) if valid else None,
-            'note': ('PLZ-/Ortsschätzung, keine adressgenaue Route. '
+            'note': (('Regional ausdrücklich einbezogen. ' if is_exception else '')
+                    + 'PLZ-/Ortsschätzung, keine adressgenaue Route. '
                      f'Fahrzeitbereich {math.ceil(min(valid)/60)}–{math.ceil(max(valid)/60)} Min.; '
                      f'Grenzbereich ±{args.margin} Min. separat zur Prüfung. ' if valid else 'Ort nicht eindeutig bestimmbar oder Route fehlt. ')
                     + 'Quelle: GeoNames (CC BY 3.0), OpenStreetMap/OSRM (FOSSGIS). Ohne Live-Verkehr.',

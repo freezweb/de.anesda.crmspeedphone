@@ -2,7 +2,7 @@
 
 /** CLI: exportiert Orte oder übernimmt geprüfte Anfahrtsgruppen ohne Kontaktkopien. */
 if (PHP_SAPI !== 'cli') { exit(1); }
-$options = getopt('', ['legacy:', 'workdir:', 'mode:', 'origin:']);
+$options = getopt('', ['legacy:', 'workdir:', 'mode:', 'origin:', 'limit:']);
 $legacy = realpath($options['legacy'] ?? '');
 $work = realpath($options['workdir'] ?? '');
 if (!$legacy || !$work || !is_file($legacy . '/config.php')) {
@@ -33,6 +33,12 @@ if (($options['mode'] ?? '') === 'export') {
 if (($options['mode'] ?? '') !== 'apply' || empty($options['origin'])) {
     throw new RuntimeException('Modus export/apply und Abfahrtsort für apply angeben.');
 }
+$limit = filter_var($options['limit'] ?? 60, FILTER_VALIDATE_INT, [
+    'options' => ['min_range' => 1, 'max_range' => 1440],
+]);
+if ($limit === false) {
+    throw new RuntimeException('Die maximale Fahrzeit muss zwischen 1 und 1440 Minuten liegen.');
+}
 $assessments = json_decode(file_get_contents($work . '/assessments.json'), true, 512, JSON_THROW_ON_ERROR);
 $result = $db->query("SELECT DISTINCT p.id, {$placeKey} place_key, {$hash} address_hash {$base}");
 $rows = $result->fetch_all(MYSQLI_ASSOC);
@@ -59,9 +65,10 @@ try {
         $assessment = $assessments[$row['place_key']];
         $status = $assessment['status'];
         $minutes = $assessment['minutes'];
-        if (!in_array($status, ['within_range','too_far','borderline','unverified'], true)
+        if (!in_array($status, ['within_range','included_exception','too_far','borderline','unverified'], true)
             || ($minutes !== null && (!is_int($minutes) || $minutes < 0))
-            || ($status === 'within_range' && ($minutes === null || $minutes > 60))) {
+            || ($status === 'within_range' && ($minutes === null || $minutes > $limit))
+            || ($status === 'included_exception' && $minutes === null)) {
             throw new RuntimeException('Ungültiges Routenergebnis.');
         }
         $note = $assessment['note'] . ' Prüfung: ' . gmdate('d.m.Y') . '.';
@@ -73,7 +80,7 @@ try {
 } catch (Throwable $error) { $db->rollback(); throw $error; }
 $localFile = $legacy . '/custom/CRM/SpeedPhone/travel.local.php';
 if (is_file($localFile)) { copy($localFile, $work . '/travel-local-before-' . gmdate('Ymd-His') . '.php'); }
-$values = ['travel_filter_enabled'=>true, 'travel_origin_label'=>$options['origin'], 'travel_max_minutes'=>60];
+$values = ['travel_filter_enabled'=>true, 'travel_origin_label'=>$options['origin'], 'travel_max_minutes'=>$limit];
 file_put_contents($localFile . '.tmp', "<?php\nreturn " . var_export($values,true) . ";\n", LOCK_EX);
 chmod($localFile . '.tmp',0640);
 chown($localFile . '.tmp', fileowner($legacy . '/custom/CRM/SpeedPhone/config.local.php'));

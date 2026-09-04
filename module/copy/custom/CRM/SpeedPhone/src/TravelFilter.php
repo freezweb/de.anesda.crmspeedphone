@@ -17,8 +17,8 @@ final class TravelFilter
         }
         $minutes = max(1, (int) $config->get('travel_max_minutes', 60));
         $origin = $quote((string) $config->get('travel_origin_label', ''));
-        return "(pc.speedphone_travel_status_c='within_range'
-            AND pc.speedphone_travel_minutes_c BETWEEN 0 AND {$minutes}
+        return "(pc.speedphone_travel_status_c IN ('within_range','included_exception')
+            AND (pc.speedphone_travel_status_c='included_exception' OR pc.speedphone_travel_minutes_c BETWEEN 0 AND {$minutes})
             AND pc.speedphone_travel_origin_c='{$origin}'
             AND pc.speedphone_travel_hash_c=" . self::addressHashSql() . ')';
     }

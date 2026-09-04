@@ -3,7 +3,7 @@
 ## Reversibler Anfahrtsfilter
 
 Optional schränkt `travel.local.php` die ausgehende Warteschlange auf bewertete Kontakte ein:
-`travel_filter_enabled=true`, `travel_origin_label` und `travel_max_minutes` (beispielsweise 60).
+`travel_filter_enabled=true`, `travel_origin_label` und `travel_max_minutes` (beispielsweise 60 oder 90).
 Standardmäßig bleibt der Filter im veröffentlichten Modul ausgeschaltet. Lanz ist kein fest eingebautes Modulgebiet.
 
 Die zusätzlichen Felder `speedphone_travel_*_c` speichern Einstufung, Minuten, Ausgangsort, Adress-Hash und Quelle am vorhandenen Zielkontakt.
@@ -15,13 +15,15 @@ Adressänderungen führen automatisch zum Ausschluss bis zur erneuten Bewertung.
 Die CRM-Detailansicht zeigt die Anfahrtsprüfung; die erweiterte Zielkontaktsuche enthält das Feld „SpeedPhone-Anfahrtsgebiet“.
 
 `tools/travel-scope.php` exportiert eindeutige Orte und übernimmt eine Bewertung mit Sicherung der vorherigen Felder.
+Die Übernahme erhält das verwendete Limit mit `--limit=<Minuten>`. Einzelne gewünschte Orte lassen sich bei der
+Klassifizierung mit `--include-city=<Ort>` nachvollziehbar als regionale Ausnahme freigeben.
 `tools/classify-travel.py` nutzt [GeoNames-PLZ-Daten (CC BY 3.0)](https://download.geonames.org/export/zip/)
 und echte Straßenrouten von [OSRM/FOSSGIS](https://routing.openstreetmap.de/about.html),
 © [OpenStreetMap-Mitwirkende](https://www.openstreetmap.org/copyright).
 [Kartendaten korrigieren](https://www.openstreetmap.org/fixthemap).
 Es werden nur Ortskoordinaten übertragen, keine Namen, Telefonnummern oder E-Mail-Adressen.
 Die Vorauswahl ist ausdrücklich eine **PLZ-/Ortsschätzung ohne Live-Verkehr**, keine adressgenaue Reisezeit.
-Für die 60-Minuten-Grenze wird ein Sicherheitsbereich von ±10 Minuten separat zur Anschriftenprüfung zurückgestellt.
+Für die konfigurierte Zeitgrenze wird ein Sicherheitsbereich von ±10 Minuten separat zur Anschriftenprüfung zurückgestellt.
 Mehrdeutige Orte oder fehlende Routen werden niemals als „zu weit weg“ behauptet.
 Routen werden gecacht, Matrixaufrufe begrenzt und auf höchstens eine Anfrage pro Sekunde gedrosselt.
 Für große oder regelmäßige Läufe einen eigenen Routingdienst einsetzen.
