@@ -2,7 +2,7 @@
 
 /** CLI: exportiert Orte oder übernimmt geprüfte Anfahrtsgruppen ohne Kontaktkopien. */
 if (PHP_SAPI !== 'cli') { exit(1); }
-$options = getopt('', ['legacy:', 'workdir:', 'mode:', 'origin:', 'limit:']);
+$options = getopt('', ['legacy:', 'workdir:', 'mode:', 'origin:', 'limit:', 'include-area:']);
 $legacy = realpath($options['legacy'] ?? '');
 $work = realpath($options['workdir'] ?? '');
 if (!$legacy || !$work || !is_file($legacy . '/config.php')) {
@@ -80,7 +80,13 @@ try {
 } catch (Throwable $error) { $db->rollback(); throw $error; }
 $localFile = $legacy . '/custom/CRM/SpeedPhone/travel.local.php';
 if (is_file($localFile)) { copy($localFile, $work . '/travel-local-before-' . gmdate('Ymd-His') . '.php'); }
-$values = ['travel_filter_enabled'=>true, 'travel_origin_label'=>$options['origin'], 'travel_max_minutes'=>$limit];
+$includedAreas = array_values(array_filter(array_map('trim', (array) ($options['include-area'] ?? []))));
+$values = [
+    'travel_filter_enabled'=>true,
+    'travel_origin_label'=>$options['origin'],
+    'travel_max_minutes'=>$limit,
+    'travel_included_areas'=>$includedAreas,
+];
 file_put_contents($localFile . '.tmp', "<?php\nreturn " . var_export($values,true) . ";\n", LOCK_EX);
 chmod($localFile . '.tmp',0640);
 chown($localFile . '.tmp', fileowner($legacy . '/custom/CRM/SpeedPhone/config.local.php'));

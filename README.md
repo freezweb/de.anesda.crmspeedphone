@@ -16,7 +16,8 @@ Die CRM-Detailansicht zeigt die Anfahrtsprüfung; die erweiterte Zielkontaktsuch
 
 `tools/travel-scope.php` exportiert eindeutige Orte und übernimmt eine Bewertung mit Sicherung der vorherigen Felder.
 Die Übernahme erhält das verwendete Limit mit `--limit=<Minuten>`. Einzelne gewünschte Orte lassen sich bei der
-Klassifizierung mit `--include-city=<Ort>` nachvollziehbar als regionale Ausnahme freigeben.
+Klassifizierung mit `--include-city=<Ort>` nachvollziehbar als regionale Ausnahme freigeben und bei der Übernahme
+mit `--include-area=<Bezeichnung>` in der Oberfläche ausweisen.
 `tools/classify-travel.py` nutzt [GeoNames-PLZ-Daten (CC BY 3.0)](https://download.geonames.org/export/zip/)
 und echte Straßenrouten von [OSRM/FOSSGIS](https://routing.openstreetmap.de/about.html),
 © [OpenStreetMap-Mitwirkende](https://www.openstreetmap.org/copyright).

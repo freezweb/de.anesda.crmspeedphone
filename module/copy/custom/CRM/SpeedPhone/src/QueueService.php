@@ -532,6 +532,7 @@ final class QueueService
                        COALESCE(pc.speedphone_attempts_c, 0) speedphone_attempts,
                        pc.speedphone_next_call_c speedphone_next_call,
                        pc.speedphone_travel_minutes_c travel_minutes,
+                       pc.speedphone_travel_status_c travel_status,
                        pc.speedphone_travel_note_c travel_note,
                        spa.owner_user_id speedphone_owner_user_id,
                        spa.owner_type speedphone_owner_type,

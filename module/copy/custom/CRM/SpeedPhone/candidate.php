@@ -148,7 +148,10 @@
 
             <div class="reasons">
                 <?php if (isset($candidate['travel_minutes'])): ?>
-                    <span title="<?= speedPhoneEscape((string) ($candidate['travel_note'] ?? '')) ?>">Anfahrt ca. <?= (int) $candidate['travel_minutes'] ?> Min. · PLZ/Ort</span>
+                    <span title="<?= speedPhoneEscape((string) ($candidate['travel_note'] ?? '')) ?>">
+                        <?= ($candidate['travel_status'] ?? '') === 'included_exception' ? 'Regional einbezogen' : 'Anfahrt' ?>
+                        · ca. <?= (int) $candidate['travel_minutes'] ?> Min. · PLZ/Ort
+                    </span>
                 <?php endif; ?>
                 <?php foreach ($candidate['reasons'] as $reason): ?>
                     <span><?= speedPhoneEscape($reason) ?></span>

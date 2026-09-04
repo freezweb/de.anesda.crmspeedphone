@@ -124,6 +124,9 @@ $userTimezone = (string) ($current_user->getPreference('timezone') ?: 'Europe/Be
         <aside class="message" role="note">
             Regionalfilter: maximal <?= (int) $config->get('travel_max_minutes', 60) ?> Minuten einfache Anfahrt
             ab <?= speedPhoneEscape((string) $config->get('travel_origin_label', '')) ?>.
+            <?php if ($config->get('travel_included_areas', [])): ?>
+                Zusätzlich einbezogen: <?= speedPhoneEscape(implode(', ', (array) $config->get('travel_included_areas', []))) ?>.
+            <?php endif; ?>
             Zu weit entfernte, ungeprüfte und Grenzbereich-Kontakte sind aus der Anrufliste ausgeblendet,
             bleiben aber im CRM erhalten. PLZ-/Ortsschätzungen sind keine adressgenauen Fahrzeiten.
             <?php if ($currentProfile['user_type'] === 'internal'): ?>
