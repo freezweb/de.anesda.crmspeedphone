@@ -6,6 +6,7 @@ if (!defined('sugarEntry')) {
 
 require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/BusinessDayCalculator.php';
 require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/Config.php';
+require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/TravelFilter.php';
 require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/CandidatePriorityService.php';
 require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/LinkedInContactService.php';
 require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/InputValidator.php';
@@ -51,6 +52,17 @@ function check(bool $condition, string $message): void
 }
 
 $calculator = new BusinessDayCalculator();
+$travelConfigClass = new ReflectionClass(Config::class);
+$travelConfig = $travelConfigClass->newInstanceWithoutConstructor();
+$travelValues = $travelConfigClass->getProperty('values');
+$travelValues->setValue($travelConfig, []);
+check(Anesda\CRM\SpeedPhone\TravelFilter::allowedSql($travelConfig, 'addslashes') === '1=1', 'Anfahrtsfilter muss standardmäßig ausgeschaltet bleiben.');
+$travelValues->setValue($travelConfig, ['travel_filter_enabled'=>true,'travel_max_minutes'=>60,'travel_origin_label'=>'19309 Lanz']);
+$travelSql = Anesda\CRM\SpeedPhone\TravelFilter::allowedSql($travelConfig, 'addslashes');
+check(str_contains($travelSql, "='within_range'"), 'Ungeprüfte und entfernte Kontakte dürfen nicht durch den Regionalfilter.');
+check(str_contains($travelSql, 'BETWEEN 0 AND 60'), 'Der Filter muss bei maximal 60 Minuten begrenzen.');
+check(str_contains($travelSql, 'MD5(CONCAT_WS'), 'Geänderte Anschriften müssen eine neue Prüfung erfordern.');
+check(str_contains($travelSql, "origin_c='19309 Lanz'"), 'Ein anderer Abfahrtsort darf alte Bewertungen nicht übernehmen.');
 $friday = new DateTimeImmutable('2026-07-17 09:00:00', new DateTimeZone('UTC'));
 check($calculator->addBusinessDays($friday, 1)->format('Y-m-d') === '2026-07-20', 'Freitag + 1 Werktag muss Montag ergeben.');
 check($calculator->addBusinessDays($friday, 2)->format('Y-m-d') === '2026-07-21', 'Freitag + 2 Werktage muss Dienstag ergeben.');

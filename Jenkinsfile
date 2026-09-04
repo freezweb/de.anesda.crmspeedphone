@@ -113,7 +113,7 @@ tar -czf "/srv/backups/crm-speedphone/custom-before-jenkins-${BUILD_NUMBER}.tar.
   custom/CRM/SpeedPhone \
   custom/Extension/application/Ext/EntryPointRegistry/crm_speedphone.php \
   custom/Extension/modules/Prospects/Ext/Menus/crm_speedphone.php \
-  custom/modules/Prospects/views/view.speedphone.php \
+  custom/modules/Prospects \
   custom/modules/Home/Dashlets/CRMSpeedPhoneDashlet
 rm -rf -- "$deploy"
 mkdir -p "$deploy"

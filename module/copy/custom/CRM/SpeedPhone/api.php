@@ -65,6 +65,9 @@ try {
             throw new RuntimeException('Kein Zugriff auf diesen Zielkontakt.');
         }
         $lockService->assertOwned($prospectId, (string) ($_POST['lock_token'] ?? ''));
+        if (!$queue->canEditProspect($prospectId, true)) {
+            throw new RuntimeException('Dieser Kontakt ist durch den Anfahrtsfilter von ausgehenden Anrufen ausgeschlossen.');
+        }
         $result = $dialerService->queueCall($prospectId, (string) ($_POST['phone_kind'] ?? 'work'));
         echo json_encode(['success' => true, 'data' => $result], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         exit;
@@ -77,6 +80,9 @@ try {
             throw new RuntimeException('Kein Zugriff auf diesen Zielkontakt.');
         }
         $lockService->assertOwned($prospectId, (string) ($_POST['lock_token'] ?? ''));
+        if (!$queue->canEditProspect($prospectId, true)) {
+            throw new RuntimeException('Dieser Kontakt ist durch den Anfahrtsfilter von ausgehenden Anrufen ausgeschlossen.');
+        }
         $result = $pbxService->queueCall($prospectId, (string) ($_POST['phone_kind'] ?? 'work'));
         echo json_encode(['success' => true, 'data' => $result], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         exit;

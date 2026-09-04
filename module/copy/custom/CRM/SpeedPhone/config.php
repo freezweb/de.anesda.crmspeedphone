@@ -1,6 +1,9 @@
 <?php
 
 return [
+    'travel_filter_enabled' => false,
+    'travel_origin_label' => '',
+    'travel_max_minutes' => 60,
     'source_list_name' => '',
     'email_template_name' => '',
     'email_sending_enabled' => false,

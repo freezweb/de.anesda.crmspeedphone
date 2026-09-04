@@ -176,7 +176,7 @@ final class QueueService
                     LEFT JOIN crm_speedphone_assignments spa ON spa.prospect_id=p.id
                     LEFT JOIN crm_speedphone_user_settings sp_creator ON sp_creator.user_id=p.created_by
                     WHERE p.deleted=0 AND p.do_not_call=0 AND {$userCondition}
-                      AND " . $this->centralRetailAllowedSql();
+                      AND " . $this->centralRetailAllowedSql() . " AND " . $this->travelAllowedSql();
         $processedCommon = " FROM calls c
                     LEFT JOIN calls_cstm cc ON cc.id_c=c.id
                     INNER JOIN prospects p ON p.id=c.parent_id AND p.deleted=0
@@ -249,7 +249,7 @@ final class QueueService
         ];
     }
 
-    public function canEditProspect(string $id): bool
+    public function canEditProspect(string $id, bool $requireTravelAllowed = false): bool
     {
         $listId = $this->getSourceListId();
         $userCondition = $this->assignments->sqlAccessCondition();
@@ -263,6 +263,7 @@ final class QueueService
                 LEFT JOIN crm_speedphone_user_settings sp_creator ON sp_creator.user_id=p.created_by
                 WHERE p.id='" . $this->db->quote($id) . "'
                   AND p.deleted=0 AND p.do_not_call=0 AND {$userCondition}
+                  AND " . ($requireTravelAllowed ? $this->travelAllowedSql() : '1=1') . "
                 LIMIT 1";
         $row = $this->db->fetchByAssoc($this->db->query($sql));
 
@@ -517,6 +518,7 @@ final class QueueService
             $textExpression,
             fn (string $value): string => $this->db->quote($value)
         );
+        $travelCondition = $onlyDue ? ' AND ' . $this->travelAllowedSql() : '';
         $dueCondition = $onlyDue
             ? "AND COALESCE(pc.speedphone_status_c, '') NOT IN
                       ('interested', 'no_interest', 'invalid_phone', 'blocked', 'paused')
@@ -529,6 +531,8 @@ final class QueueService
                        COALESCE(pc.speedphone_status_c, '') speedphone_status,
                        COALESCE(pc.speedphone_attempts_c, 0) speedphone_attempts,
                        pc.speedphone_next_call_c speedphone_next_call,
+                       pc.speedphone_travel_minutes_c travel_minutes,
+                       pc.speedphone_travel_note_c travel_note,
                        spa.owner_user_id speedphone_owner_user_id,
                        spa.owner_type speedphone_owner_type,
                        CASE WHEN {$escalatedExpression} THEN 1 ELSE 0 END speedphone_is_escalated,
@@ -557,7 +561,12 @@ final class QueueService
                   AND {$userCondition}
                   AND " . $this->centralRetailAllowedSql() . "
                   AND (TRIM(COALESCE(p.phone_work, ''))<>'' OR TRIM(COALESCE(p.phone_mobile, ''))<>'')
-                  {$dueCondition}";
+                  {$dueCondition} {$travelCondition}";
+    }
+
+    private function travelAllowedSql(): string
+    {
+        return TravelFilter::allowedSql($this->config, fn (string $value): string => $this->db->quote($value));
     }
 
     private function candidateNameSql(): string

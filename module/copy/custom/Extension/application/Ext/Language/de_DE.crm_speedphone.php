@@ -1,5 +1,13 @@
 <?php
 
+$app_list_strings['speedphone_travel_status_list'] = [
+    '' => 'Anfahrt ungeprüft',
+    'within_range' => 'Im Anfahrtsgebiet',
+    'too_far' => 'Zu weit weg',
+    'unverified' => 'Anfahrt ungeprüft',
+    'borderline' => 'Grenzbereich – genaue Anschrift prüfen',
+];
+
 $app_list_strings['speedphone_status_list'] = [
     '' => 'Offen',
     'retry' => 'Erneut anrufen',
@@ -21,4 +29,3 @@ $app_list_strings['speedphone_result_list'] = [
     'blocked' => 'Nicht mehr kontaktieren',
     'later' => 'Später bearbeiten',
 ];
-

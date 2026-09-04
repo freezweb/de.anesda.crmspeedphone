@@ -23,6 +23,9 @@ New-Item -ItemType Directory -Path $buildRoot -Force | Out-Null
 New-Item -ItemType Directory -Path $distRoot -Force | Out-Null
 
 Copy-Item -Path (Join-Path $moduleRoot '*') -Destination $buildRoot -Recurse -Force
+Get-ChildItem -LiteralPath $buildRoot -Recurse -File -Filter '*.local.php' | ForEach-Object {
+    Remove-Item -LiteralPath $_.FullName -Force
+}
 $localConfig = Join-Path $buildRoot 'copy\custom\CRM\SpeedPhone\config.local.php'
 if (Test-Path $localConfig) {
     Remove-Item -LiteralPath $localConfig -Force

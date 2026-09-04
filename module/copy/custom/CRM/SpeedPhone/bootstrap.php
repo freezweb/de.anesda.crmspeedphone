@@ -7,6 +7,7 @@ if (!defined('sugarEntry') || !sugarEntry) {
 $speedPhoneBase = __DIR__;
 foreach ([
     'Config',
+    'TravelFilter',
     'BusinessDayCalculator',
     'InputValidator',
     'AclRoleService',

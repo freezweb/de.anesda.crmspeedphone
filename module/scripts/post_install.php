@@ -137,6 +137,11 @@ function speedPhoneCreateGuid(): string
 }
 
 speedPhoneEnsureCustomTableAndColumns($db, 'prospects_cstm', [
+    'speedphone_travel_status_c' => 'varchar(40) NULL',
+    'speedphone_travel_minutes_c' => 'int NULL',
+    'speedphone_travel_origin_c' => 'varchar(255) NULL',
+    'speedphone_travel_hash_c' => 'varchar(32) NULL',
+    'speedphone_travel_note_c' => 'text NULL',
     'speedphone_status_c' => 'varchar(40) NULL',
     'speedphone_attempts_c' => 'int(255) DEFAULT 0 NULL',
     'speedphone_next_call_c' => 'datetime NULL',
@@ -421,6 +426,7 @@ require_once 'custom/CRM/SpeedPhone/bootstrap.php';
 (new Anesda\CRM\SpeedPhone\AclRoleService($db))->synchronize();
 
 speedPhoneInstallDashboardDashlets($db);
+require_once __DIR__ . '/travel_metadata.php';
 
 $repair = new RepairAndClear();
 $repair->repairAndClearAll(['rebuildExtensions'], ['Prospect', 'Call', 'Home'], true, false);

@@ -72,7 +72,7 @@ $assetBase = $legacyBase . '/custom/CRM/SpeedPhone/assets';
 $userTimezone = (string) ($current_user->getPreference('timezone') ?: 'Europe/Berlin');
 
 ?>
-<link rel="stylesheet" href="<?= speedPhoneEscape($assetBase) ?>/speedphone.css?v=1.11.0">
+<link rel="stylesheet" href="<?= speedPhoneEscape($assetBase) ?>/speedphone.css?v=1.12.0">
 <main class="speedphone" data-api-url="index.php?entryPoint=crmSpeedPhoneApi" data-csrf="<?= speedPhoneEscape($_SESSION['crm_speedphone_csrf']) ?>">
     <header class="speedphone__header">
         <div>
@@ -120,6 +120,23 @@ $userTimezone = (string) ($current_user->getPreference('timezone') ?: 'Europe/Be
 
     <div id="speedphone-message" class="message" role="status" aria-live="polite" tabindex="-1" hidden></div>
 
+    <?php if ($config->get('travel_filter_enabled', false)): ?>
+        <aside class="message" role="note">
+            Regionalfilter: maximal <?= (int) $config->get('travel_max_minutes', 60) ?> Minuten einfache Anfahrt
+            ab <?= speedPhoneEscape((string) $config->get('travel_origin_label', '')) ?>.
+            Zu weit entfernte, ungeprüfte und Grenzbereich-Kontakte sind aus der Anrufliste ausgeblendet,
+            bleiben aber im CRM erhalten. PLZ-/Ortsschätzungen sind keine adressgenauen Fahrzeiten.
+            <?php if ($currentProfile['user_type'] === 'internal'): ?>
+                <a href="index.php?module=Prospects&amp;action=index&amp;query=true&amp;searchFormTab=advanced_search&amp;speedphone_travel_status_c_advanced%5B%5D=too_far">Zu weit entfernte Kontakte im CRM anzeigen</a>
+            <?php endif; ?>
+            <small>Ortsdaten: <a href="https://www.geonames.org/" target="_blank" rel="noopener">GeoNames</a> ·
+                Routen: <a href="https://routing.openstreetmap.de/about.html" target="_blank" rel="noopener">OSRM/FOSSGIS</a> ·
+                © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap-Mitwirkende</a> ·
+                <a href="https://www.openstreetmap.org/fixthemap" target="_blank" rel="noopener">Kartendaten korrigieren</a>
+            </small>
+        </aside>
+    <?php endif; ?>
+
     <div id="speedphone-workspace">
         <?php if ($error !== ''): ?>
             <section class="empty empty--error">
@@ -135,4 +152,4 @@ $userTimezone = (string) ($current_user->getPreference('timezone') ?: 'Europe/Be
     <div class="speedphone__footer">CRM SpeedPhone © anesda</div>
 </main>
 <script src="<?= speedPhoneEscape($assetBase) ?>/vendor/qrcode-generator/qrcode.js?v=2.0.4"></script>
-<script src="<?= speedPhoneEscape($assetBase) ?>/speedphone.js?v=1.11.0"></script>
+<script src="<?= speedPhoneEscape($assetBase) ?>/speedphone.js?v=1.12.0"></script>

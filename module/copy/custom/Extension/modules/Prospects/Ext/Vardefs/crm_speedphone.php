@@ -1,5 +1,21 @@
 <?php
 
+foreach ([
+    'status' => ['type' => 'enum', 'options' => 'speedphone_travel_status_list', 'len' => 40],
+    'minutes' => ['type' => 'int'],
+    'origin' => ['type' => 'varchar', 'len' => 255],
+    'hash' => ['type' => 'varchar', 'len' => 32],
+    'note' => ['type' => 'text'],
+] as $suffix => $definition) {
+    $name = 'speedphone_travel_' . $suffix . '_c';
+    $dictionary['Prospect']['fields'][$name] = array_merge([
+        'name' => $name,
+        'vname' => 'LBL_SPEEDPHONE_TRAVEL_' . strtoupper($suffix),
+        'source' => 'custom_fields',
+        'audited' => false,
+    ], $definition);
+}
+
 $dictionary['Prospect']['fields']['speedphone_status_c'] = [
     'name' => 'speedphone_status_c',
     'vname' => 'LBL_SPEEDPHONE_STATUS',
@@ -53,4 +69,3 @@ $dictionary['Prospect']['fields']['speedphone_last_note_c'] = [
     'source' => 'custom_fields',
     'audited' => true,
 ];
-
