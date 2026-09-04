@@ -26,6 +26,13 @@ $GLOBALS['current_user'] = $current_user;
 
 require '/tmp/crm-speedphone-deploy/scripts/post_install.php';
 
+require 'custom/modules/Prospects/metadata/searchdefs.php';
+require 'custom/modules/Prospects/metadata/detailviewdefs.php';
+if (!isset($searchdefs['Prospects']['layout']['advanced_search']['speedphone_travel_status_c'])
+    || !isset($viewdefs['Prospects']['DetailView']['panels']['lbl_speedphone_travel_panel'])) {
+    throw new RuntimeException('Die CRM-Ansichten für den Anfahrtsfilter fehlen nach der Installation.');
+}
+
 $mailWebhookTable = (int) $db->getOne(
     "SELECT COUNT(*) FROM information_schema.tables
      WHERE table_schema=DATABASE() AND table_name='crm_speedphone_mail_webhook_events'"

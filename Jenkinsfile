@@ -119,6 +119,8 @@ rm -rf -- "$deploy"
 mkdir -p "$deploy"
 unzip -q "$archive" -d "$deploy"
 cp -a "$deploy/copy/custom/." "$legacy/custom/"
+mkdir -p "$legacy/custom/modules/Prospects/metadata"
+chown www-data:www-data "$legacy/custom/modules/Prospects/metadata"
 chown -R www-data:www-data \
   "$legacy/custom/CRM/SpeedPhone" \
   "$legacy/custom/Extension/application/Ext/EntryPointRegistry/crm_speedphone.php" \

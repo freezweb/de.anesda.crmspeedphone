@@ -4,7 +4,9 @@
 function speedPhoneInstallTravelMetadata(): void
 {
     $directory = 'custom/modules/Prospects/metadata';
-    if (!is_dir($directory)) { mkdir($directory, 0775, true); }
+    if (!is_dir($directory) && !mkdir($directory, 0775, true)) {
+        throw new RuntimeException('Das Verzeichnis für die Anfahrtsfilter-Ansichten konnte nicht angelegt werden.');
+    }
     foreach (['detailviewdefs.php'=>'viewdefs', 'searchdefs.php'=>'searchdefs', 'SearchFields.php'=>'searchFields', 'listviewdefs.php'=>'listViewDefs'] as $file=>$variable) {
         ${$variable} = [];
         $target = $directory . '/' . $file;
@@ -31,7 +33,9 @@ function speedPhoneInstallTravelMetadata(): void
             ];
         }
         if ($before !== ${$variable}) {
-            file_put_contents($target, "<?php\n// Layout-Ergänzung durch CRM SpeedPhone, Copyright anesda.\n$" . $variable . ' = ' . var_export(${$variable},true) . ";\n", LOCK_EX);
+            if (file_put_contents($target, "<?php\n// Layout-Ergänzung durch CRM SpeedPhone, Copyright anesda.\n$" . $variable . ' = ' . var_export(${$variable},true) . ";\n", LOCK_EX) === false) {
+                throw new RuntimeException('Die Anfahrtsfilter-Ansicht konnte nicht gespeichert werden: ' . $file);
+            }
         }
     }
 }
