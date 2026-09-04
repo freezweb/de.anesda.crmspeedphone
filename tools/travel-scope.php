@@ -76,5 +76,7 @@ if (is_file($localFile)) { copy($localFile, $work . '/travel-local-before-' . gm
 $values = ['travel_filter_enabled'=>true, 'travel_origin_label'=>$options['origin'], 'travel_max_minutes'=>60];
 file_put_contents($localFile . '.tmp', "<?php\nreturn " . var_export($values,true) . ";\n", LOCK_EX);
 chmod($localFile . '.tmp',0640);
+chown($localFile . '.tmp', fileowner($legacy . '/custom/CRM/SpeedPhone/config.local.php'));
+chgrp($localFile . '.tmp', filegroup($legacy . '/custom/CRM/SpeedPhone/config.local.php'));
 rename($localFile . '.tmp',$localFile);
 echo json_encode(['updated'=>$counts,'backup'=>$backup],JSON_UNESCAPED_UNICODE) . PHP_EOL;
