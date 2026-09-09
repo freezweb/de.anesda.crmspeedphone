@@ -67,6 +67,8 @@ CRM SpeedPhone ist eine schnelle, abarbeitbare Telefonakquise-Warteschlange für
 - Android startet den Anruf nach erteilter Telefonberechtigung direkt; iOS zeigt die systembedingt vorgeschriebene Anrufbestätigung
 - Schnellaktionen für „nicht erreicht“, „Rückruf“, „kein Interesse“, „Interesse“, „falsche Nummer“ und „nicht mehr kontaktieren“
 - eigene Aktion „E-Mail jetzt senden + wieder anrufen“, die den Kontakt offen lässt und keinen Interessentenstatus setzt
+- sieben mehrseitige Anesda-Produktbroschüren direkt im Gespräch auswählbar: ProfiPOS, ReservierFix, Transparent Laden, Druckfluss, ProduktionsBuddy, Kundenportal und SystemService vor Ort
+- Aktion „Flyer senden + automatisch nachfassen“: hängt ausschließlich die angekreuzten Broschüren an, protokolliert Empfänger, Betreff und ausgewählte Unterlagen als reguläre SuiteCRM-E-Mail und legt den Kontakt automatisch nach der konfigurierten Zahl von Werktagen erneut vor
 - jeder Kontaktversuch wird als regulärer SuiteCRM-Anruf protokolliert
 - automatische Wiedervorlage mit zunehmenden Abständen
 - Tageswiedervorlagen werden ohne Uhrzeit wieder in die Liste eingereiht; nur ausdrücklich vereinbarte Uhrzeiten erzeugen zusätzlich einen geplanten SuiteCRM-Anruf
@@ -136,6 +138,7 @@ Diese Datei wird bei Updates nicht überschrieben und ist nicht Teil des veröff
 - `linkedin_discovery_cache_days`, `linkedin_discovery_max_results`: Cache-Dauer und maximale Zahl angezeigter Profile
 - `lock_minutes`: Laufzeit einer Reservierung ohne erfolgreiche Verlängerung
 - `default_callback_days`: Vorbelegung des änderbaren Rückrufdatums ohne Uhrzeit, standardmäßig `7` Tage; eine optionale Uhrzeit erzeugt zusätzlich einen festen CRM-Termin
+- `flyer_followup_business_days`: automatische Wiedervorlage nach Versand ausgewählter Produktbroschüren, standardmäßig nach `3` Werktagen
 - `callback_escalation_days`: nach wie vielen Tagen ein nicht erledigter externer Rückruf intern sichtbar wird; über die Oberfläche änderbar
 - `external_stale_days`: nach wie vielen Tagen ohne Kontaktversuch ein extern betreuter Kontakt intern sichtbar wird; über die Oberfläche änderbar
 - `dialer_android_store_url`: öffentliche Google-Play-Adresse der Dialer-App

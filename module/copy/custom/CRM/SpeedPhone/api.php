@@ -17,6 +17,7 @@ use Anesda\CRM\SpeedPhone\InputValidator;
 use Anesda\CRM\SpeedPhone\IncomingCallService;
 use Anesda\CRM\SpeedPhone\LockService;
 use Anesda\CRM\SpeedPhone\PbxService;
+use Anesda\CRM\SpeedPhone\ProductFlyerService;
 use Anesda\CRM\SpeedPhone\QueueService;
 use Anesda\CRM\SpeedPhone\UserAccessService;
 
@@ -45,6 +46,7 @@ try {
     $queue->assertUserAllowed();
     $dialerService = new DialerService($db, $current_user);
     $pbxService = new PbxService($config, $db, $current_user, $accessService);
+    $productFlyerService = new ProductFlyerService(__DIR__ . '/assets/flyers');
 
     if ((string) ($_POST['operation'] ?? '') === 'dialer_pairing') {
         $siteUrl = rtrim((string) ($sugar_config['site_url'] ?? ''), '/');
@@ -148,7 +150,9 @@ try {
                     $userTimezone,
                     (int) $config->get('default_callback_days', 7),
                     $devices,
-                    $pbxService->status()
+                    $pbxService->status(),
+                    $productFlyerService->available(),
+                    (int) $config->get('flyer_followup_business_days', 3)
                 ),
                 'statistics' => $queue->getStatistics(),
                 'devices' => $devices,
@@ -175,7 +179,9 @@ try {
                     $userTimezone,
                     (int) $config->get('default_callback_days', 7),
                     $dialerService->listDevices(),
-                    $pbxService->status()
+                    $pbxService->status(),
+                    $productFlyerService->available(),
+                    (int) $config->get('flyer_followup_business_days', 3)
                 ),
                 'statistics' => $statistics,
                 'prospect_id' => $candidate['id'] ?? null,
@@ -184,7 +190,7 @@ try {
         exit;
     }
 
-    $emailService = new EmailService($config, $db, $current_user);
+    $emailService = new EmailService($config, $db, $current_user, $productFlyerService);
     if ((string) ($_POST['operation'] ?? '') === 'resend_email') {
         $validator = new InputValidator();
         $prospectId = $validator->uuid((string) ($_POST['prospect_id'] ?? ''));
@@ -208,7 +214,11 @@ try {
             $prospect->save(false);
         }
 
-        $emailResult = $emailService->sendRequestedInformation($prospect, true);
+        $emailResult = $emailService->sendRequestedInformation(
+            $prospect,
+            true,
+            $emailService->validateFlyerSelection($_POST['flyers'] ?? [])
+        );
         echo json_encode([
             'success' => true,
             'data' => ['message' => $emailResult['message'], 'email' => $emailResult],

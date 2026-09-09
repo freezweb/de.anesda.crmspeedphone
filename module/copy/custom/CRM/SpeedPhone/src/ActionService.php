@@ -23,8 +23,15 @@ final class ActionService
         $action = $validator->action((string) ($input['result'] ?? ''));
         $newEmail = $validator->email((string) ($input['new_email'] ?? ''));
         $note = trim((string) ($input['note'] ?? ''));
-        $emailRequested = !empty($input['email_requested']) || $action === 'email_callback';
+        $emailRequested = !empty($input['email_requested'])
+            || $action === 'email_callback'
+            || $action === 'send_flyers';
         $emailAddressConfirmed = !empty($input['email_address_confirmed']);
+        $flyerKeys = $this->emailService->validateFlyerSelection($input['flyers'] ?? []);
+
+        if (($action === 'send_flyers' || ($action === 'interested' && $emailRequested)) && $flyerKeys === []) {
+            throw new \InvalidArgumentException('Bitte wählen Sie mindestens einen passenden Produktflyer aus.');
+        }
 
         if (!$this->queue->canEditProspect($prospectId) || !\ACLController::checkAccess('Prospects', 'edit', true)) {
             throw new \RuntimeException('Kein Zugriff auf diesen Zielkontakt.');
@@ -105,6 +112,16 @@ final class ActionService
                 }
                 break;
 
+            case 'send_flyers':
+                $status = 'callback';
+                $days = max(1, min(30, (int) $this->config->get('flyer_followup_business_days', 3)));
+                $nextCall = $this->businessDays->addBusinessDays($now, $days)->setTime(9, 0);
+                $message = sprintf(
+                    'Produktunterlagen werden versendet; automatische Wiedervorlage am %s.',
+                    $nextCall->format('d.m.Y')
+                );
+                break;
+
             case 'interested':
                 $status = 'interested';
                 $message = 'Interesse wurde protokolliert; der Kontakt ist aus der Telefonliste entfernt.';
@@ -148,9 +165,15 @@ final class ActionService
         }
 
         $emailResult = null;
-        if (($action === 'interested' && $emailRequested) || $action === 'email_callback') {
+        if (($action === 'interested' && $emailRequested)
+            || $action === 'email_callback'
+            || $action === 'send_flyers') {
             try {
-                $emailResult = $this->emailService->sendRequestedInformation($prospect, $emailAddressConfirmed);
+                $emailResult = $this->emailService->sendRequestedInformation(
+                    $prospect,
+                    $emailAddressConfirmed,
+                    $flyerKeys
+                );
                 if ($emailResult['sent'] === false) {
                     $emailResult['retry_allowed'] = true;
                 }
@@ -186,6 +209,7 @@ final class ActionService
             'not_reached' => 'Nicht erreicht',
             'callback' => 'Wiedervorlage oder Rückruf',
             'email_callback' => 'E-Mail gewünscht mit Wiedervorlage',
+            'send_flyers' => 'Produktflyer versendet mit automatischer Wiedervorlage',
             'interested' => 'Interesse',
             'no_interest' => 'Kein Interesse',
             'wrong_number' => 'Falsche Nummer',

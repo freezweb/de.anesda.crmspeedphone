@@ -7,16 +7,44 @@ final class EmailService
     public function __construct(
         private readonly Config $config,
         private readonly \DBManager $db,
-        private readonly \User $currentUser
+        private readonly \User $currentUser,
+        private readonly ?ProductFlyerService $productFlyers = null
     ) {
     }
 
-    public function sendRequestedInformation(\Prospect $prospect, bool $explicitOneTimeRequest = false): array
+    /**
+     * @param mixed $selection
+     * @return list<string>
+     */
+    public function validateFlyerSelection(mixed $selection): array
+    {
+        if ($this->productFlyers === null) {
+            if ($selection !== [] && $selection !== null && $selection !== '') {
+                throw new \RuntimeException('Die Produktflyer sind in SpeedPhone nicht eingerichtet.');
+            }
+
+            return [];
+        }
+
+        return $this->productFlyers->validateSelection($selection);
+    }
+
+    /**
+     * @param list<string> $flyerKeys
+     */
+    public function sendRequestedInformation(
+        \Prospect $prospect,
+        bool $explicitOneTimeRequest = false,
+        array $flyerKeys = []
+    ): array
     {
         if (!(bool) $this->config->get('email_sending_enabled', false)) {
             return ['sent' => false, 'message' => 'E-Mail-Versand ist in SpeedPhone noch deaktiviert.'];
         }
 
+        $flyerKeys = $this->validateFlyerSelection($flyerKeys);
+        $attachments = $this->productFlyers?->loadSelected($flyerKeys) ?? [];
+        $flyerLabels = array_column($attachments, 'label');
         $templateName = $this->config->requireString('email_template_name');
         $email = (string) ($prospect->emailAddress?->getPrimaryAddress($prospect) ?? '');
         if ($email === '') {
@@ -49,8 +77,27 @@ final class EmailService
         $emailBean = \BeanFactory::newBean('Emails');
         $defaults = $emailBean->getSystemDefaultEmail();
         $mailSubject = from_html($subject);
+        if ($flyerLabels !== []) {
+            $joinedLabels = implode(', ', $flyerLabels);
+            $mailSubject = mb_strlen($joinedLabels, 'UTF-8') <= 120
+                ? 'Ihre Unterlagen: ' . $joinedLabels
+                : 'Ihre ausgewählten Produktinformationen von Anesda Nord';
+            $flyerHtml = '<div style="margin:20px 0;padding:16px;border:1px solid #d8e1e6;'
+                . 'border-left:5px solid #087ea4;background:#f5fafb">'
+                . '<strong>Wie telefonisch besprochen, erhalten Sie folgende Produktunterlagen:</strong><ul><li>'
+                . implode('</li><li>', array_map(
+                    static fn (string $label): string => htmlspecialchars($label, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+                    $flyerLabels
+                ))
+                . '</li></ul></div>';
+            $bodyHtml = str_contains(strtolower($bodyHtml), '</body>')
+                ? preg_replace('~</body>~i', $flyerHtml . '</body>', $bodyHtml, 1) ?? ($bodyHtml . $flyerHtml)
+                : $bodyHtml . $flyerHtml;
+            $bodyText = "Wie telefonisch besprochen, erhalten Sie folgende Produktunterlagen: "
+                . $joinedLabels . ".\n\n" . $bodyText;
+        }
         $transportReference = null;
-        if ((bool) $this->config->get('mail_api_enabled', false)) {
+        if ((bool) $this->config->get('mail_api_enabled', false) && $attachments === []) {
             $transportReference = $this->sendThroughMailApi(
                 $prospect,
                 $email,
@@ -62,22 +109,15 @@ final class EmailService
                 $suppressionBypassed
             );
         } else {
-            require_once 'include/SugarPHPMailer.php';
-            $mail = new \SugarPHPMailer();
-            $mail->setMailerForSystem();
-            $mail->From = $defaults['email'];
-            $mail->FromName = $defaults['name'];
-            $mail->ClearAllRecipients();
-            $mail->ClearReplyTos();
-            $mail->AddAddress($email);
-            $mail->Subject = $mailSubject;
-            $mail->Body = $bodyHtml;
-            $mail->AltBody = $bodyText;
-            $mail->isHTML(true);
-            $mail->prepForOutbound();
-            if (!$mail->Send()) {
-                throw new \RuntimeException('Die Informationsmail konnte nicht versendet werden: ' . $mail->ErrorInfo);
-            }
+            $this->sendThroughSuiteCrm(
+                $email,
+                $mailSubject,
+                $bodyHtml,
+                $bodyText,
+                (string) $defaults['email'],
+                (string) $defaults['name'],
+                $attachments
+            );
         }
 
         $emailBean->to_addrs = $email;
@@ -95,6 +135,10 @@ final class EmailService
         if ($transportReference !== null) {
             $emailBean->description = "Anesda-Mail-ID: {$transportReference}\n\n" . $emailBean->description;
         }
+        if ($flyerLabels !== []) {
+            $emailBean->description = 'Angehängte Produktflyer: ' . implode(', ', $flyerLabels)
+                . "\n\n" . $emailBean->description;
+        }
         if ($suppressionBypassed) {
             $emailBean->description = "Einmaliger Versand auf ausdrückliche telefonische Anforderung.\n\n"
                 . $emailBean->description;
@@ -105,10 +149,51 @@ final class EmailService
             'sent' => true,
             'message' => $suppressionBypassed
                 ? 'Die ausdrücklich angeforderte Informationsmail wurde einmalig versendet und protokolliert; die globale E-Mail-Sperre bleibt bestehen.'
-                : 'Informationsmail wurde versendet und protokolliert.',
+                : ($flyerLabels === []
+                    ? 'Informationsmail wurde versendet und protokolliert.'
+                    : 'Produktflyer wurden versendet und im Kontaktverlauf protokolliert.'),
             'one_time_override' => $suppressionBypassed,
             'anesda_message_id' => $transportReference,
+            'flyers' => $flyerLabels,
         ];
+    }
+
+    /**
+     * @param list<array{filename: string, mime: string, content: string}> $attachments
+     */
+    private function sendThroughSuiteCrm(
+        string $email,
+        string $subject,
+        string $bodyHtml,
+        string $bodyText,
+        string $fromAddress,
+        string $fromName,
+        array $attachments
+    ): void {
+        require_once 'include/SugarPHPMailer.php';
+        $mail = new \SugarPHPMailer();
+        $mail->setMailerForSystem();
+        $mail->From = $fromAddress;
+        $mail->FromName = $fromName;
+        $mail->ClearAllRecipients();
+        $mail->ClearReplyTos();
+        $mail->AddAddress($email);
+        $mail->Subject = $subject;
+        $mail->Body = $bodyHtml;
+        $mail->AltBody = $bodyText;
+        $mail->isHTML(true);
+        foreach ($attachments as $attachment) {
+            $mail->AddStringAttachment(
+                $attachment['content'],
+                $attachment['filename'],
+                'base64',
+                $attachment['mime']
+            );
+        }
+        $mail->prepForOutbound();
+        if (!$mail->Send()) {
+            throw new \RuntimeException('Die Informationsmail konnte nicht versendet werden: ' . $mail->ErrorInfo);
+        }
     }
 
     public static function decodeStoredHtml(string $html): string

@@ -68,13 +68,19 @@
             form.elements.callback_date.focus();
             return;
         }
-        if (button.value === 'email_callback' && !form.elements.new_email.value) {
-            showMessage('Für „E-Mail jetzt senden + wieder anrufen“ ist eine E-Mail-Adresse erforderlich.', true);
+        if ((button.value === 'email_callback' || button.value === 'send_flyers') && !form.elements.new_email.value) {
+            showMessage('Für den Versand der Produktflyer ist eine E-Mail-Adresse erforderlich.', true);
             form.elements.new_email.focus();
             return;
         }
         const sendsEmail = button.value === 'email_callback'
+            || button.value === 'send_flyers'
             || (button.value === 'interested' && form.elements.email_requested.checked);
+        if (sendsEmail && form.querySelectorAll('input[name="flyers[]"]:checked').length === 0) {
+            showMessage('Bitte wählen Sie mindestens einen passenden Produktflyer aus.', true);
+            form.querySelector('input[name="flyers[]"]')?.focus();
+            return;
+        }
         if (sendsEmail && !form.elements.email_address_confirmed.checked) {
             showMessage('Bitte bestätigen Sie, dass der Kontakt diese einmalige Informationsmail ausdrücklich angefordert hat.', true);
             form.elements.email_address_confirmed.focus();
@@ -270,6 +276,11 @@
             if (!form.elements.email_address_confirmed.checked) {
                 showMessage('Bitte bestätigen Sie die ausdrückliche Anforderung dieser einmaligen Informationsmail.', true);
                 form.elements.email_address_confirmed.focus();
+                return;
+            }
+            if (form.querySelectorAll('input[name="flyers[]"]:checked').length === 0) {
+                showMessage('Bitte wählen Sie mindestens einen passenden Produktflyer aus.', true);
+                form.querySelector('input[name="flyers[]"]')?.focus();
                 return;
             }
 

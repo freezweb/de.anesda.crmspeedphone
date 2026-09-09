@@ -14,6 +14,7 @@ return [
     'mail_api_account_id' => 0,
     'lock_minutes' => 20,
     'default_callback_days' => 7,
+    'flyer_followup_business_days' => 3,
     'callback_escalation_days' => 2,
     'external_stale_days' => 14,
     'local_postcode_patterns' => ['/^19/', '/^168/', '/^169/'],

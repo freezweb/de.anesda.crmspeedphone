@@ -199,3 +199,79 @@
     .speedphone .call-launcher__method { align-items: flex-start; flex-direction: column; }
     .speedphone .call-launcher__buttons { justify-content: flex-start; width: 100%; }
 }
+.flyer-picker {
+    margin: 18px 0 12px;
+    padding: 16px;
+    border: 1px solid #cbdde4;
+    border-radius: 12px;
+    background: #f5fafb;
+}
+
+.flyer-picker__heading {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    margin-bottom: 12px;
+}
+
+.flyer-picker__heading strong {
+    color: #14324a;
+    font-size: 15px;
+}
+
+.flyer-picker__heading span,
+.flyer-option small {
+    color: #5a6670;
+}
+
+.flyer-picker__grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 9px;
+}
+
+.flyer-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    margin: 0;
+    padding: 10px;
+    border: 1px solid #d8e1e6;
+    border-radius: 9px;
+    background: #fff;
+    cursor: pointer;
+}
+
+.flyer-option:has(input:checked) {
+    border-color: #087ea4;
+    box-shadow: 0 0 0 2px rgba(8, 126, 164, 0.14);
+}
+
+.flyer-option input {
+    margin-top: 2px;
+}
+
+.flyer-option span {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.flyer-option strong {
+    color: #17202a;
+}
+
+.flyer-option small {
+    line-height: 1.25;
+}
+
+.field-hint--error {
+    color: #a12622;
+    font-weight: 700;
+}
+
+@media (max-width: 760px) {
+    .flyer-picker__grid {
+        grid-template-columns: 1fr;
+    }
+}

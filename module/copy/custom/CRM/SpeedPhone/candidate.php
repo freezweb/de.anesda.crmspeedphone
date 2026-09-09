@@ -235,6 +235,29 @@
                 <label for="speedphone-email">Neue/bestätigte E-Mail-Adresse</label>
                 <input id="speedphone-email" type="email" name="new_email" value="<?= speedPhoneEscape($candidate['email']) ?>">
 
+                <div class="flyer-picker" role="group" aria-labelledby="speedphone-flyer-title">
+                    <div class="flyer-picker__heading">
+                        <strong id="speedphone-flyer-title">Passende Produktflyer auswählen</strong>
+                        <span>Nur diese PDFs werden an diesen Kunden angehängt.</span>
+                    </div>
+                    <div class="flyer-picker__grid">
+                        <?php foreach ($productFlyers as $productFlyer): ?>
+                            <label class="flyer-option">
+                                <input type="checkbox" name="flyers[]" value="<?= speedPhoneEscape($productFlyer['key']) ?>">
+                                <span>
+                                    <strong><?= speedPhoneEscape($productFlyer['label']) ?></strong>
+                                    <small><?= speedPhoneEscape($productFlyer['description']) ?></small>
+                                </span>
+                            </label>
+                        <?php endforeach; ?>
+                    </div>
+                    <?php if ($productFlyers === []): ?>
+                        <p class="field-hint field-hint--error">Die Produktflyer sind derzeit nicht verfügbar.</p>
+                    <?php else: ?>
+                        <p class="field-hint">Nach dem Versand erscheint der Kontakt automatisch in <?= (int) $flyerFollowupBusinessDays ?> Werktagen wieder zur Nachfassung.</p>
+                    <?php endif; ?>
+                </div>
+
                 <label class="check-row check-row--confirmation">
                     <input type="checkbox" name="email_address_confirmed" value="1">
                     <span>Der Kontakt hat diese einmalige Informationsmail im aktuellen Gespräch ausdrücklich angefordert und die E-Mail-Adresse bestätigt.</span>
@@ -242,11 +265,11 @@
 
                 <label class="check-row">
                     <input type="checkbox" name="email_requested" value="1">
-                    <span>Beim Klick auf „Erreicht · Interesse“ jetzt eine Informationsmail senden</span>
+                    <span>Beim Klick auf „Erreicht · Interesse“ die ausgewählten Produktflyer jetzt mitsenden</span>
                 </label>
             </fieldset>
 
-            <p class="action-help"><strong>Mail gewünscht, aber noch kein Interesse?</strong> „E-Mail jetzt senden + wieder anrufen“ verwenden.</p>
+            <p class="action-help"><strong>Unterlagen gewünscht?</strong> Passende Flyer auswählen und „Flyer senden + automatisch nachfassen“ verwenden.</p>
 
             <div id="speedphone-email-retry" class="email-retry" hidden>
                 <button type="button" class="button button--mail" data-speedphone-email-retry>Informationsmail erneut versuchen</button>
@@ -256,7 +279,7 @@
             <div class="actions">
                 <button type="submit" name="result" value="not_reached" class="button button--warning" title="Anruf protokollieren und automatisch weiter hinten erneut einplanen">Nicht erreicht</button>
                 <button type="submit" name="result" value="callback" class="button button--info" title="Am gewählten Tag erneut anrufen; eine Uhrzeit ist nur bei einem festen Termin nötig">Am Datum wieder anrufen</button>
-                <button type="submit" name="result" value="email_callback" class="button button--mail" title="E-Mail jetzt senden und den Kontakt offen zur Wiedervorlage halten">E-Mail jetzt senden + wieder anrufen</button>
+                <button type="submit" name="result" value="send_flyers" class="button button--mail" title="Ausgewählte Produktflyer senden und den Kontakt automatisch nach <?= (int) $flyerFollowupBusinessDays ?> Werktagen erneut vorlegen">Flyer senden + automatisch nachfassen</button>
                 <button type="submit" name="result" value="interested" class="button button--success">Erreicht · Interesse</button>
                 <button type="submit" name="result" value="no_interest" class="button button--muted">Erreicht · kein Interesse</button>
                 <button type="submit" name="result" value="wrong_number" class="button button--danger">Falsche Nummer</button>

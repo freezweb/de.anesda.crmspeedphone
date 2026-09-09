@@ -4,6 +4,8 @@ $app_list_strings['speedphone_status_list'] = [
     '' => 'Open',
     'retry' => 'Retry',
     'callback' => 'Callback scheduled',
+    'email_callback' => 'Email sent and callback scheduled',
+    'send_flyers' => 'Product documents sent, follow-up scheduled',
     'interested' => 'Interested',
     'no_interest' => 'Not interested',
     'invalid_phone' => 'Invalid phone',
@@ -21,4 +23,3 @@ $app_list_strings['speedphone_result_list'] = [
     'blocked' => 'Do not contact',
     'later' => 'Handle later',
 ];
-

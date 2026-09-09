@@ -22,6 +22,7 @@ function speedPhoneResultLabel(mixed $value): string
         'not_reached' => 'Nicht erreicht',
         'callback' => 'Wiedervorlage / Rückruf',
         'email_callback' => 'E-Mail + Wiedervorlage',
+        'send_flyers' => 'Produktflyer + automatische Wiedervorlage',
         'interested' => 'Interesse',
         'no_interest' => 'Kein Interesse',
         'wrong_number' => 'Falsche Nummer',
@@ -54,10 +55,13 @@ function speedPhoneRenderWorkspace(
     string $userTimezone,
     int $defaultCallbackDays = 7,
     array $dialerDevices = [],
-    array $pbxStatus = []
+    array $pbxStatus = [],
+    array $productFlyers = [],
+    int $flyerFollowupBusinessDays = 3
 ): string
 {
     $defaultCallbackDays = max(1, min(90, $defaultCallbackDays));
+    $flyerFollowupBusinessDays = max(1, min(30, $flyerFollowupBusinessDays));
     try {
         $today = new DateTimeImmutable('today', new DateTimeZone($userTimezone));
         $todayDate = $today->format('Y-m-d');

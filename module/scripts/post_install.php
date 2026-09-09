@@ -357,6 +357,7 @@ $db->query("UPDATE calls c
                 WHEN c.name LIKE 'SpeedPhone: Wiedervorlage oder Rückruf%' THEN 'callback'
                 WHEN c.name LIKE 'SpeedPhone: Rückruf %' THEN 'callback'
                 WHEN c.name LIKE 'SpeedPhone: E-Mail gewünscht mit Wiedervorlage%' THEN 'email_callback'
+                WHEN c.name LIKE 'SpeedPhone: Produktflyer versendet mit automatischer Wiedervorlage%' THEN 'send_flyers'
                 WHEN c.name='SpeedPhone: Interesse' THEN 'interested'
                 WHEN c.name='SpeedPhone: Kein Interesse' THEN 'no_interest'
                 WHEN c.name='SpeedPhone: Falsche Nummer' THEN 'wrong_number'
@@ -396,7 +397,7 @@ $db->query("INSERT IGNORE INTO crm_speedphone_assignments
            cc.speedphone_result_c
     FROM calls c
     INNER JOIN calls_cstm cc ON cc.id_c=c.id
-        AND cc.speedphone_result_c IN ('callback', 'email_callback', 'interested', 'no_interest', 'blocked')
+        AND cc.speedphone_result_c IN ('callback', 'email_callback', 'send_flyers', 'interested', 'no_interest', 'blocked')
     LEFT JOIN crm_speedphone_user_settings s ON s.user_id=c.assigned_user_id
     WHERE c.deleted=0
       AND c.parent_type='Prospects'
@@ -406,7 +407,7 @@ $db->query("INSERT IGNORE INTO crm_speedphone_assignments
           INNER JOIN calls_cstm newer_cstm
               ON newer_cstm.id_c=newer.id
              AND newer_cstm.speedphone_result_c IN
-                 ('callback', 'email_callback', 'interested', 'no_interest', 'blocked')
+                 ('callback', 'email_callback', 'send_flyers', 'interested', 'no_interest', 'blocked')
           WHERE newer.deleted=0
             AND newer.parent_type='Prospects'
             AND newer.parent_id=c.parent_id

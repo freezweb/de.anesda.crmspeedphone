@@ -8,6 +8,7 @@ final class InputValidator
         'not_reached',
         'callback',
         'email_callback',
+        'send_flyers',
         'interested',
         'no_interest',
         'wrong_number',

@@ -16,6 +16,7 @@ require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/PbxService.php
 require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/IncomingCallService.php';
 require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/MailWebhookService.php';
 require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/EmailTemplateBrandService.php';
+require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/ProductFlyerService.php';
 require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/EmailService.php';
 require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/render.php';
 
@@ -31,6 +32,7 @@ use Anesda\CRM\SpeedPhone\IncomingCallService;
 use Anesda\CRM\SpeedPhone\MailWebhookService;
 use Anesda\CRM\SpeedPhone\EmailTemplateBrandService;
 use Anesda\CRM\SpeedPhone\EmailService;
+use Anesda\CRM\SpeedPhone\ProductFlyerService;
 
 $failures = [];
 
@@ -73,6 +75,7 @@ $validator = new InputValidator();
 check($validator->uuid('befc6200-da8e-47a5-9fc8-3b30e8451018') === 'befc6200-da8e-47a5-9fc8-3b30e8451018', 'Gültige UUID wurde abgelehnt.');
 check($validator->action('interested') === 'interested', 'Gültige Aktion wurde abgelehnt.');
 check($validator->action('email_callback') === 'email_callback', 'E-Mail mit Rückruf wurde als Aktion abgelehnt.');
+check($validator->action('send_flyers') === 'send_flyers', 'Produktunterlagen mit automatischer Wiedervorlage wurden als Aktion abgelehnt.');
 check($validator->email('info@example.org') === 'info@example.org', 'Gültige E-Mail wurde abgelehnt.');
 check($validator->email('') === '', 'Leere optionale E-Mail wurde abgelehnt.');
 check(!AssignmentService::actionAssignsOwner('not_reached'), 'Ein erfolgloser Anruf darf keinen Besitzer erzeugen.');
@@ -80,6 +83,7 @@ check(!AssignmentService::actionAssignsOwner('wrong_number'), 'Eine falsche Numm
 check(!AssignmentService::actionAssignsOwner('later'), 'Ein Verschieben ohne Anruf darf keinen Besitzer erzeugen.');
 check(AssignmentService::actionAssignsOwner('callback'), 'Ein vereinbarter RÃ¼ckruf muss den Kontakt zuordnen.');
 check(AssignmentService::actionAssignsOwner('email_callback'), 'Ein E-Mail-Wunsch muss den Kontakt zuordnen.');
+check(AssignmentService::actionAssignsOwner('send_flyers'), 'Der Versand von Produktunterlagen muss den Kontakt zuordnen.');
 check(AssignmentService::actionAssignsOwner('interested'), 'Ein Interessent muss dem erfolgreichen Mitarbeiter zugeordnet werden.');
 check(
     str_contains(
@@ -185,6 +189,19 @@ check(
     'Die veröffentlichte Modulkonfiguration darf keine besondere Anwalts-Sperre enthalten.'
 );
 
+$flyerService = new ProductFlyerService(__DIR__ . '/../module/copy/custom/CRM/SpeedPhone/assets/flyers');
+$availableFlyers = $flyerService->available();
+check(count($availableFlyers) === 7, 'Es müssen genau sieben versandbereite Produktbroschüren verfügbar sein.');
+check(in_array('systemservice', array_column($availableFlyers, 'key'), true), 'Die Produktbroschüre für SystemService vor Ort fehlt.');
+$loadedFlyers = $flyerService->loadSelected(['profipos', 'systemservice']);
+check(count($loadedFlyers) === 2, 'Die ausgewählten Produktbroschüren werden nicht vollständig geladen.');
+check(str_starts_with($loadedFlyers[0]['content'], '%PDF-'), 'Eine Produktbroschüre ist keine gültige PDF-Datei.');
+try {
+    $flyerService->validateSelection(['../fremde-datei']);
+    check(false, 'Unbekannte oder unsichere Broschürenauswahl wurde akzeptiert.');
+} catch (InvalidArgumentException) {
+}
+
 $workspace = speedPhoneRenderWorkspace([
     'id' => 'befc6200-da8e-47a5-9fc8-3b30e8451018',
     'score' => 10,
@@ -249,18 +266,22 @@ $workspace = speedPhoneRenderWorkspace([
     'ready' => true,
     'extension' => '6010',
     'message' => 'Zuerst klingelt deine Durchwahl 6010.',
-]);
+], $availableFlyers, 3);
 check(str_contains($workspace, 'Gesendete E-Mails'), 'E-Mail-Historie fehlt im gerenderten Kontakt.');
 check(str_contains($workspace, 'LinkedIn-Ansprechpartner'), 'LinkedIn-Ansprechpartner fehlen im SpeedPhone-Kontakt.');
 check(str_contains($workspace, 'Erika Beispiel'), 'Ein gefundener LinkedIn-Ansprechpartner wird nicht angezeigt.');
 check(str_contains($workspace, '90 % Treffer'), 'Die Zuordnungssicherheit eines LinkedIn-Profils fehlt.');
 check(str_contains($workspace, 'info@example.org'), 'Empfängeradresse fehlt in der E-Mail-Historie.');
-check(str_contains($workspace, 'value="email_callback"'), 'Aktion „E-Mail jetzt senden + wieder anrufen“ fehlt.');
+check(str_contains($workspace, 'value="send_flyers"'), 'Aktion zum Versand ausgewählter Produktunterlagen mit Wiedervorlage fehlt.');
+check(str_contains($workspace, 'name="flyers[]"'), 'Auswahl der Produktbroschüren fehlt.');
+check(str_contains($workspace, 'ProduktionsBuddy'), 'ProduktionsBuddy fehlt in der Broschürenauswahl.');
+check(str_contains($workspace, 'SystemService vor Ort'), 'SystemService vor Ort fehlt in der Broschürenauswahl.');
+check(str_contains($workspace, '3 Werktagen'), 'Die automatische Wiedervorlage nach Broschürenversand wird nicht erklärt.');
 check(preg_match('/name="callback_date"[^>]*value="\d{4}-\d{2}-\d{2}"/', $workspace) === 1, 'Rückrufdatum ist nicht vorbelegt.');
 check(preg_match('/name="callback_date"[^>]*min="\d{4}-\d{2}-\d{2}"/', $workspace) === 1, 'Rückrufdatum verhindert keine vergangenen Tage.');
 check(str_contains($workspace, 'name="callback_time"'), 'Optionale Uhrzeit für einen festen Rückruftermin fehlt.');
 check(str_contains($workspace, 'Ohne Uhrzeit:'), 'Unterschied zwischen Tagesliste und festem Termin wird nicht erklärt.');
-check(str_contains($workspace, 'E-Mail jetzt senden + wieder anrufen'), 'E-Mail-Wiedervorlage ist nicht eindeutig beschriftet.');
+check(str_contains($workspace, 'Flyer senden + automatisch nachfassen'), 'Der selektive Broschürenversand ist nicht eindeutig beschriftet.');
 check(str_contains($workspace, 'name="email_address_confirmed"'), 'Bestätigung für eine ausdrücklich angeforderte Einzelmail fehlt.');
 check(str_contains($workspace, 'data-speedphone-email-retry'), 'Wiederholungsaktion für fehlgeschlagene E-Mails fehlt.');
 check(str_contains($workspace, 'Jessica Wendt'), 'Zugeordneter externer Mitarbeiter fehlt am Kontakt.');
@@ -281,6 +302,8 @@ check(str_contains($emailServiceSource, 'explicitOneTimeRequest'), 'Einmalige au
 check(str_contains($emailServiceSource, 'die globale E-Mail-Sperre bleibt bestehen'), 'Fortbestand der globalen E-Mail-Sperre wird nicht bestätigt.');
 check(!preg_match('/UPDATE\s+email_addresses/i', $emailServiceSource), 'Die einmalige Freigabe darf globale E-Mail-Sperrmerkmale nicht löschen.');
 check(str_contains($emailServiceSource, 'sendThroughMailApi'), 'SpeedPhone kann Direktmails nicht über die eigene Mail-API senden.');
+check(str_contains($emailServiceSource, 'AddStringAttachment'), 'SpeedPhone hängt die ausgewählten Produktbroschüren nicht an die Nachricht an.');
+check(str_contains($emailServiceSource, 'Angehängte Produktflyer:'), 'Ausgewählte Produktbroschüren werden nicht im CRM-Verlauf dokumentiert.');
 check(str_contains($emailServiceSource, "'crm_target_id'"), 'Mail-API-Sendungen enthalten keine vorhandene CRM-Zielkontakt-UUID.');
 check(str_contains($emailServiceSource, 'CURLOPT_PROTOCOLS => CURLPROTO_HTTPS'), 'Mail-API-Zugang ist nicht auf HTTPS beschränkt.');
 

@@ -5,7 +5,7 @@ namespace Anesda\CRM\SpeedPhone;
 final class AssignmentService
 {
     private const TABLE = 'crm_speedphone_assignments';
-    private const REACHED_ACTIONS = ['callback', 'email_callback', 'interested', 'no_interest', 'blocked'];
+    private const REACHED_ACTIONS = ['callback', 'email_callback', 'send_flyers', 'interested', 'no_interest', 'blocked'];
 
     public function __construct(
         private readonly Config $config,
