@@ -47,6 +47,11 @@ final class ProductFlyerService
             'filename' => 'Anesda-Nord-Individuelle-Software-und-Hardwareentwicklung-Produktbroschuere.pdf',
             'description' => 'Passgenaue Software, Geräteanbindung und technische Prototypen',
         ],
+        'epaper_displays' => [
+            'label' => 'E-Paper Displays und digitale Beschilderung',
+            'filename' => 'Anesda-Nord-E-Paper-Displays-Produktbroschuere.pdf',
+            'description' => 'Flexible Anzeigen in verschiedenen Größen und Farbvarianten',
+        ],
     ];
 
     public function __construct(private readonly string $directory)
