@@ -154,6 +154,9 @@ speedPhoneEnsureCustomTableAndColumns($db, 'calls_cstm', [
     'speedphone_email_requested_c' => 'tinyint(1) DEFAULT 0 NULL',
 ]);
 
+require_once __DIR__ . '/performance_indexes.php';
+speedPhoneEnsurePerformanceIndexes($db);
+
 $db->query("CREATE TABLE IF NOT EXISTS `crm_speedphone_locks` (
     `prospect_id` char(36) NOT NULL,
     `user_id` char(36) NOT NULL,

@@ -17,6 +17,7 @@ foreach ([
     'CandidatePriorityService',
     'LinkedInContactService',
     'QueueService',
+    'ProductFlyerService',
     'EmailService',
     'EmailTemplateBrandService',
     'ActionService',

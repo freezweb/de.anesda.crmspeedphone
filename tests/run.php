@@ -4,20 +4,7 @@ if (!defined('sugarEntry')) {
     define('sugarEntry', true);
 }
 
-require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/BusinessDayCalculator.php';
-require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/Config.php';
-require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/TravelFilter.php';
-require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/CandidatePriorityService.php';
-require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/LinkedInContactService.php';
-require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/InputValidator.php';
-require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/AssignmentService.php';
-require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/DialerService.php';
-require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/PbxService.php';
-require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/IncomingCallService.php';
-require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/MailWebhookService.php';
-require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/EmailTemplateBrandService.php';
-require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/ProductFlyerService.php';
-require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/EmailService.php';
+require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/bootstrap.php';
 require_once __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/render.php';
 
 use Anesda\CRM\SpeedPhone\BusinessDayCalculator;
