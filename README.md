@@ -67,7 +67,7 @@ CRM SpeedPhone ist eine schnelle, abarbeitbare Telefonakquise-Warteschlange für
 - Android startet den Anruf nach erteilter Telefonberechtigung direkt; iOS zeigt die systembedingt vorgeschriebene Anrufbestätigung
 - Schnellaktionen für „nicht erreicht“, „Rückruf“, „kein Interesse“, „Interesse“, „falsche Nummer“ und „nicht mehr kontaktieren“
 - eigene Aktion „E-Mail jetzt senden + wieder anrufen“, die den Kontakt offen lässt und keinen Interessentenstatus setzt
-- sieben mehrseitige Anesda-Produktbroschüren direkt im Gespräch auswählbar: ProfiPOS, ReservierFix, Transparent Laden, Druckfluss, ProduktionsBuddy, Kundenportal und SystemService vor Ort
+- acht mehrseitige Anesda-Produktbroschüren direkt im Gespräch auswählbar: ProfiPOS, ReservierFix, Transparent Laden, Druckfluss, ProduktionsBuddy, Kundenportal, SystemService vor Ort und individuelle Software- und Hardwareentwicklung
 - Aktion „Flyer senden + automatisch nachfassen“: hängt ausschließlich die angekreuzten Broschüren an, protokolliert Empfänger, Betreff und ausgewählte Unterlagen als reguläre SuiteCRM-E-Mail und legt den Kontakt automatisch nach der konfigurierten Zahl von Werktagen erneut vor
 - jeder Kontaktversuch wird als regulärer SuiteCRM-Anruf protokolliert
 - automatische Wiedervorlage mit zunehmenden Abständen

@@ -42,6 +42,11 @@ final class ProductFlyerService
             'filename' => 'Anesda-Nord-SystemService-vor-Ort-Produktbroschuere.pdf',
             'description' => 'Systemwartung, Bestandsaufnahme und Störungsbehebung vor Ort',
         ],
+        'individualentwicklung' => [
+            'label' => 'Individuelle Software- und Hardwareentwicklung',
+            'filename' => 'Anesda-Nord-Individuelle-Software-und-Hardwareentwicklung-Produktbroschuere.pdf',
+            'description' => 'Passgenaue Software, Geräteanbindung und technische Prototypen',
+        ],
     ];
 
     public function __construct(private readonly string $directory)

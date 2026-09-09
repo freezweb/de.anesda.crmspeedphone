@@ -191,10 +191,11 @@ check(
 
 $flyerService = new ProductFlyerService(__DIR__ . '/../module/copy/custom/CRM/SpeedPhone/assets/flyers');
 $availableFlyers = $flyerService->available();
-check(count($availableFlyers) === 7, 'Es müssen genau sieben versandbereite Produktbroschüren verfügbar sein.');
+check(count($availableFlyers) === 8, 'Es müssen genau acht versandbereite Produktbroschüren verfügbar sein.');
 check(in_array('systemservice', array_column($availableFlyers, 'key'), true), 'Die Produktbroschüre für SystemService vor Ort fehlt.');
-$loadedFlyers = $flyerService->loadSelected(['profipos', 'systemservice']);
-check(count($loadedFlyers) === 2, 'Die ausgewählten Produktbroschüren werden nicht vollständig geladen.');
+check(in_array('individualentwicklung', array_column($availableFlyers, 'key'), true), 'Die Produktbroschüre für individuelle Software- und Hardwareentwicklung fehlt.');
+$loadedFlyers = $flyerService->loadSelected(['profipos', 'systemservice', 'individualentwicklung']);
+check(count($loadedFlyers) === 3, 'Die ausgewählten Produktbroschüren werden nicht vollständig geladen.');
 check(str_starts_with($loadedFlyers[0]['content'], '%PDF-'), 'Eine Produktbroschüre ist keine gültige PDF-Datei.');
 try {
     $flyerService->validateSelection(['../fremde-datei']);
@@ -276,6 +277,7 @@ check(str_contains($workspace, 'value="send_flyers"'), 'Aktion zum Versand ausge
 check(str_contains($workspace, 'name="flyers[]"'), 'Auswahl der Produktbroschüren fehlt.');
 check(str_contains($workspace, 'ProduktionsBuddy'), 'ProduktionsBuddy fehlt in der Broschürenauswahl.');
 check(str_contains($workspace, 'SystemService vor Ort'), 'SystemService vor Ort fehlt in der Broschürenauswahl.');
+check(str_contains($workspace, 'Individuelle Software- und Hardwareentwicklung'), 'Individuelle Entwicklung fehlt in der Broschürenauswahl.');
 check(str_contains($workspace, '3 Werktagen'), 'Die automatische Wiedervorlage nach Broschürenversand wird nicht erklärt.');
 check(preg_match('/name="callback_date"[^>]*value="\d{4}-\d{2}-\d{2}"/', $workspace) === 1, 'Rückrufdatum ist nicht vorbelegt.');
 check(preg_match('/name="callback_date"[^>]*min="\d{4}-\d{2}-\d{2}"/', $workspace) === 1, 'Rückrufdatum verhindert keine vergangenen Tage.');
