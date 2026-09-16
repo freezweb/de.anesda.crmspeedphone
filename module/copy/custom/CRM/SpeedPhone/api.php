@@ -121,11 +121,52 @@ try {
         exit;
     }
 
+    if ((string) ($_POST['operation'] ?? '') === 'open_incoming_pbx') {
+        $validator = new InputValidator();
+        $eventId = $validator->uuid((string) ($_POST['event_id'] ?? ''));
+        $prospectId = $validator->uuid((string) ($_POST['prospect_id'] ?? ''));
+        $candidate = (new IncomingCallService($config, $db))->openPbxMatch(
+            $current_user,
+            $queue,
+            $eventId,
+            $prospectId
+        );
+        $userTimezone = (string) ($current_user->getPreference('timezone') ?: 'Europe/Berlin');
+        echo json_encode(['success' => true, 'data' => [
+            'workspace_html' => speedPhoneRenderWorkspace(
+                $candidate,
+                $userTimezone,
+                (int) $config->get('default_callback_days', 7),
+                $dialerService->listDevices(),
+                $pbxService->status(),
+                $productFlyerService->available(),
+                (int) $config->get('flyer_followup_business_days', 3)
+            ),
+            'statistics' => $queue->getStatistics(),
+            'expires_at' => $candidate['lock_expires_at'] ?? null,
+            'display_name' => $candidate['name'] ?? '',
+        ]], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        exit;
+    }
+
+    if ((string) ($_POST['operation'] ?? '') === 'dismiss_incoming_pbx') {
+        $validator = new InputValidator();
+        (new IncomingCallService($config, $db))->dismissPbxEvent(
+            $current_user,
+            $validator->uuid((string) ($_POST['event_id'] ?? ''))
+        );
+        echo json_encode(['success' => true, 'data' => ['dismissed' => true]], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
     if ((string) ($_POST['operation'] ?? '') === 'refresh_current') {
         $prospectIdInput = (string) ($_POST['prospect_id'] ?? '');
         $lockToken = (string) ($_POST['lock_token'] ?? '');
-        $incomingCall = (new IncomingCallService($config, $db))
-            ->openPendingForCurrentUser($current_user, $queue);
+        $incomingService = new IncomingCallService($config, $db);
+        $pbxIncomingCall = $incomingService->pendingPbxForCurrentUser($current_user);
+        $incomingCall = $pbxIncomingCall === null
+            ? $incomingService->openPendingForCurrentUser($current_user, $queue)
+            : null;
         $candidate = null;
         $lock = null;
         if ($incomingCall !== null) {
@@ -158,10 +199,19 @@ try {
                 'devices' => $devices,
                 'prospect_id' => $candidate['id'] ?? null,
                 'expires_at' => $lock['expires_at'] ?? null,
-                'incoming_call' => $incomingCall === null ? null : [
-                    'event_id' => $incomingCall['event_id'],
-                    'display_name' => $candidate['name'],
-                ],
+                'incoming_call' => $pbxIncomingCall !== null
+                    ? [
+                        'source' => 'pbx',
+                        'event_id' => $pbxIncomingCall['event_id'],
+                        'caller_phone' => $pbxIncomingCall['caller_phone'],
+                        'received_at' => $pbxIncomingCall['received_at'],
+                        'matches' => $pbxIncomingCall['matches'],
+                    ]
+                    : ($incomingCall === null ? null : [
+                        'source' => 'mobile',
+                        'event_id' => $incomingCall['event_id'],
+                        'display_name' => $candidate['name'],
+                    ]),
             ],
         ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         exit;

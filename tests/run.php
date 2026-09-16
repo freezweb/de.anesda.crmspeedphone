@@ -93,6 +93,22 @@ check(
     in_array('493312882214', IncomingCallService::phoneVariants('0331 2882214'), true),
     'Nationale Rückrufnummer erhält keine deutsche internationale Vergleichsform.'
 );
+check(
+    IncomingCallService::canonicalPhoneDigits('+49 (0) 331 28822-14') === '493312882214',
+    'Festnetznummern werden nicht unabhängig von ihrer Schreibweise vereinheitlicht.'
+);
+check(
+    IncomingCallService::matchPhoneNumbers('+49 331 28822-14', '0331 / 28822-14')['type'] === 'exact',
+    'Gleich geschriebene Rufnummern werden nach der Normalisierung nicht exakt erkannt.'
+);
+check(
+    IncomingCallService::matchPhoneNumbers('0331 28822-99', '+49 331 28822-14')['type'] === 'extension',
+    'Eine andere Festnetz-Durchwahl desselben Betriebs wird nicht als möglicher Treffer erkannt.'
+);
+check(
+    IncomingCallService::matchPhoneNumbers('0171 1234567', '0171 1234599') === null,
+    'Mobilnummern dürfen nicht über eine vermeintliche Durchwahl zusammengeführt werden.'
+);
 try {
     DialerService::normalizePhone('*21*123#');
     check(false, 'MMI-Steuercodes dürfen nicht als Telefonnummer akzeptiert werden.');
@@ -532,6 +548,8 @@ check(
 );
 check(str_contains($javascriptSource, 'currentMain.replaceWith(incomingMain)'), 'Live-Aktualisierung schützt das laufend bearbeitete Eingabeformular nicht.');
 check(str_contains($javascriptSource, 'payload.data.incoming_call'), 'Browser reagiert nicht auf eingehende Rückrufereignisse.');
+check(str_contains($javascriptSource, "incoming_call?.source === 'pbx'"), 'Browser zeigt keinen Auswahlhinweis für eingehende Festnetzanrufe.');
+check(str_contains($javascriptSource, 'data-incoming-prospect'), 'Mehrere mögliche Festnetz-Treffer können nicht einzeln geöffnet werden.');
 check(str_contains($javascriptSource, 'storeCurrentDraft'), 'Ein Rückrufwechsel schützt laufende Formulareingaben nicht.');
 check(
     preg_match('/finally\\s*\\{.*?dialButton\\.disabled\\s*=\\s*false;/s', $javascriptSource) === 1,
@@ -602,6 +620,14 @@ check(
     str_contains($installerSource, 'crm_speedphone_incoming_calls'),
     'Installer legt die UUID-basierte Tabelle für Rückrufereignisse nicht an.'
 );
+check(
+    str_contains($installerSource, 'crm_speedphone_pbx_incoming_events')
+        && str_contains($installerSource, 'crm_speedphone_pbx_incoming_matches'),
+    'Installer legt Ereignis- und Trefferliste für eingehende Festnetzanrufe nicht an.'
+);
+$pbxIncomingEndpoint = file_get_contents(__DIR__ . '/../module/copy/custom/CRM/SpeedPhone/pbx_incoming.php');
+check(str_contains($pbxIncomingEndpoint, 'verifyPbxWebhook'), 'Festnetz-Anrufmeldungen sind nicht signiert geschützt.');
+check(str_contains($pageSource, 'speedphone-incoming-dialog'), 'Kleines Auswahlfenster für eingehende Festnetzanrufe fehlt.');
 check(
     str_contains($installerSource, 'crm_speedphone_pbx_calls')
         && str_contains($installerSource, "'pbx_extension' =>"),

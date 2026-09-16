@@ -60,6 +60,7 @@ CRM SpeedPhone ist eine schnelle, abarbeitbare Telefonakquise-Warteschlange für
 - Festnetz-Click-to-Call über Asterisk/FreePBX: zuerst klingelt die persönliche Mitarbeiter-Durchwahl, nach dem Abheben wird die Zielrufnummer aufgebaut
 - pro Mitarbeiter administrierbare Festnetz-Durchwahl und nachvollziehbares Journal aller PBX-Wahlaufträge
 - automatische Rückruferkennung über die gekoppelte Android-App: eingehende bekannte Nummern öffnen den vorhandenen Zielkontakt im laufenden Portal
+- eingehende Anrufe der Asterisk-/FreePBX-Anlage erscheinen per AJAX als kleines Auswahlfenster; unterschiedliche Schreibweisen, gleiche Rufnummernenden und abweichende Festnetz-Durchwahlen werden berücksichtigt, mehrere mögliche Betriebe bleiben auswählbar
 - Rückrufereignisse bleiben benutzerbezogen und respektieren bestehende Mehrbenutzer-Reservierungen
 - optionale SpeedPhone-Dialer-App für Android und iOS: ein Klick im CRM übergibt die vorhandene Telefonnummer sicher an das eigene Handy
 - benutzerbezogene Geräte-Kopplung per kurzlebigem Einmal-QR-Code; die normale Handykamera öffnet die installierte App oder automatisch den passenden Google-/Apple-Store
@@ -179,6 +180,8 @@ Die Tabelle `crm_speedphone_locks` enthält ausschließlich kurzlebige Reservier
 Die Dialer-Tabellen speichern Geräte, kurzlebige Kopplungen und Anrufaufträge. Jeder Auftrag referenziert den vorhandenen Zielkontakt ausschließlich über dessen UUID. Kopplungscodes und dauerhafte Gerätetoken werden serverseitig nur als SHA-256-Hash gespeichert; Telefonnummern in Anrufaufträgen verfallen nach zwei Minuten.
 
 `crm_speedphone_incoming_calls` speichert bei einem zugeordneten Rückruf ausschließlich Ereignis-, Geräte-, Benutzer- und Zielkontakt-UUID sowie Eingangs- und Öffnungszeitpunkt. Die eingehende Telefonnummer wird nicht in einer zusätzlichen SpeedPhone-Tabelle gespeichert. Nicht zuordenbare Nummern erzeugen keinen Ereignisdatensatz.
+
+`crm_speedphone_pbx_incoming_events` hält eingehende Telefonanlagenereignisse je berechtigtem Benutzer höchstens einen Tag vor. `crm_speedphone_pbx_incoming_matches` referenziert alle passenden vorhandenen Zielkontakt-UUIDs samt Trefferart. Dadurch wird bei mehreren möglichen Firmen niemals automatisch der falsche Datensatz geöffnet. Der Mitarbeiter bestätigt den gewünschten Treffer im Meldungsfenster; erst dann greift die normale gegenseitige SpeedPhone-Reservierung.
 
 `crm_speedphone_pbx_calls` protokolliert jeden Festnetz-Wahlauftrag mit vorhandener Benutzer- und Zielkontakt-UUID, verwendeter Durchwahl, Zielrufnummer, Zeitstempel sowie Annahme oder Fehlermeldung des Gateways. Das eigentliche Gesprächsergebnis wird weiterhin erst über die Schnellaktion als regulärer SuiteCRM-Anruf dokumentiert.
 

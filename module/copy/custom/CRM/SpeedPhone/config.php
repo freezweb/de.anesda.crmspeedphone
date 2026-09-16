@@ -48,4 +48,5 @@ return [
     'pbx_ami_secret' => '',
     'pbx_ami_context' => 'from-internal',
     'pbx_ami_timeout_seconds' => 10,
+    'pbx_incoming_webhook_secret' => '',
 ];

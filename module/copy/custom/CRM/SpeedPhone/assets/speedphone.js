@@ -121,6 +121,36 @@
     });
 
     root.addEventListener('click', async function (event) {
+        const incomingMatch = event.target.closest('[data-incoming-prospect]');
+        if (incomingMatch) {
+            const dialog = document.getElementById('speedphone-incoming-dialog');
+            const currentForm = document.getElementById('speedphone-form');
+            const data = new FormData();
+            data.set('operation', 'open_incoming_pbx');
+            data.set('event_id', dialog?.dataset.eventId || '');
+            data.set('prospect_id', incomingMatch.dataset.incomingProspect || '');
+            data.set('csrf', root.dataset.csrf);
+            incomingMatch.disabled = true;
+            try {
+                storeCurrentDraft(currentForm);
+                const payload = await request(data);
+                workspace.innerHTML = payload.data.workspace_html;
+                updateStatistics(payload.data.statistics || {});
+                updateLiveStatus(payload.data.expires_at);
+                dialog?.close();
+                showMessage('Eingehender Anruf: ' + (payload.data.display_name || 'Kontakt') + ' wurde in SpeedPhone geöffnet.', false);
+            } catch (error) {
+                incomingMatch.disabled = false;
+                showMessage(error.message || String(error), true);
+            }
+            return;
+        }
+
+        if (event.target.closest('[data-incoming-dismiss]')) {
+            await dismissIncomingPbx();
+            return;
+        }
+
         const emailPreviewButton = event.target.closest('[data-speedphone-email-preview]');
         if (emailPreviewButton) {
             const form = document.getElementById('speedphone-form');
@@ -651,7 +681,12 @@
         try {
             const payload = await request(data);
             const currentForm = document.getElementById('speedphone-form');
-            if (payload.data.incoming_call && payload.data.workspace_html) {
+            if (payload.data.incoming_call?.source === 'pbx') {
+                showIncomingPbx(payload.data.incoming_call);
+            }
+            if (payload.data.incoming_call?.source !== 'pbx'
+                && payload.data.incoming_call
+                && payload.data.workspace_html) {
                 storeCurrentDraft(currentForm);
                 workspace.innerHTML = payload.data.workspace_html;
                 updateStatistics(payload.data.statistics || {});
@@ -707,6 +742,59 @@
             }
         } finally {
             refreshInFlight = false;
+        }
+    }
+
+    function showIncomingPbx(incoming) {
+        const dialog = document.getElementById('speedphone-incoming-dialog');
+        const phone = dialog?.querySelector('[data-incoming-phone]');
+        const matchesTarget = dialog?.querySelector('[data-incoming-matches]');
+        if (!dialog || !phone || !matchesTarget || !incoming.event_id) {
+            return;
+        }
+        if (dialog.open && dialog.dataset.eventId === incoming.event_id) {
+            return;
+        }
+        dialog.dataset.eventId = incoming.event_id;
+        phone.textContent = 'Anrufer: ' + (incoming.caller_phone || 'Nummer nicht übermittelt');
+        matchesTarget.replaceChildren();
+        (Array.isArray(incoming.matches) ? incoming.matches : []).forEach(function (match) {
+            const button = document.createElement('button');
+            const title = document.createElement('strong');
+            const details = document.createElement('span');
+            const reason = document.createElement('small');
+            button.type = 'button';
+            button.className = 'incoming-call__match';
+            button.dataset.incomingProspect = match.prospect_id || '';
+            title.textContent = match.display_name || 'Kontakt ohne Namen';
+            details.textContent = [match.city, match.phone_work || match.phone_mobile].filter(Boolean).join(' · ');
+            reason.textContent = match.match_label || 'Möglicher Rufnummerntreffer';
+            button.append(title, details, reason);
+            matchesTarget.append(button);
+        });
+        if (typeof dialog.showModal === 'function') {
+            dialog.showModal();
+        } else {
+            dialog.setAttribute('open', '');
+        }
+    }
+
+    async function dismissIncomingPbx() {
+        const dialog = document.getElementById('speedphone-incoming-dialog');
+        if (!dialog?.dataset.eventId) {
+            dialog?.close();
+            return;
+        }
+        const data = new FormData();
+        data.set('operation', 'dismiss_incoming_pbx');
+        data.set('event_id', dialog.dataset.eventId);
+        data.set('csrf', root.dataset.csrf);
+        try {
+            await request(data);
+            dialog.close();
+            dialog.dataset.eventId = '';
+        } catch (error) {
+            showMessage(error.message || String(error), true);
         }
     }
 

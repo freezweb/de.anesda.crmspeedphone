@@ -265,6 +265,27 @@ $db->query("CREATE TABLE IF NOT EXISTS `crm_speedphone_incoming_calls` (
     KEY `idx_speedphone_incoming_user` (`user_id`, `opened_at`, `received_at`),
     KEY `idx_speedphone_incoming_prospect` (`prospect_id`, `received_at`)
 ) ENGINE=InnoDB");
+
+$db->query("CREATE TABLE IF NOT EXISTS `crm_speedphone_pbx_incoming_events` (
+    `id` char(36) NOT NULL,
+    `user_id` char(36) NOT NULL,
+    `source_event_id` varchar(100) NOT NULL,
+    `caller_phone` varchar(40) NOT NULL,
+    `received_at` datetime NOT NULL,
+    `acknowledged_at` datetime NULL,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `idx_speedphone_pbx_incoming_source_user` (`source_event_id`, `user_id`),
+    KEY `idx_speedphone_pbx_incoming_pending` (`user_id`, `acknowledged_at`, `received_at`)
+) ENGINE=InnoDB");
+
+$db->query("CREATE TABLE IF NOT EXISTS `crm_speedphone_pbx_incoming_matches` (
+    `event_id` char(36) NOT NULL,
+    `prospect_id` char(36) NOT NULL,
+    `match_type` varchar(20) NOT NULL,
+    `match_score` smallint NOT NULL,
+    PRIMARY KEY (`event_id`, `prospect_id`),
+    KEY `idx_speedphone_pbx_incoming_match_prospect` (`prospect_id`)
+) ENGINE=InnoDB");
 speedPhoneEnsureTableColumns($db, 'crm_speedphone_user_settings', [
     'pbx_extension' => 'varchar(12) NULL AFTER `can_manage`',
 ]);

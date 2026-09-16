@@ -23,4 +23,7 @@ return [
     'pbx_ami_secret' => '',
     'pbx_ami_context' => 'from-internal',
     'pbx_ami_timeout_seconds' => 10,
+
+    // Gemeinsames Geheimnis für den eingehenden Anrufmelder auf der Telefonanlage.
+    'pbx_incoming_webhook_secret' => '',
 ];

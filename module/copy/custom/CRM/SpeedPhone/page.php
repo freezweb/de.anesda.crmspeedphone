@@ -75,7 +75,7 @@ $assetBase = $legacyBase . '/custom/CRM/SpeedPhone/assets';
 $userTimezone = (string) ($current_user->getPreference('timezone') ?: 'Europe/Berlin');
 
 ?>
-<link rel="stylesheet" href="<?= speedPhoneEscape($assetBase) ?>/speedphone.css?v=1.14.2">
+<link rel="stylesheet" href="<?= speedPhoneEscape($assetBase) ?>/speedphone.css?v=1.15.0">
 <main class="speedphone" data-api-url="index.php?entryPoint=crmSpeedPhoneApi" data-csrf="<?= speedPhoneEscape($_SESSION['crm_speedphone_csrf']) ?>">
     <header class="speedphone__header">
         <div>
@@ -163,6 +163,19 @@ $userTimezone = (string) ($current_user->getPreference('timezone') ?: 'Europe/Be
         <?php endif; ?>
     </div>
 
+    <dialog id="speedphone-incoming-dialog" class="incoming-call" aria-labelledby="speedphone-incoming-title">
+        <div class="incoming-call__header">
+            <div>
+                <span>Eingehender Festnetzanruf</span>
+                <h2 id="speedphone-incoming-title">Passenden Kontakt auswählen</h2>
+                <p data-incoming-phone></p>
+            </div>
+            <button type="button" class="email-preview__close" data-incoming-dismiss aria-label="Meldung schließen">×</button>
+        </div>
+        <p class="incoming-call__hint">Die Rufnummer passt zu folgenden Zielkontakten. Wähle den richtigen Betrieb, um ihn reserviert in SpeedPhone zu öffnen.</p>
+        <div class="incoming-call__matches" data-incoming-matches></div>
+    </dialog>
+
     <dialog id="speedphone-email-dialog" class="email-preview" aria-labelledby="speedphone-email-dialog-title">
         <form method="dialog" class="email-preview__header">
             <div>
@@ -203,4 +216,4 @@ $userTimezone = (string) ($current_user->getPreference('timezone') ?: 'Europe/Be
     <div class="speedphone__footer">CRM SpeedPhone © anesda</div>
 </main>
 <script src="<?= speedPhoneEscape($assetBase) ?>/vendor/qrcode-generator/qrcode.js?v=2.0.4"></script>
-<script src="<?= speedPhoneEscape($assetBase) ?>/speedphone.js?v=1.14.2"></script>
+<script src="<?= speedPhoneEscape($assetBase) ?>/speedphone.js?v=1.15.0"></script>
