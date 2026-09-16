@@ -8,6 +8,7 @@ import logging
 import socket
 import ssl
 import time
+import urllib.error
 import urllib.request
 from pathlib import Path
 
@@ -58,21 +59,15 @@ def post_event(config, phone, event_id):
         },
         method='POST',
     )
-    with urllib.request.urlopen(request, timeout=10, context=ssl.create_default_context()) as response:
-        result = json.loads(response.read().decode('utf-8'))
-        if not result.get('success'):
-            raise RuntimeError(result.get('error', 'CRM lehnte die Anrufmeldung ab'))
-        return result.get('data', {})
-
-
-def is_incoming_context(context, configured_contexts):
-    """Erkennt auch vorgeschaltete FreePBX-Kontexte wie from-pstn-telegram."""
-    return (
-        context in configured_contexts
-        or context.startswith('from-pstn')
-        or context.startswith('from-trunk')
-        or context == 'ext-did'
-    )
+    try:
+        with urllib.request.urlopen(request, timeout=10, context=ssl.create_default_context()) as response:
+            result = json.loads(response.read().decode('utf-8'))
+    except urllib.error.HTTPError as error:
+        detail = error.read().decode('utf-8', 'replace')[:1000]
+        raise RuntimeError(f'CRM antwortete mit HTTP {error.code}: {detail}') from error
+    if not result.get('success'):
+        raise RuntimeError(result.get('error', 'CRM lehnte die Anrufmeldung ab'))
+    return result.get('data', {})
 
 
 def listen(config):
@@ -101,15 +96,18 @@ def listen(config):
                 continue
             channel = frame.get('Channel', '')
             context = frame.get('Context', '')
-            if not channel.startswith(prefixes) or not is_incoming_context(context, contexts):
+            if not channel.startswith(prefixes) or context not in contexts:
                 continue
             phone = frame.get('CallerIDNum', '').strip()
             event_id = (frame.get('Linkedid') or frame.get('Uniqueid') or '').strip()
             if len(phone) < 5 or not event_id or event_id in seen:
                 continue
             seen[event_id] = now
-            result = post_event(config, phone, event_id)
-            logging.info('Anruf %s gemeldet: %s Ereignisse, %s Treffer', event_id, result.get('events', 0), result.get('matches', 0))
+            try:
+                result = post_event(config, phone, event_id)
+                logging.info('Anruf %s gemeldet: %s Ereignisse, %s Treffer', event_id, result.get('events', 0), result.get('matches', 0))
+            except Exception as error:
+                logging.exception('Anruf %s konnte nicht gemeldet werden: %s', event_id, error)
 
 
 def main():

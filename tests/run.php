@@ -631,8 +631,9 @@ check(str_contains($pbxIncomingEndpoint, 'verifyPbxWebhook'), 'Festnetz-Anrufmel
 check(str_contains($pageSource, 'speedphone-incoming-dialog'), 'Kleines Auswahlfenster für eingehende Festnetzanrufe fehlt.');
 $incomingListenerSource = file_get_contents(__DIR__ . '/../infra/freepbx/crm-speedphone-incoming-listener.py');
 check(
-    str_contains($incomingListenerSource, "context.startswith('from-pstn')"),
-    'Vorgeschaltete FreePBX-Eingangskontexte werden vom Listener nicht erkannt.'
+    str_contains($incomingListenerSource, 'context not in contexts')
+        && str_contains(file_get_contents(__DIR__ . '/../infra/freepbx/incoming-config.example.json'), 'from-pstn-telegram'),
+    'Der tatsächliche FreePBX-Eingangskontext wird nicht eindeutig vom ausgehenden Trunkverkehr getrennt.'
 );
 check(
     str_contains($installerSource, 'crm_speedphone_pbx_calls')
