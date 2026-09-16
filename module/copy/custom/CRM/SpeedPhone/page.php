@@ -75,7 +75,7 @@ $assetBase = $legacyBase . '/custom/CRM/SpeedPhone/assets';
 $userTimezone = (string) ($current_user->getPreference('timezone') ?: 'Europe/Berlin');
 
 ?>
-<link rel="stylesheet" href="<?= speedPhoneEscape($assetBase) ?>/speedphone.css?v=1.14.1">
+<link rel="stylesheet" href="<?= speedPhoneEscape($assetBase) ?>/speedphone.css?v=1.14.2">
 <main class="speedphone" data-api-url="index.php?entryPoint=crmSpeedPhoneApi" data-csrf="<?= speedPhoneEscape($_SESSION['crm_speedphone_csrf']) ?>">
     <header class="speedphone__header">
         <div>
@@ -177,10 +177,30 @@ $userTimezone = (string) ($current_user->getPreference('timezone') ?: 'Europe/Be
         </dl>
         <p class="email-preview__privacy">Externe Bilder und aktive Inhalte werden zum Schutz vor Tracking nicht geladen.</p>
         <p class="email-preview__note" data-email-preview-note hidden></p>
+        <section class="email-preview__activity" aria-labelledby="speedphone-email-activity-title">
+            <div class="email-preview__activity-heading">
+                <h3 id="speedphone-email-activity-title">Interaktionsverlauf</h3>
+                <span data-email-preview-activity-total>Wird geladen …</span>
+            </div>
+            <div class="email-preview__activity-summary">
+                <article>
+                    <strong data-email-preview-open-count>0</strong>
+                    <span>Öffnungen</span>
+                    <small data-email-preview-last-open>zuletzt: –</small>
+                </article>
+                <article>
+                    <strong data-email-preview-click-count>0</strong>
+                    <span>Klicks</span>
+                    <small data-email-preview-last-click>zuletzt: –</small>
+                </article>
+            </div>
+            <ol class="email-preview__timeline" data-email-preview-interactions></ol>
+            <p class="email-preview__activity-empty" data-email-preview-activity-empty hidden>Keine Öffnung oder kein Klick protokolliert.</p>
+        </section>
         <pre data-email-preview-body>Inhalt wird geladen …</pre>
     </dialog>
 
     <div class="speedphone__footer">CRM SpeedPhone © anesda</div>
 </main>
 <script src="<?= speedPhoneEscape($assetBase) ?>/vendor/qrcode-generator/qrcode.js?v=2.0.4"></script>
-<script src="<?= speedPhoneEscape($assetBase) ?>/speedphone.js?v=1.14.1"></script>
+<script src="<?= speedPhoneEscape($assetBase) ?>/speedphone.js?v=1.14.2"></script>

@@ -133,12 +133,26 @@
             const sentAt = dialog.querySelector('[data-email-preview-date]');
             const note = dialog.querySelector('[data-email-preview-note]');
             const body = dialog.querySelector('[data-email-preview-body]');
+            const interactionList = dialog.querySelector('[data-email-preview-interactions]');
+            const interactionEmpty = dialog.querySelector('[data-email-preview-activity-empty]');
+            const interactionTotal = dialog.querySelector('[data-email-preview-activity-total]');
+            const openCount = dialog.querySelector('[data-email-preview-open-count]');
+            const clickCount = dialog.querySelector('[data-email-preview-click-count]');
+            const lastOpen = dialog.querySelector('[data-email-preview-last-open]');
+            const lastClick = dialog.querySelector('[data-email-preview-last-click]');
             title.textContent = 'E-Mail wird geladen …';
             recipient.textContent = '–';
             sentAt.textContent = '–';
             body.textContent = 'Inhalt wird geladen …';
             note.hidden = true;
             note.textContent = '';
+            interactionList.replaceChildren();
+            interactionEmpty.hidden = true;
+            interactionTotal.textContent = 'Wird geladen …';
+            openCount.textContent = '0';
+            clickCount.textContent = '0';
+            lastOpen.textContent = 'zuletzt: –';
+            lastClick.textContent = 'zuletzt: –';
             if (typeof dialog.showModal === 'function') {
                 dialog.showModal();
             } else {
@@ -159,8 +173,38 @@
                 note.textContent = payload.data.content_note || '';
                 note.hidden = !note.textContent;
                 body.textContent = payload.data.body || 'Für diese E-Mail ist kein Inhalt protokolliert.';
+                const interactions = Array.isArray(payload.data.interactions) ? payload.data.interactions : [];
+                const summary = payload.data.interaction_summary || {};
+                openCount.textContent = String(Number(summary.open_count) || 0);
+                clickCount.textContent = String(Number(summary.click_count) || 0);
+                lastOpen.textContent = 'zuletzt: ' + (summary.last_opened_at ? formatEmailPreviewDate(summary.last_opened_at) : '–');
+                lastClick.textContent = 'zuletzt: ' + (summary.last_clicked_at ? formatEmailPreviewDate(summary.last_clicked_at) : '–');
+                interactionTotal.textContent = interactions.length === 1 ? '1 Ereignis' : interactions.length + ' Ereignisse';
+                interactionEmpty.hidden = interactions.length !== 0;
+                interactions.forEach(function (interaction) {
+                    const item = document.createElement('li');
+                    const heading = document.createElement('div');
+                    const label = document.createElement('strong');
+                    const time = document.createElement('time');
+                    const type = interaction.type === 'clicked' ? 'clicked' : 'opened';
+                    item.className = 'email-preview__event email-preview__event--' + type;
+                    label.textContent = type === 'clicked' ? 'Link geklickt' : 'E-Mail geöffnet';
+                    time.dateTime = interaction.occurred_at || '';
+                    time.textContent = formatEmailPreviewDate(interaction.occurred_at);
+                    heading.append(label, time);
+                    item.append(heading);
+                    if (interaction.detail) {
+                        const detail = document.createElement('span');
+                        detail.textContent = interaction.detail;
+                        detail.title = interaction.detail;
+                        item.append(detail);
+                    }
+                    interactionList.append(item);
+                });
             } catch (error) {
                 body.textContent = error.message || String(error);
+                interactionTotal.textContent = 'Nicht verfügbar';
+                interactionEmpty.hidden = false;
                 showMessage(body.textContent, true);
             }
             return;

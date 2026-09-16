@@ -481,7 +481,8 @@ final class QueueService
             $sql = "SELECT COALESCE(NULLIF(e.name,''),'E-Mail ohne Betreff') subject,
                            COALESCE(e.date_sent_received,e.date_entered) sent_at,
                            COALESCE(et.to_addrs,'') recipient,
-                           COALESCE(NULLIF(et.description,''),et.description_html,'') body
+                           COALESCE(NULLIF(et.description,''),et.description_html,'') body,
+                           COALESCE(et.description,'') tracking_source
                     FROM emails e
                     INNER JOIN emails_text et ON et.email_id=e.id AND et.deleted=0
                     WHERE e.id='{$email}' AND e.deleted=0 AND e.type='out' AND e.status='sent'
@@ -494,7 +495,8 @@ final class QueueService
             $sql = "SELECT COALESCE(NULLIF(et.subject,''),NULLIF(em.name,''),NULLIF(c.name,''),'Kampagnenmail') subject,
                            cl.activity_date sent_at,
                            COALESCE(cl.more_information,'') recipient,
-                           COALESCE(NULLIF(et.body,''),et.body_html,'') body
+                           COALESCE(NULLIF(et.body,''),et.body_html,'') body,
+                           cl.campaign_id,cl.marketing_id,cl.target_id
                     FROM campaign_log cl
                     LEFT JOIN campaigns c ON c.id=cl.campaign_id AND c.deleted=0
                     LEFT JOIN email_marketing em ON em.id=cl.marketing_id AND em.deleted=0
@@ -510,13 +512,148 @@ final class QueueService
         if (!is_array($row)) {
             throw new \RuntimeException('Die E-Mail wurde für diesen Kontakt nicht gefunden.');
         }
+        $interactions = $kind === 'direct'
+            ? $this->directEmailInteractions((string) $row['recipient'], (string) $row['tracking_source'])
+            : $this->campaignEmailInteractions($emailId, $row);
         $row['recipient'] = $this->normalizeRecipients((string) $row['recipient']);
         $row['body'] = self::emailPreviewText((string) $row['body']);
         $row['content_note'] = $kind === 'campaign'
             ? 'Bei Kampagnen wird der im CRM gespeicherte Vorlageninhalt angezeigt.'
             : '';
+        $row['interactions'] = $interactions;
+        $row['interaction_summary'] = $this->interactionSummary($interactions);
+        unset($row['tracking_source'], $row['campaign_id'], $row['marketing_id'], $row['target_id']);
 
         return $row;
+    }
+
+    /** @return list<array{type: string, occurred_at: string, detail: string}> */
+    private function directEmailInteractions(string $recipient, string $trackingSource): array
+    {
+        if (preg_match('/Anesda-Mail-ID:\s*([0-9a-f-]{36})/i', $trackingSource, $match) !== 1) {
+            return [];
+        }
+        $messageId = strtolower($match[1]);
+        $normalizedRecipient = $this->normalizeRecipients($recipient);
+        $addresses = array_values(array_filter(array_map('trim', explode(',', $normalizedRecipient)), static fn (string $value): bool => filter_var($value, FILTER_VALIDATE_EMAIL) !== false));
+        if ($addresses === []) {
+            return [];
+        }
+        $quotedAddresses = implode(',', array_map(fn (string $address): string => "'" . $this->db->quote($address) . "'", $addresses));
+        $result = $this->db->query("SELECT event_type,payload_json,created_at
+            FROM crm_speedphone_mail_webhook_events
+            WHERE state='processed' AND event_type IN ('opened','unique_opened','proxy_open','click')
+              AND LOWER(email_address) IN ({$quotedAddresses})
+            ORDER BY created_at DESC,event_id DESC");
+        $interactions = [];
+        while ($event = $this->db->fetchByAssoc($result)) {
+            $payload = self::decodeWebhookPayload((string) ($event['payload_json'] ?? ''));
+            $payloadMessageId = strtolower(trim((string) ($payload['message_id'] ?? $payload['message-id'] ?? '')));
+            if ($payloadMessageId !== $messageId) {
+                continue;
+            }
+            $type = (string) $event['event_type'] === 'click' ? 'clicked' : 'opened';
+            $interactions[] = [
+                'type' => $type,
+                'occurred_at' => $this->normalizeInteractionDate((string) ($payload['date'] ?? ''), (string) $event['created_at']),
+                'detail' => $type === 'clicked' ? self::safeInteractionUrl((string) ($payload['url'] ?? '')) : '',
+            ];
+        }
+
+        return $this->sortInteractions($interactions);
+    }
+
+    /** @return list<array{type: string, occurred_at: string, detail: string}> */
+    private function campaignEmailInteractions(string $targetedId, array $targeted): array
+    {
+        $campaign = $this->nullableSqlValue($targeted['campaign_id'] ?? null);
+        $marketing = $this->nullableSqlValue($targeted['marketing_id'] ?? null);
+        $targetId = $this->db->quote((string) ($targeted['target_id'] ?? ''));
+        $sentAt = $this->db->quote((string) ($targeted['sent_at'] ?? ''));
+        $targetedId = $this->db->quote($targetedId);
+        $next = $this->db->fetchByAssoc($this->db->query("SELECT MIN(activity_date) next_sent_at
+            FROM campaign_log
+            WHERE deleted=0 AND activity_type='targeted' AND target_type='Prospects'
+              AND target_id='{$targetId}' AND campaign_id <=> {$campaign} AND marketing_id <=> {$marketing}
+              AND id<>'{$targetedId}' AND activity_date>'{$sentAt}'"));
+        $until = !empty($next['next_sent_at'])
+            ? " AND activity.activity_date<'" . $this->db->quote((string) $next['next_sent_at']) . "'"
+            : '';
+        $result = $this->db->query("SELECT activity.activity_type,activity.activity_date,activity.more_information
+            FROM campaign_log activity
+            LEFT JOIN crm_speedphone_mail_webhook_events webhook
+              ON webhook.campaign_log_id=activity.id
+            WHERE activity.deleted=0 AND activity.target_type='Prospects'
+              AND activity.target_id='{$targetId}'
+              AND activity.campaign_id <=> {$campaign} AND activity.marketing_id <=> {$marketing}
+              AND activity.activity_type IN ('viewed','link')
+              AND activity.activity_date>='{$sentAt}'{$until}
+              AND webhook.event_id IS NULL
+            ORDER BY activity.activity_date DESC,activity.id DESC");
+        $interactions = [];
+        while ($event = $this->db->fetchByAssoc($result)) {
+            $type = (string) $event['activity_type'] === 'link' ? 'clicked' : 'opened';
+            $interactions[] = [
+                'type' => $type,
+                'occurred_at' => (string) $event['activity_date'],
+                'detail' => $type === 'clicked' ? self::safeInteractionUrl((string) ($event['more_information'] ?? '')) : '',
+            ];
+        }
+
+        return $this->sortInteractions($interactions);
+    }
+
+    public static function decodeWebhookPayload(string $payload): array
+    {
+        $decoded = json_decode(html_entity_decode($payload, ENT_QUOTES | ENT_HTML5, 'UTF-8'), true);
+        return is_array($decoded) ? $decoded : [];
+    }
+
+    public static function safeInteractionUrl(string $value): string
+    {
+        $value = trim(html_entity_decode($value, ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+        if (strlen($value) > 2000 || filter_var($value, FILTER_VALIDATE_URL) === false) {
+            return '';
+        }
+        $scheme = strtolower((string) parse_url($value, PHP_URL_SCHEME));
+        return in_array($scheme, ['http', 'https'], true) ? $value : '';
+    }
+
+    private function normalizeInteractionDate(string $payloadDate, string $fallback): string
+    {
+        try {
+            if ($payloadDate !== '') {
+                return (new \DateTimeImmutable($payloadDate))->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d H:i:s');
+            }
+        } catch (\Throwable) {
+        }
+        return $fallback;
+    }
+
+    /** @param list<array{type: string, occurred_at: string, detail: string}> $interactions */
+    private function sortInteractions(array $interactions): array
+    {
+        usort($interactions, static fn (array $left, array $right): int => strcmp($right['occurred_at'], $left['occurred_at']));
+        return $interactions;
+    }
+
+    private function interactionSummary(array $interactions): array
+    {
+        $summary = ['open_count' => 0, 'click_count' => 0, 'last_opened_at' => '', 'last_clicked_at' => ''];
+        foreach ($interactions as $interaction) {
+            $countKey = $interaction['type'] === 'clicked' ? 'click_count' : 'open_count';
+            $lastKey = $interaction['type'] === 'clicked' ? 'last_clicked_at' : 'last_opened_at';
+            $summary[$countKey]++;
+            if ($summary[$lastKey] === '') {
+                $summary[$lastKey] = $interaction['occurred_at'];
+            }
+        }
+        return $summary;
+    }
+
+    private function nullableSqlValue(mixed $value): string
+    {
+        return $value === null || $value === '' ? 'NULL' : "'" . $this->db->quote((string) $value) . "'";
     }
 
     public static function emailPreviewText(string $value): string

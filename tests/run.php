@@ -298,6 +298,18 @@ $speedPhoneJsSource = file_get_contents(__DIR__ . '/../module/copy/custom/CRM/Sp
 check(str_contains($emailApiSource, "operation'] ?? '') === 'email_preview'"), 'API-Endpunkt für die E-Mail-Vorschau fehlt.');
 check(str_contains($emailApiSource, 'assertOwned($prospectId'), 'Die E-Mail-Vorschau muss die aktuelle Kontaktreservierung prüfen.');
 check(str_contains($speedPhoneJsSource, 'body.textContent = payload.data.body'), 'E-Mail-Inhalte dürfen nicht als aktives HTML in die Oberfläche gelangen.');
+check(
+    str_contains(file_get_contents(__DIR__ . '/../module/copy/custom/CRM/SpeedPhone/page.php'), 'data-email-preview-interactions'),
+    'Der vollständige Interaktionsverlauf fehlt in der E-Mail-Vorschau.'
+);
+check(str_contains($speedPhoneJsSource, "interaction.type === 'clicked'"), 'Öffnungen und Klicks werden in der E-Mail-Vorschau nicht getrennt dargestellt.');
+check(str_contains($speedPhoneJsSource, 'interactionList.append(item)'), 'Die einzelnen E-Mail-Ereignisse werden nicht vollständig ausgegeben.');
+check(
+    Anesda\CRM\SpeedPhone\QueueService::decodeWebhookPayload('{&quot;message_id&quot;:&quot;123&quot;}')['message_id'] === '123',
+    'HTML-kodierte Webhook-Nutzdaten werden nicht lesbar dekodiert.'
+);
+check(Anesda\CRM\SpeedPhone\QueueService::safeInteractionUrl('javascript:alert(1)') === '', 'Unsichere Klickziele dürfen nicht angezeigt werden.');
+check(Anesda\CRM\SpeedPhone\QueueService::safeInteractionUrl('https://example.org/path') === 'https://example.org/path', 'Sichere Klickziele fehlen im Interaktionsverlauf.');
 check(str_contains($workspace, 'data-speedphone-dialer-call="work"'), 'Schaltfläche zum Anruf über das gekoppelte Handy fehlt.');
 check(!str_contains($workspace, 'data-speedphone-dialer-call="work" disabled'), 'Handywahl bleibt trotz empfangsbereitem Gerät gesperrt.');
 check(str_contains($workspace, 'data-speedphone-pbx-call="work"'), 'Schaltfläche zum Anruf über die Telefonanlage fehlt.');

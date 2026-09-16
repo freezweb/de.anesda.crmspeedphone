@@ -64,7 +64,7 @@
 .speedphone .email-history__open small { color: var(--sp-brand); display: block; font-size: 12px; font-weight: 750; margin-top: 5px; }
 .speedphone .email-history__meta { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; color: var(--sp-muted); font-size: 12px; white-space: nowrap; }
 .speedphone .email-history__signal { background: #e6f6ee; color: var(--sp-success); border-radius: 999px; padding: 3px 7px; font-weight: 700; }
-.speedphone .email-preview { border: 0; border-radius: 18px; box-shadow: 0 24px 80px rgba(10, 30, 45, .3); color: var(--sp-ink); max-height: min(84vh, 850px); padding: 0; width: min(760px, calc(100vw - 32px)); }
+.speedphone .email-preview { border: 0; border-radius: 18px; box-shadow: 0 24px 80px rgba(10, 30, 45, .3); color: var(--sp-ink); max-height: min(90vh, 920px); overflow: auto; padding: 0; width: min(800px, calc(100vw - 32px)); }
 .speedphone .email-preview::backdrop { background: rgba(8, 30, 43, .55); }
 .speedphone .email-preview__header { align-items: flex-start; background: var(--sp-bg); border-bottom: 1px solid var(--sp-border); display: flex; justify-content: space-between; padding: 20px 22px; }
 .speedphone .email-preview__header span { color: var(--sp-brand); font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
@@ -76,7 +76,25 @@
 .speedphone .email-preview__meta dd { margin: 2px 0 0; overflow-wrap: anywhere; }
 .speedphone .email-preview__privacy { background: #fff8df; color: #5b4500; font-size: 12px; margin: 8px 22px; padding: 9px 11px; }
 .speedphone .email-preview__note { color: var(--sp-muted); font-size: 12px; margin: 8px 22px; }
-.speedphone .email-preview pre { background: #fff; border: 1px solid var(--sp-border); border-radius: 10px; font-family: inherit; font-size: 14px; line-height: 1.55; margin: 14px 22px 22px; max-height: 52vh; overflow: auto; padding: 18px; white-space: pre-wrap; word-break: break-word; }
+.speedphone .email-preview__activity { border-bottom: 1px solid var(--sp-border); border-top: 1px solid var(--sp-border); margin-top: 16px; padding: 16px 22px 18px; }
+.speedphone .email-preview__activity-heading { align-items: baseline; display: flex; gap: 12px; justify-content: space-between; }
+.speedphone .email-preview__activity-heading h3 { font-size: 16px; margin: 0; }
+.speedphone .email-preview__activity-heading span { color: var(--sp-muted); font-size: 12px; }
+.speedphone .email-preview__activity-summary { display: grid; gap: 10px; grid-template-columns: 1fr 1fr; margin-top: 12px; }
+.speedphone .email-preview__activity-summary article { background: var(--sp-bg); border-radius: 11px; display: grid; grid-template-columns: auto 1fr; gap: 0 8px; padding: 10px 12px; }
+.speedphone .email-preview__activity-summary strong { color: var(--sp-brand); font-size: 20px; grid-row: 1 / 3; }
+.speedphone .email-preview__activity-summary span { font-size: 13px; font-weight: 750; }
+.speedphone .email-preview__activity-summary small { color: var(--sp-muted); font-size: 11px; }
+.speedphone .email-preview__timeline { list-style: none; margin: 12px 0 0; max-height: 240px; overflow: auto; padding: 0; }
+.speedphone .email-preview__event { border-left: 3px solid #8bb6c2; padding: 7px 4px 7px 11px; }
+.speedphone .email-preview__event + .email-preview__event { margin-top: 6px; }
+.speedphone .email-preview__event--clicked { border-left-color: var(--sp-success); }
+.speedphone .email-preview__event div { display: flex; gap: 12px; justify-content: space-between; }
+.speedphone .email-preview__event strong { font-size: 13px; }
+.speedphone .email-preview__event time { color: var(--sp-muted); font-size: 12px; white-space: nowrap; }
+.speedphone .email-preview__event > span { color: var(--sp-muted); display: block; font-size: 11px; margin-top: 3px; overflow-wrap: anywhere; }
+.speedphone .email-preview__activity-empty { color: var(--sp-muted); font-size: 13px; margin: 14px 0 0; }
+.speedphone .email-preview pre { background: #fff; border: 1px solid var(--sp-border); border-radius: 10px; font-family: inherit; font-size: 14px; line-height: 1.55; margin: 14px 22px 22px; max-height: 38vh; overflow: auto; padding: 18px; white-space: pre-wrap; word-break: break-word; }
 .speedphone .history { margin-top: 22px; border-top: 1px solid var(--sp-border); padding-top: 16px; }
 .speedphone .history__heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
 .speedphone .history__heading h3 { margin: 0; font-size: 16px; }
@@ -214,6 +232,9 @@
     .speedphone .email-preview__meta { grid-template-columns: 1fr; padding: 14px; }
     .speedphone .email-preview__header { padding: 16px; }
     .speedphone .email-preview__privacy, .speedphone .email-preview__note { margin-left: 14px; margin-right: 14px; }
+    .speedphone .email-preview__activity { padding-left: 14px; padding-right: 14px; }
+    .speedphone .email-preview__activity-summary { grid-template-columns: 1fr; }
+    .speedphone .email-preview__event div { align-items: flex-start; flex-direction: column; gap: 2px; }
     .speedphone .email-preview pre { margin: 14px 14px 18px; }
     .speedphone .candidate__main, .speedphone .quick-form { padding: 17px; }
     .speedphone .linkedin-contacts__footer small { text-align: left; }
