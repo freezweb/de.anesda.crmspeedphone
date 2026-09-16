@@ -81,6 +81,7 @@ def listen(config):
         login = read_frame(stream)
         if login.get('Response', '').lower() != 'success':
             raise RuntimeError('AMI-Anmeldung abgelehnt')
+        sock.settimeout(None)
         logging.info('Mit Asterisk AMI verbunden')
         while True:
             frame = read_frame(stream)
