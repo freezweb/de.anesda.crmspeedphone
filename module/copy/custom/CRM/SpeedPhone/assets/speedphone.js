@@ -131,11 +131,14 @@
             const title = dialog.querySelector('#speedphone-email-dialog-title');
             const recipient = dialog.querySelector('[data-email-preview-recipient]');
             const sentAt = dialog.querySelector('[data-email-preview-date]');
+            const note = dialog.querySelector('[data-email-preview-note]');
             const body = dialog.querySelector('[data-email-preview-body]');
             title.textContent = 'E-Mail wird geladen …';
             recipient.textContent = '–';
             sentAt.textContent = '–';
             body.textContent = 'Inhalt wird geladen …';
+            note.hidden = true;
+            note.textContent = '';
             if (typeof dialog.showModal === 'function') {
                 dialog.showModal();
             } else {
@@ -153,6 +156,8 @@
                 title.textContent = payload.data.subject || 'E-Mail ohne Betreff';
                 recipient.textContent = payload.data.recipient || 'Adresse nicht protokolliert';
                 sentAt.textContent = formatEmailPreviewDate(payload.data.sent_at);
+                note.textContent = payload.data.content_note || '';
+                note.hidden = !note.textContent;
                 body.textContent = payload.data.body || 'Für diese E-Mail ist kein Inhalt protokolliert.';
             } catch (error) {
                 body.textContent = error.message || String(error);

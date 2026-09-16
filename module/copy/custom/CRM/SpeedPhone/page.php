@@ -75,7 +75,7 @@ $assetBase = $legacyBase . '/custom/CRM/SpeedPhone/assets';
 $userTimezone = (string) ($current_user->getPreference('timezone') ?: 'Europe/Berlin');
 
 ?>
-<link rel="stylesheet" href="<?= speedPhoneEscape($assetBase) ?>/speedphone.css?v=1.14.0">
+<link rel="stylesheet" href="<?= speedPhoneEscape($assetBase) ?>/speedphone.css?v=1.14.1">
 <main class="speedphone" data-api-url="index.php?entryPoint=crmSpeedPhoneApi" data-csrf="<?= speedPhoneEscape($_SESSION['crm_speedphone_csrf']) ?>">
     <header class="speedphone__header">
         <div>
@@ -176,10 +176,11 @@ $userTimezone = (string) ($current_user->getPreference('timezone') ?: 'Europe/Be
             <div><dt>Versendet</dt><dd data-email-preview-date>–</dd></div>
         </dl>
         <p class="email-preview__privacy">Externe Bilder und aktive Inhalte werden zum Schutz vor Tracking nicht geladen.</p>
+        <p class="email-preview__note" data-email-preview-note hidden></p>
         <pre data-email-preview-body>Inhalt wird geladen …</pre>
     </dialog>
 
     <div class="speedphone__footer">CRM SpeedPhone © anesda</div>
 </main>
 <script src="<?= speedPhoneEscape($assetBase) ?>/vendor/qrcode-generator/qrcode.js?v=2.0.4"></script>
-<script src="<?= speedPhoneEscape($assetBase) ?>/speedphone.js?v=1.14.0"></script>
+<script src="<?= speedPhoneEscape($assetBase) ?>/speedphone.js?v=1.14.1"></script>

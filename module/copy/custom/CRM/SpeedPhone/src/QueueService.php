@@ -512,13 +512,16 @@ final class QueueService
         }
         $row['recipient'] = $this->normalizeRecipients((string) $row['recipient']);
         $row['body'] = self::emailPreviewText((string) $row['body']);
+        $row['content_note'] = $kind === 'campaign'
+            ? 'Bei Kampagnen wird der im CRM gespeicherte Vorlageninhalt angezeigt.'
+            : '';
 
         return $row;
     }
 
     public static function emailPreviewText(string $value): string
     {
-        $value = preg_replace('~<(?:br|/p|/div|/li|/tr|/h[1-6])\b[^>]*>~iu', "\n", $value) ?? $value;
+        $value = preg_replace('~<(?:br|hr|/p|/div|/li|/tr|/td|/h[1-6])\b[^>]*>~iu', "\n", $value) ?? $value;
         $value = html_entity_decode(strip_tags($value), ENT_QUOTES | ENT_HTML5, 'UTF-8');
         $value = str_replace(["\r\n", "\r", "\u{00A0}"], ["\n", "\n", ' '], $value);
         $value = preg_replace('/[ \t]+/u', ' ', $value) ?? $value;

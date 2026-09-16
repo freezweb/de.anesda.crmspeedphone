@@ -75,6 +75,7 @@
 .speedphone .email-preview__meta dt { color: var(--sp-muted); font-size: 11px; font-weight: 700; text-transform: uppercase; }
 .speedphone .email-preview__meta dd { margin: 2px 0 0; overflow-wrap: anywhere; }
 .speedphone .email-preview__privacy { background: #fff8df; color: #5b4500; font-size: 12px; margin: 8px 22px; padding: 9px 11px; }
+.speedphone .email-preview__note { color: var(--sp-muted); font-size: 12px; margin: 8px 22px; }
 .speedphone .email-preview pre { background: #fff; border: 1px solid var(--sp-border); border-radius: 10px; font-family: inherit; font-size: 14px; line-height: 1.55; margin: 14px 22px 22px; max-height: 52vh; overflow: auto; padding: 18px; white-space: pre-wrap; word-break: break-word; }
 .speedphone .history { margin-top: 22px; border-top: 1px solid var(--sp-border); padding-top: 16px; }
 .speedphone .history__heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
@@ -210,8 +211,10 @@
     .speedphone .contact-grid, .speedphone .field-row, .speedphone .actions { grid-template-columns: 1fr; }
     .speedphone .email-history__item { grid-template-columns: 1fr; }
     .speedphone .email-history__meta { align-items: flex-start; white-space: normal; }
-    .speedphone .email-preview__meta { grid-template-columns: 1fr; }
-    .speedphone .email-preview__header, .speedphone .email-preview pre { margin-left: 0; margin-right: 0; }
+    .speedphone .email-preview__meta { grid-template-columns: 1fr; padding: 14px; }
+    .speedphone .email-preview__header { padding: 16px; }
+    .speedphone .email-preview__privacy, .speedphone .email-preview__note { margin-left: 14px; margin-right: 14px; }
+    .speedphone .email-preview pre { margin: 14px 14px 18px; }
     .speedphone .candidate__main, .speedphone .quick-form { padding: 17px; }
     .speedphone .linkedin-contacts__footer small { text-align: left; }
     .speedphone .call-launcher__method { align-items: flex-start; flex-direction: column; }
