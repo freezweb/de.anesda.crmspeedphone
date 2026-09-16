@@ -16,6 +16,7 @@
     let liveUpdateTimer = null;
     let refreshInFlight = false;
     let refreshFailures = 0;
+    let pendingEmailSubmission = null;
     startLiveUpdates();
 
     document.addEventListener('visibilitychange', function () {
@@ -87,40 +88,42 @@
             return;
         }
 
-        const data = new FormData(form);
-        data.set('result', button.value);
-        data.set('csrf', root.dataset.csrf);
-        button.dataset.submitting = 'true';
-        setBusy(form, true);
-
-        try {
-            const payload = await request(data);
-            const emailResult = payload.data.email;
-            const emailMessage = emailResult && emailResult.message ? ' ' + emailResult.message : '';
-            const emailFailed = emailResult && emailResult.sent === false;
-            showMessage(payload.data.message + emailMessage, emailFailed);
-            stopLiveUpdates();
-            if (emailFailed && emailResult.retry_allowed) {
-                setBusy(form, false);
-                delete button.dataset.submitting;
-                const retryPanel = form.querySelector('#speedphone-email-retry');
-                if (retryPanel) {
-                    retryPanel.hidden = false;
-                    retryPanel.querySelector('button')?.focus();
-                }
-                return;
-            }
-            await loadNextCandidate();
-        } catch (error) {
-            showMessage(error.message || String(error), true);
-            if (document.body.contains(form)) {
-                setBusy(form, false);
-                delete button.dataset.submitting;
-            }
+        if (sendsEmail) {
+            await openEmailComposer(form, button);
+            return;
         }
+
+        await submitSpeedPhoneAction(form, button);
     });
 
     root.addEventListener('click', async function (event) {
+        if (event.target.closest('[data-email-compose-cancel]')) {
+            closeEmailComposer();
+            return;
+        }
+
+        const composeSendButton = event.target.closest('[data-email-compose-send]');
+        if (composeSendButton) {
+            const dialog = document.getElementById('speedphone-email-compose-dialog');
+            const subject = dialog?.querySelector('[data-email-compose-subject]')?.value.trim() || '';
+            const body = dialog?.querySelector('[data-email-compose-body]')?.value.trim() || '';
+            if (!pendingEmailSubmission || !subject || !body) {
+                showMessage('Betreff und E-Mail-Text dürfen nicht leer sein.', true);
+                return;
+            }
+            const pending = pendingEmailSubmission;
+            composeSendButton.disabled = true;
+            composeSendButton.textContent = 'Wird versendet …';
+            const completed = await pending.execute({subject: subject, body: body});
+            if (completed) {
+                closeEmailComposer();
+            } else {
+                composeSendButton.disabled = false;
+                composeSendButton.textContent = 'E-Mail jetzt versenden';
+            }
+            return;
+        }
+
         const incomingMatch = event.target.closest('[data-incoming-prospect]');
         if (incomingMatch) {
             const dialog = document.getElementById('speedphone-incoming-dialog');
@@ -363,21 +366,17 @@
                 return;
             }
 
-            const data = new FormData();
-            data.set('operation', 'resend_email');
-            data.set('prospect_id', ownedEmailButton.dataset.prospectId || '');
-            data.set('new_email', email);
-            data.set('email_address_confirmed', '1');
-            data.set('csrf', root.dataset.csrf);
-            ownedEmailButton.disabled = true;
-            try {
-                const payload = await request(data);
-                ownedEmailButton.textContent = 'Mail versendet';
-                showMessage(payload.data.message, false);
-            } catch (error) {
-                ownedEmailButton.disabled = false;
-                showMessage(error.message || String(error), true);
-            }
+            await openEmailComposer(
+                null,
+                ownedEmailButton,
+                function (draft) {
+                    return submitOwnedEmail(ownedEmailButton, email, draft);
+                },
+                {
+                    prospect_id: ownedEmailButton.dataset.prospectId || '',
+                    new_email: email,
+                }
+            );
             return;
         }
 
@@ -403,21 +402,13 @@
                 return;
             }
 
-            const data = new FormData(form);
-            data.set('operation', 'resend_email');
-            data.set('csrf', root.dataset.csrf);
-            setBusy(form, true);
-            try {
-                const payload = await request(data);
-                showMessage(payload.data.message, false);
-                await loadNextCandidate();
-            } catch (error) {
-                showMessage(error.message || String(error), true);
-                if (document.body.contains(form)) {
-                    setBusy(form, false);
-                    emailRetryButton.focus();
+            await openEmailComposer(
+                form,
+                emailRetryButton,
+                function (draft) {
+                    return submitResendEmail(form, emailRetryButton, draft);
                 }
-            }
+            );
             return;
         }
 
@@ -476,6 +467,160 @@
             commission.value = '20.00';
         }
     });
+
+    async function openEmailComposer(form, button, execute = null, composeValues = {}) {
+        const dialog = document.getElementById('speedphone-email-compose-dialog');
+        const recipient = dialog?.querySelector('[data-email-compose-recipient]');
+        const subject = dialog?.querySelector('[data-email-compose-subject]');
+        const body = dialog?.querySelector('[data-email-compose-body]');
+        const attachments = dialog?.querySelector('[data-email-compose-attachments]');
+        if (!dialog || !recipient || !subject || !body || !attachments) {
+            showMessage('Die E-Mail-Vorschau konnte nicht geöffnet werden.', true);
+            return;
+        }
+
+        pendingEmailSubmission = {
+            execute: execute || function (draft) {
+                return submitSpeedPhoneAction(form, button, draft);
+            },
+        };
+        recipient.textContent = composeValues.new_email || form?.elements.new_email?.value || 'Wird geladen …';
+        subject.value = '';
+        subject.placeholder = 'Entwurf wird geladen …';
+        body.value = '';
+        body.placeholder = 'Entwurf wird geladen …';
+        attachments.hidden = true;
+        attachments.textContent = '';
+        if (typeof dialog.showModal === 'function') {
+            dialog.showModal();
+        } else {
+            dialog.setAttribute('open', '');
+        }
+
+        const data = form ? new FormData(form) : new FormData();
+        Object.entries(composeValues).forEach(function ([key, value]) {
+            data.set(key, value);
+        });
+        data.set('operation', 'compose_email');
+        data.set('csrf', root.dataset.csrf);
+        try {
+            const payload = await request(data);
+            recipient.textContent = payload.data.recipient || 'Keine Empfängeradresse';
+            subject.value = payload.data.subject || '';
+            body.value = payload.data.body || '';
+            subject.placeholder = '';
+            body.placeholder = '';
+            const flyers = Array.isArray(payload.data.flyers) ? payload.data.flyers : [];
+            if (flyers.length > 0) {
+                attachments.textContent = 'Anhänge: ' + flyers.join(', ');
+                attachments.hidden = false;
+            }
+            subject.focus();
+        } catch (error) {
+            closeEmailComposer();
+            showMessage(error.message || String(error), true);
+        }
+    }
+
+    function closeEmailComposer(clearPending = true) {
+        const dialog = document.getElementById('speedphone-email-compose-dialog');
+        const sendButton = dialog?.querySelector('[data-email-compose-send]');
+        if (dialog?.open && typeof dialog.close === 'function') {
+            dialog.close();
+        } else {
+            dialog?.removeAttribute('open');
+        }
+        if (sendButton) {
+            sendButton.disabled = false;
+            sendButton.textContent = 'E-Mail jetzt versenden';
+        }
+        if (clearPending) {
+            pendingEmailSubmission = null;
+        }
+    }
+
+    async function submitSpeedPhoneAction(form, button, emailDraft = null) {
+        const data = new FormData(form);
+        data.set('result', button.value);
+        data.set('csrf', root.dataset.csrf);
+        if (emailDraft) {
+            data.set('email_subject', emailDraft.subject);
+            data.set('email_body', emailDraft.body);
+        }
+        button.dataset.submitting = 'true';
+        setBusy(form, true);
+
+        try {
+            const payload = await request(data);
+            const emailResult = payload.data.email;
+            const emailMessage = emailResult && emailResult.message ? ' ' + emailResult.message : '';
+            const emailFailed = emailResult && emailResult.sent === false;
+            showMessage(payload.data.message + emailMessage, emailFailed);
+            stopLiveUpdates();
+            if (emailFailed && emailResult.retry_allowed) {
+                setBusy(form, false);
+                delete button.dataset.submitting;
+                const retryPanel = form.querySelector('#speedphone-email-retry');
+                if (retryPanel) {
+                    retryPanel.hidden = false;
+                }
+                return false;
+            }
+            await loadNextCandidate();
+            return true;
+        } catch (error) {
+            showMessage(error.message || String(error), true);
+            if (document.body.contains(form)) {
+                setBusy(form, false);
+                delete button.dataset.submitting;
+            }
+            return false;
+        }
+    }
+
+    async function submitResendEmail(form, button, emailDraft) {
+        const data = new FormData(form);
+        data.set('operation', 'resend_email');
+        data.set('email_subject', emailDraft.subject);
+        data.set('email_body', emailDraft.body);
+        data.set('csrf', root.dataset.csrf);
+        setBusy(form, true);
+        try {
+            const payload = await request(data);
+            showMessage(payload.data.message, false);
+            await loadNextCandidate();
+            return true;
+        } catch (error) {
+            showMessage(error.message || String(error), true);
+            if (document.body.contains(form)) {
+                setBusy(form, false);
+                button.focus();
+            }
+            return false;
+        }
+    }
+
+    async function submitOwnedEmail(button, email, emailDraft) {
+        const data = new FormData();
+        data.set('operation', 'resend_email');
+        data.set('prospect_id', button.dataset.prospectId || '');
+        data.set('new_email', email);
+        data.set('email_address_confirmed', '1');
+        data.set('email_subject', emailDraft.subject);
+        data.set('email_body', emailDraft.body);
+        data.set('csrf', root.dataset.csrf);
+        button.disabled = true;
+        try {
+            const payload = await request(data);
+            button.textContent = 'Mail versendet';
+            showMessage(payload.data.message, false);
+            return true;
+        } catch (error) {
+            button.disabled = false;
+            showMessage(error.message || String(error), true);
+            return false;
+        }
+    }
 
     async function loadNextCandidate() {
         const data = new FormData();

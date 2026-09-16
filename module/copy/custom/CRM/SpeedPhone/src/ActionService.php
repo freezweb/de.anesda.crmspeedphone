@@ -28,6 +28,12 @@ final class ActionService
             || $action === 'send_flyers';
         $emailAddressConfirmed = !empty($input['email_address_confirmed']);
         $flyerKeys = $this->emailService->validateFlyerSelection($input['flyers'] ?? []);
+        $customEmailSubject = array_key_exists('email_subject', $input)
+            ? $validator->emailSubject((string) $input['email_subject'])
+            : null;
+        $customEmailBody = array_key_exists('email_body', $input)
+            ? $validator->emailBody((string) $input['email_body'])
+            : null;
 
         if (($action === 'send_flyers' || ($action === 'interested' && $emailRequested)) && $flyerKeys === []) {
             throw new \InvalidArgumentException('Bitte wählen Sie mindestens einen passenden Produktflyer aus.');
@@ -172,7 +178,9 @@ final class ActionService
                 $emailResult = $this->emailService->sendRequestedInformation(
                     $prospect,
                     $emailAddressConfirmed,
-                    $flyerKeys
+                    $flyerKeys,
+                    $customEmailSubject,
+                    $customEmailBody
                 );
                 if ($emailResult['sent'] === false) {
                     $emailResult['retry_allowed'] = true;

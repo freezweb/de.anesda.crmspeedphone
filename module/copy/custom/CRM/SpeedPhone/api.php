@@ -259,6 +259,32 @@ try {
     }
 
     $emailService = new EmailService($config, $db, $current_user, $productFlyerService);
+    if ((string) ($_POST['operation'] ?? '') === 'compose_email') {
+        $validator = new InputValidator();
+        $prospectId = $validator->uuid((string) ($_POST['prospect_id'] ?? ''));
+        $newEmail = $validator->email((string) ($_POST['new_email'] ?? ''));
+        $lockToken = (string) ($_POST['lock_token'] ?? '');
+        if ($lockToken !== '') {
+            $lockService->assertOwned($prospectId, $lockToken);
+        }
+        if (!$queue->canEditProspect($prospectId) || !ACLController::checkAccess('Prospects', 'edit', true)) {
+            throw new RuntimeException('Kein Zugriff auf diesen Zielkontakt.');
+        }
+        /** @var Prospect $prospect */
+        $prospect = BeanFactory::getBean('Prospects', $prospectId);
+        if (!$prospect || empty($prospect->id) || (int) $prospect->deleted === 1) {
+            throw new RuntimeException('Der Zielkontakt wurde nicht gefunden.');
+        }
+        echo json_encode([
+            'success' => true,
+            'data' => $emailService->previewRequestedInformation(
+                $prospect,
+                $emailService->validateFlyerSelection($_POST['flyers'] ?? []),
+                $newEmail
+            ),
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        exit;
+    }
     if ((string) ($_POST['operation'] ?? '') === 'resend_email') {
         $validator = new InputValidator();
         $prospectId = $validator->uuid((string) ($_POST['prospect_id'] ?? ''));
@@ -285,7 +311,13 @@ try {
         $emailResult = $emailService->sendRequestedInformation(
             $prospect,
             true,
-            $emailService->validateFlyerSelection($_POST['flyers'] ?? [])
+            $emailService->validateFlyerSelection($_POST['flyers'] ?? []),
+            array_key_exists('email_subject', $_POST)
+                ? $validator->emailSubject((string) $_POST['email_subject'])
+                : null,
+            array_key_exists('email_body', $_POST)
+                ? $validator->emailBody((string) $_POST['email_body'])
+                : null
         );
         echo json_encode([
             'success' => true,

@@ -75,7 +75,7 @@ $assetBase = $legacyBase . '/custom/CRM/SpeedPhone/assets';
 $userTimezone = (string) ($current_user->getPreference('timezone') ?: 'Europe/Berlin');
 
 ?>
-<link rel="stylesheet" href="<?= speedPhoneEscape($assetBase) ?>/speedphone.css?v=1.15.2">
+<link rel="stylesheet" href="<?= speedPhoneEscape($assetBase) ?>/speedphone.css?v=1.16.0">
 <main class="speedphone" data-api-url="index.php?entryPoint=crmSpeedPhoneApi" data-csrf="<?= speedPhoneEscape($_SESSION['crm_speedphone_csrf']) ?>">
     <header class="speedphone__header">
         <div>
@@ -176,6 +176,30 @@ $userTimezone = (string) ($current_user->getPreference('timezone') ?: 'Europe/Be
         <div class="incoming-call__matches" data-incoming-matches></div>
     </dialog>
 
+    <dialog id="speedphone-email-compose-dialog" class="email-compose" aria-labelledby="speedphone-email-compose-title">
+        <div class="email-compose__header">
+            <div>
+                <span>Vor dem Versand prüfen</span>
+                <h2 id="speedphone-email-compose-title">Informationsmail bearbeiten</h2>
+            </div>
+            <button type="button" class="email-preview__close" data-email-compose-cancel aria-label="Entwurf schließen">×</button>
+        </div>
+        <div class="email-compose__content">
+            <label>Empfänger</label>
+            <output data-email-compose-recipient>–</output>
+            <label for="speedphone-email-compose-subject">Betreff</label>
+            <input id="speedphone-email-compose-subject" type="text" maxlength="255" data-email-compose-subject>
+            <label for="speedphone-email-compose-body">Nachricht</label>
+            <textarea id="speedphone-email-compose-body" rows="16" maxlength="20000" data-email-compose-body></textarea>
+            <div class="email-compose__attachments" data-email-compose-attachments hidden></div>
+            <p class="field-hint">Die hier bearbeitete Fassung wird genau so versendet und anschließend im CRM protokolliert.</p>
+        </div>
+        <div class="email-compose__actions">
+            <button type="button" class="button button--secondary" data-email-compose-cancel>Abbrechen</button>
+            <button type="button" class="button button--mail" data-email-compose-send>E-Mail jetzt versenden</button>
+        </div>
+    </dialog>
+
     <dialog id="speedphone-email-dialog" class="email-preview" aria-labelledby="speedphone-email-dialog-title">
         <form method="dialog" class="email-preview__header">
             <div>
@@ -216,4 +240,4 @@ $userTimezone = (string) ($current_user->getPreference('timezone') ?: 'Europe/Be
     <div class="speedphone__footer">CRM SpeedPhone © anesda</div>
 </main>
 <script src="<?= speedPhoneEscape($assetBase) ?>/vendor/qrcode-generator/qrcode.js?v=2.0.4"></script>
-<script src="<?= speedPhoneEscape($assetBase) ?>/speedphone.js?v=1.15.2"></script>
+<script src="<?= speedPhoneEscape($assetBase) ?>/speedphone.js?v=1.16.0"></script>

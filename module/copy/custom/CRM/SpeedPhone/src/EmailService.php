@@ -32,70 +32,58 @@ final class EmailService
     /**
      * @param list<string> $flyerKeys
      */
+    public function previewRequestedInformation(
+        \Prospect $prospect,
+        array $flyerKeys = [],
+        string $recipientOverride = ''
+    ): array {
+        $draft = $this->composeRequestedInformation($prospect, $flyerKeys, $recipientOverride);
+
+        return [
+            'recipient' => $draft['email'],
+            'subject' => $draft['subject'],
+            'body' => $draft['body_text'],
+            'flyers' => $draft['flyer_labels'],
+        ];
+    }
+
+    /**
+     * @param list<string> $flyerKeys
+     */
     public function sendRequestedInformation(
         \Prospect $prospect,
         bool $explicitOneTimeRequest = false,
-        array $flyerKeys = []
+        array $flyerKeys = [],
+        ?string $customSubject = null,
+        ?string $customBodyText = null
     ): array
     {
         if (!(bool) $this->config->get('email_sending_enabled', false)) {
             return ['sent' => false, 'message' => 'E-Mail-Versand ist in SpeedPhone noch deaktiviert.'];
         }
 
-        $flyerKeys = $this->validateFlyerSelection($flyerKeys);
-        $attachments = $this->productFlyers?->loadSelected($flyerKeys) ?? [];
-        $flyerLabels = array_column($attachments, 'label');
-        $templateName = $this->config->requireString('email_template_name');
-        $email = (string) ($prospect->emailAddress?->getPrimaryAddress($prospect) ?? '');
-        if ($email === '') {
-            throw new \RuntimeException('Der Zielkontakt hat keine primäre E-Mail-Adresse.');
-        }
+        $draft = $this->composeRequestedInformation($prospect, $flyerKeys);
+        $email = $draft['email'];
+        $attachments = $draft['attachments'];
+        $flyerLabels = $draft['flyer_labels'];
         $suppressionBypassed = $this->assertAddressMayReceiveEmail(
             $prospect->id,
             $email,
             $explicitOneTimeRequest
         );
 
-        $templateSql = "SELECT id FROM email_templates
-                        WHERE deleted=0 AND name='" . $this->db->quote($templateName) . "'
-                        ORDER BY date_modified DESC LIMIT 1";
-        $templateRow = $this->db->fetchByAssoc($this->db->query($templateSql));
-        $template = \BeanFactory::getBean('EmailTemplates', (string) ($templateRow['id'] ?? ''));
-        if (empty($template->id)) {
-            throw new \RuntimeException(sprintf('Die E-Mail-Vorlage „%s“ wurde nicht gefunden.', $templateName));
-        }
-
-        $replacements = [
-            '$account_name' => (string) ($prospect->account_name ?: $prospect->last_name),
-            '$first_name' => (string) $prospect->first_name,
-            '$last_name' => (string) $prospect->last_name,
-        ];
-        $subject = strtr((string) $template->subject, $replacements);
-        $bodyHtml = self::decodeStoredHtml(strtr((string) $template->body_html, $replacements));
-        $bodyText = trim(strip_tags(strtr((string) $template->body, $replacements) ?: $bodyHtml));
-
         $emailBean = \BeanFactory::newBean('Emails');
         $defaults = $emailBean->getSystemDefaultEmail();
-        $mailSubject = from_html($subject);
-        if ($flyerLabels !== []) {
-            $joinedLabels = implode(', ', $flyerLabels);
-            $mailSubject = mb_strlen($joinedLabels, 'UTF-8') <= 120
-                ? 'Ihre Unterlagen: ' . $joinedLabels
-                : 'Ihre ausgewählten Produktinformationen von Anesda Nord';
-            $flyerHtml = '<div style="margin:20px 0;padding:16px;border:1px solid #d8e1e6;'
-                . 'border-left:5px solid #087ea4;background:#f5fafb">'
-                . '<strong>Wie telefonisch besprochen, erhalten Sie folgende Produktunterlagen:</strong><ul><li>'
-                . implode('</li><li>', array_map(
-                    static fn (string $label): string => htmlspecialchars($label, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
-                    $flyerLabels
-                ))
-                . '</li></ul></div>';
-            $bodyHtml = str_contains(strtolower($bodyHtml), '</body>')
-                ? preg_replace('~</body>~i', $flyerHtml . '</body>', $bodyHtml, 1) ?? ($bodyHtml . $flyerHtml)
-                : $bodyHtml . $flyerHtml;
-            $bodyText = "Wie telefonisch besprochen, erhalten Sie folgende Produktunterlagen: "
-                . $joinedLabels . ".\n\n" . $bodyText;
+        $mailSubject = $customSubject === null ? $draft['subject'] : trim($customSubject);
+        $bodyText = $customBodyText === null
+            ? $draft['body_text']
+            : trim(str_replace(["\r\n", "\r"], "\n", $customBodyText));
+        if ($mailSubject === '' || $bodyText === '') {
+            throw new \InvalidArgumentException('Betreff und E-Mail-Text dürfen nicht leer sein.');
         }
+        $bodyHtml = $customBodyText === null || $bodyText === $draft['body_text']
+            ? $draft['body_html']
+            : self::editableTextToHtml($bodyText);
         $transportReference = null;
         if ((bool) $this->config->get('mail_api_enabled', false) && $attachments === []) {
             $transportReference = $this->sendThroughMailApi(
@@ -156,6 +144,83 @@ final class EmailService
             'anesda_message_id' => $transportReference,
             'flyers' => $flyerLabels,
         ];
+    }
+
+    /**
+     * @param list<string> $flyerKeys
+     * @return array{email:string,subject:string,body_html:string,body_text:string,attachments:array,flyer_labels:list<string>}
+     */
+    private function composeRequestedInformation(
+        \Prospect $prospect,
+        array $flyerKeys,
+        string $recipientOverride = ''
+    ): array {
+        $flyerKeys = $this->validateFlyerSelection($flyerKeys);
+        $attachments = $this->productFlyers?->loadSelected($flyerKeys) ?? [];
+        $flyerLabels = array_values(array_map('strval', array_column($attachments, 'label')));
+        $email = trim($recipientOverride) !== ''
+            ? trim($recipientOverride)
+            : (string) ($prospect->emailAddress?->getPrimaryAddress($prospect) ?? '');
+        if ($email === '' || filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
+            throw new \RuntimeException('Der Zielkontakt hat keine gültige primäre E-Mail-Adresse.');
+        }
+
+        $templateName = $this->config->requireString('email_template_name');
+        $templateSql = "SELECT id FROM email_templates
+                        WHERE deleted=0 AND name='" . $this->db->quote($templateName) . "'
+                        ORDER BY date_modified DESC LIMIT 1";
+        $templateRow = $this->db->fetchByAssoc($this->db->query($templateSql));
+        $template = \BeanFactory::getBean('EmailTemplates', (string) ($templateRow['id'] ?? ''));
+        if (empty($template->id)) {
+            throw new \RuntimeException(sprintf('Die E-Mail-Vorlage „%s“ wurde nicht gefunden.', $templateName));
+        }
+
+        $replacements = [
+            '$account_name' => (string) ($prospect->account_name ?: $prospect->last_name),
+            '$first_name' => (string) $prospect->first_name,
+            '$last_name' => (string) $prospect->last_name,
+        ];
+        $subject = from_html(strtr((string) $template->subject, $replacements));
+        $bodyHtml = self::decodeStoredHtml(strtr((string) $template->body_html, $replacements));
+        $bodyText = trim(strip_tags(strtr((string) $template->body, $replacements) ?: $bodyHtml));
+        if ($flyerLabels !== []) {
+            $joinedLabels = implode(', ', $flyerLabels);
+            $subject = mb_strlen($joinedLabels, 'UTF-8') <= 120
+                ? 'Ihre Unterlagen: ' . $joinedLabels
+                : 'Ihre ausgewählten Produktinformationen von Anesda Nord';
+            $flyerHtml = '<div style="margin:20px 0;padding:16px;border:1px solid #d8e1e6;'
+                . 'border-left:5px solid #087ea4;background:#f5fafb">'
+                . '<strong>Wie telefonisch besprochen, erhalten Sie folgende Produktunterlagen:</strong><ul><li>'
+                . implode('</li><li>', array_map(
+                    static fn (string $label): string => htmlspecialchars($label, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+                    $flyerLabels
+                ))
+                . '</li></ul></div>';
+            $bodyHtml = str_contains(strtolower($bodyHtml), '</body>')
+                ? preg_replace('~</body>~i', $flyerHtml . '</body>', $bodyHtml, 1) ?? ($bodyHtml . $flyerHtml)
+                : $bodyHtml . $flyerHtml;
+            $bodyText = "Wie telefonisch besprochen, erhalten Sie folgende Produktunterlagen: "
+                . $joinedLabels . ".\n\n" . $bodyText;
+        }
+
+        return [
+            'email' => $email,
+            'subject' => $subject,
+            'body_html' => $bodyHtml,
+            'body_text' => $bodyText,
+            'attachments' => $attachments,
+            'flyer_labels' => $flyerLabels,
+        ];
+    }
+
+    private static function editableTextToHtml(string $bodyText): string
+    {
+        $escaped = htmlspecialchars($bodyText, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+
+        return '<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.6;'
+            . 'color:#17202a;max-width:720px;margin:0 auto">'
+            . nl2br($escaped, false)
+            . '</div>';
     }
 
     /**

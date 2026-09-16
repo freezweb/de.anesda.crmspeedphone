@@ -194,13 +194,14 @@ check(
 
 $flyerService = new ProductFlyerService(__DIR__ . '/../module/copy/custom/CRM/SpeedPhone/assets/flyers');
 $availableFlyers = $flyerService->available();
-check(count($availableFlyers) === 10, 'Es müssen genau zehn versandbereite Produktbroschüren verfügbar sein.');
+check(count($availableFlyers) === 11, 'Es müssen genau elf versandbereite Produktbroschüren verfügbar sein.');
 check(in_array('systemservice', array_column($availableFlyers, 'key'), true), 'Die Produktbroschüre für SystemService vor Ort fehlt.');
 check(in_array('individualentwicklung', array_column($availableFlyers, 'key'), true), 'Die Produktbroschüre für individuelle Software- und Hardwareentwicklung fehlt.');
 check(in_array('epaper_displays', array_column($availableFlyers, 'key'), true), 'Die Produktbroschüre für E-Paper Displays fehlt.');
 check(in_array('maschinenvernetzung', array_column($availableFlyers, 'key'), true), 'Die Produktbroschüre für Maschinenvernetzung und Automatisierung fehlt.');
-$loadedFlyers = $flyerService->loadSelected(['profipos', 'systemservice', 'individualentwicklung', 'epaper_displays', 'maschinenvernetzung']);
-check(count($loadedFlyers) === 5, 'Die ausgewählten Produktbroschüren werden nicht vollständig geladen.');
+check(in_array('glasfaser_telemetrie', array_column($availableFlyers, 'key'), true), 'Der Flyer für Glasfaser, Vernetzung und Telemetrie fehlt.');
+$loadedFlyers = $flyerService->loadSelected(['profipos', 'systemservice', 'individualentwicklung', 'epaper_displays', 'maschinenvernetzung', 'glasfaser_telemetrie']);
+check(count($loadedFlyers) === 6, 'Die ausgewählten Produktbroschüren werden nicht vollständig geladen.');
 check(str_starts_with($loadedFlyers[0]['content'], '%PDF-'), 'Eine Produktbroschüre ist keine gültige PDF-Datei.');
 try {
     $flyerService->validateSelection(['../fremde-datei']);
@@ -288,6 +289,7 @@ check(str_contains($workspace, 'SystemService vor Ort'), 'SystemService vor Ort 
 check(str_contains($workspace, 'Individuelle Software- und Hardwareentwicklung'), 'Individuelle Entwicklung fehlt in der Broschürenauswahl.');
 check(str_contains($workspace, 'E-Paper Displays und digitale Beschilderung'), 'E-Paper Displays fehlen in der Broschürenauswahl.');
 check(str_contains($workspace, 'Maschinenvernetzung &amp; Automatisierung'), 'Maschinenvernetzung und Automatisierung fehlt in der Broschürenauswahl.');
+check(str_contains($workspace, 'Glasfaser, Vernetzung &amp; Telemetrie'), 'Glasfaser, Vernetzung und Telemetrie fehlt in der Broschürenauswahl.');
 check(str_contains($workspace, '3 Werktagen'), 'Die automatische Wiedervorlage nach Broschürenversand wird nicht erklärt.');
 check(preg_match('/name="callback_date"[^>]*value="\d{4}-\d{2}-\d{2}"/', $workspace) === 1, 'Rückrufdatum ist nicht vorbelegt.');
 check(preg_match('/name="callback_date"[^>]*min="\d{4}-\d{2}-\d{2}"/', $workspace) === 1, 'Rückrufdatum verhindert keine vergangenen Tage.');
@@ -510,6 +512,7 @@ check(str_contains($mailWebhookSource, 'ON DUPLICATE KEY UPDATE'), 'Webhook-Vera
 check(str_contains($mailWebhookSource, "'unique_opened'"), 'Eindeutige Öffnungen werden nicht als CRM-Aktivität übernommen.');
 
 $apiSource = file_get_contents(__DIR__ . '/../module/copy/custom/CRM/SpeedPhone/api.php');
+check(str_contains($apiSource, "'compose_email'"), 'API-Aktion für die bearbeitbare E-Mail-Vorschau fehlt.');
 check(str_contains($apiSource, "'dialer_pairing'"), 'API-Aktion zur QR-Kopplung fehlt.');
 check(str_contains($apiSource, "'dialer_call'"), 'API-Aktion zur Handywahl fehlt.');
 check(str_contains($apiSource, "'pbx_call'"), 'API-Aktion zur Festnetz-Wahl fehlt.');
@@ -540,6 +543,9 @@ check(
 );
 
 $javascriptSource = file_get_contents(__DIR__ . '/../module/copy/custom/CRM/SpeedPhone/assets/speedphone.js');
+check(str_contains($javascriptSource, "data.set('operation', 'compose_email')"), 'Browser lädt den E-Mail-Entwurf nicht vor dem Versand.');
+check(str_contains($javascriptSource, "data.set('email_subject', emailDraft.subject)"), 'Bearbeiteter E-Mail-Betreff wird nicht versendet.');
+check(str_contains($javascriptSource, "data.set('email_body', emailDraft.body)"), 'Bearbeiteter E-Mail-Text wird nicht versendet.');
 check(str_contains($javascriptSource, "data.set('operation', 'refresh_current')"), 'Browser fragt keine aktuellen Kontaktdaten per AJAX ab.');
 check(str_contains($javascriptSource, 'LIVE_UPDATE_INTERVAL_MS = 10000'), 'Live-Aktualisierung läuft nicht im vorgesehenen Intervall.');
 check(
@@ -621,6 +627,15 @@ check(
     str_contains($installerSource, 'crm_speedphone_incoming_calls'),
     'Installer legt die UUID-basierte Tabelle für Rückrufereignisse nicht an.'
 );
+check(str_contains($pageSource, 'speedphone-email-compose-dialog'), 'Bearbeitbarer E-Mail-Dialog fehlt.');
+check(str_contains($pageSource, 'data-email-compose-subject'), 'Bearbeitbares Betrefffeld fehlt.');
+check(str_contains($pageSource, 'data-email-compose-body'), 'Bearbeitbares Nachrichtenfeld fehlt.');
+
+$flyerServiceSource = file_get_contents(__DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/ProductFlyerService.php');
+$fiberFlyerPath = __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/assets/flyers/Anesda-Nord-Glasfaser-Vernetzung-und-Telemetrie-Kundenflyer.pdf';
+check(str_contains($flyerServiceSource, "'glasfaser_telemetrie'"), 'Glasfaser-, Vernetzungs- und Telemetrie-Flyer fehlt im Katalog.');
+check(is_file($fiberFlyerPath) && filesize($fiberFlyerPath) > 5, 'Glasfaser-, Vernetzungs- und Telemetrie-Flyer fehlt im Modul.');
+check(str_starts_with((string) file_get_contents($fiberFlyerPath, false, null, 0, 5), '%PDF-'), 'Der neue Flyer ist keine gültige PDF-Datei.');
 check(
     str_contains($installerSource, 'crm_speedphone_pbx_incoming_events')
         && str_contains($installerSource, 'crm_speedphone_pbx_incoming_matches'),

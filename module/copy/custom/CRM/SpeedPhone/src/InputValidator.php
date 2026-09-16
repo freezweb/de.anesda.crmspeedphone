@@ -44,4 +44,30 @@ final class InputValidator
 
         return $value;
     }
+
+    public function emailSubject(string $value): string
+    {
+        $value = trim($value);
+        if ($value === '' || preg_match('/[\r\n]/', $value) === 1) {
+            throw new \InvalidArgumentException('Der E-Mail-Betreff darf nicht leer sein oder Zeilenumbrüche enthalten.');
+        }
+        if (mb_strlen($value, 'UTF-8') > 255) {
+            throw new \InvalidArgumentException('Der E-Mail-Betreff darf höchstens 255 Zeichen lang sein.');
+        }
+
+        return $value;
+    }
+
+    public function emailBody(string $value): string
+    {
+        $value = trim(str_replace(["\r\n", "\r"], "\n", $value));
+        if ($value === '') {
+            throw new \InvalidArgumentException('Der E-Mail-Text darf nicht leer sein.');
+        }
+        if (mb_strlen($value, 'UTF-8') > 20000) {
+            throw new \InvalidArgumentException('Der E-Mail-Text darf höchstens 20.000 Zeichen lang sein.');
+        }
+
+        return $value;
+    }
 }

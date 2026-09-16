@@ -57,6 +57,11 @@ final class ProductFlyerService
             'filename' => 'Anesda-Nord-Maschinenvernetzung-und-Automatisierung-Produktbroschuere.pdf',
             'description' => 'Maschinendaten, sichere Schnittstellen, Visualisierung und automatisierte Abläufe',
         ],
+        'glasfaser_telemetrie' => [
+            'label' => 'Glasfaser, Vernetzung & Telemetrie',
+            'filename' => 'Anesda-Nord-Glasfaser-Vernetzung-und-Telemetrie-Kundenflyer.pdf',
+            'description' => 'LWL-Spleißen, Standortvernetzung, Sensorwerte und Fernüberwachung',
+        ],
     ];
 
     public function __construct(private readonly string $directory)
