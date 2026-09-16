@@ -194,12 +194,13 @@ check(
 
 $flyerService = new ProductFlyerService(__DIR__ . '/../module/copy/custom/CRM/SpeedPhone/assets/flyers');
 $availableFlyers = $flyerService->available();
-check(count($availableFlyers) === 11, 'Es müssen genau elf versandbereite Produktbroschüren verfügbar sein.');
+check(count($availableFlyers) === 12, 'Es müssen genau zwölf versandbereite Produktbroschüren verfügbar sein.');
 check(in_array('systemservice', array_column($availableFlyers, 'key'), true), 'Die Produktbroschüre für SystemService vor Ort fehlt.');
 check(in_array('individualentwicklung', array_column($availableFlyers, 'key'), true), 'Die Produktbroschüre für individuelle Software- und Hardwareentwicklung fehlt.');
 check(in_array('epaper_displays', array_column($availableFlyers, 'key'), true), 'Die Produktbroschüre für E-Paper Displays fehlt.');
 check(in_array('maschinenvernetzung', array_column($availableFlyers, 'key'), true), 'Die Produktbroschüre für Maschinenvernetzung und Automatisierung fehlt.');
 check(in_array('glasfaser_telemetrie', array_column($availableFlyers, 'key'), true), 'Der Flyer für Glasfaser, Vernetzung und Telemetrie fehlt.');
+check(in_array('digitalisierung_e_rechnung', array_column($availableFlyers, 'key'), true), 'Der Flyer für Digitalisierung und E-Rechnung fehlt.');
 $loadedFlyers = $flyerService->loadSelected(['profipos', 'systemservice', 'individualentwicklung', 'epaper_displays', 'maschinenvernetzung', 'glasfaser_telemetrie']);
 check(count($loadedFlyers) === 6, 'Die ausgewählten Produktbroschüren werden nicht vollständig geladen.');
 check(str_starts_with($loadedFlyers[0]['content'], '%PDF-'), 'Eine Produktbroschüre ist keine gültige PDF-Datei.');
@@ -290,6 +291,7 @@ check(str_contains($workspace, 'Individuelle Software- und Hardwareentwicklung')
 check(str_contains($workspace, 'E-Paper Displays und digitale Beschilderung'), 'E-Paper Displays fehlen in der Broschürenauswahl.');
 check(str_contains($workspace, 'Maschinenvernetzung &amp; Automatisierung'), 'Maschinenvernetzung und Automatisierung fehlt in der Broschürenauswahl.');
 check(str_contains($workspace, 'Glasfaser, Vernetzung &amp; Telemetrie'), 'Glasfaser, Vernetzung und Telemetrie fehlt in der Broschürenauswahl.');
+check(str_contains($workspace, 'Digitalisierung &amp; E-Rechnung'), 'Digitalisierung und E-Rechnung fehlt in der Broschürenauswahl.');
 check(str_contains($workspace, '3 Werktagen'), 'Die automatische Wiedervorlage nach Broschürenversand wird nicht erklärt.');
 check(preg_match('/name="callback_date"[^>]*value="\d{4}-\d{2}-\d{2}"/', $workspace) === 1, 'Rückrufdatum ist nicht vorbelegt.');
 check(preg_match('/name="callback_date"[^>]*min="\d{4}-\d{2}-\d{2}"/', $workspace) === 1, 'Rückrufdatum verhindert keine vergangenen Tage.');
@@ -636,6 +638,10 @@ $fiberFlyerPath = __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/assets/flyers
 check(str_contains($flyerServiceSource, "'glasfaser_telemetrie'"), 'Glasfaser-, Vernetzungs- und Telemetrie-Flyer fehlt im Katalog.');
 check(is_file($fiberFlyerPath) && filesize($fiberFlyerPath) > 5, 'Glasfaser-, Vernetzungs- und Telemetrie-Flyer fehlt im Modul.');
 check(str_starts_with((string) file_get_contents($fiberFlyerPath, false, null, 0, 5), '%PDF-'), 'Der neue Flyer ist keine gültige PDF-Datei.');
+$invoiceFlyerPath = __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/assets/flyers/Anesda-Nord-Digitalisierung-und-E-Rechnung-Kundenflyer.pdf';
+check(str_contains($flyerServiceSource, "'digitalisierung_e_rechnung'"), 'Digitalisierung- und E-Rechnungs-Flyer fehlt im Katalog.');
+check(is_file($invoiceFlyerPath) && filesize($invoiceFlyerPath) > 5, 'Digitalisierung- und E-Rechnungs-Flyer fehlt im Modul.');
+check(str_starts_with((string) file_get_contents($invoiceFlyerPath, false, null, 0, 5), '%PDF-'), 'Der Digitalisierung- und E-Rechnungs-Flyer ist keine gültige PDF-Datei.');
 check(
     str_contains($installerSource, 'crm_speedphone_pbx_incoming_events')
         && str_contains($installerSource, 'crm_speedphone_pbx_incoming_matches'),

@@ -62,6 +62,11 @@ final class ProductFlyerService
             'filename' => 'Anesda-Nord-Glasfaser-Vernetzung-und-Telemetrie-Kundenflyer.pdf',
             'description' => 'LWL-Spleißen, Standortvernetzung, Sensorwerte und Fernüberwachung',
         ],
+        'digitalisierung_e_rechnung' => [
+            'label' => 'Digitalisierung & E-Rechnung',
+            'filename' => 'Anesda-Nord-Digitalisierung-und-E-Rechnung-Kundenflyer.pdf',
+            'description' => 'E-Rechnungsfristen, strukturierte Formate und digitale Rechnungsprozesse',
+        ],
     ];
 
     public function __construct(private readonly string $directory)
