@@ -70,9 +70,6 @@ final class IncomingCallService
             }
             $assignments = new AssignmentService($this->config, $this->db, $user, $access);
             $matches = $this->findProspects($phone, $assignments->sqlIncomingAccessCondition());
-            if ($matches === []) {
-                continue;
-            }
             $existingEventId = $this->existingPbxEvent((string) $user->id, $sourceEventId);
             $eventId = $existingEventId ?: $this->guid();
             if ($existingEventId === null) {
@@ -128,11 +125,6 @@ final class IncomingCallService
                 'match_label' => self::matchLabel((string) $match['match_type']),
             ];
         }
-        if ($matches === []) {
-            $this->acknowledgePbxEvent((string) $event['id'], (string) $currentUser->id);
-            return null;
-        }
-
         return [
             'event_id' => (string) $event['id'],
             'caller_phone' => (string) $event['caller_phone'],

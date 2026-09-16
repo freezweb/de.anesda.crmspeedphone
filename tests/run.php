@@ -550,6 +550,7 @@ check(str_contains($javascriptSource, 'currentMain.replaceWith(incomingMain)'), 
 check(str_contains($javascriptSource, 'payload.data.incoming_call'), 'Browser reagiert nicht auf eingehende Rückrufereignisse.');
 check(str_contains($javascriptSource, "incoming_call?.source === 'pbx'"), 'Browser zeigt keinen Auswahlhinweis für eingehende Festnetzanrufe.');
 check(str_contains($javascriptSource, 'data-incoming-prospect'), 'Mehrere mögliche Festnetz-Treffer können nicht einzeln geöffnet werden.');
+check(str_contains($javascriptSource, 'Nummer nicht im CRM gefunden'), 'Unbekannte eingehende Festnetznummern werden nicht sichtbar gemeldet.');
 check(str_contains($javascriptSource, 'storeCurrentDraft'), 'Ein Rückrufwechsel schützt laufende Formulareingaben nicht.');
 check(
     preg_match('/finally\\s*\\{.*?dialButton\\.disabled\\s*=\\s*false;/s', $javascriptSource) === 1,
@@ -628,6 +629,11 @@ check(
 $pbxIncomingEndpoint = file_get_contents(__DIR__ . '/../module/copy/custom/CRM/SpeedPhone/pbx_incoming.php');
 check(str_contains($pbxIncomingEndpoint, 'verifyPbxWebhook'), 'Festnetz-Anrufmeldungen sind nicht signiert geschützt.');
 check(str_contains($pageSource, 'speedphone-incoming-dialog'), 'Kleines Auswahlfenster für eingehende Festnetzanrufe fehlt.');
+$incomingListenerSource = file_get_contents(__DIR__ . '/../infra/freepbx/crm-speedphone-incoming-listener.py');
+check(
+    str_contains($incomingListenerSource, "context.startswith('from-pstn')"),
+    'Vorgeschaltete FreePBX-Eingangskontexte werden vom Listener nicht erkannt.'
+);
 check(
     str_contains($installerSource, 'crm_speedphone_pbx_calls')
         && str_contains($installerSource, "'pbx_extension' =>"),

@@ -748,8 +748,10 @@
     function showIncomingPbx(incoming) {
         const dialog = document.getElementById('speedphone-incoming-dialog');
         const phone = dialog?.querySelector('[data-incoming-phone]');
+        const title = dialog?.querySelector('[data-incoming-title]');
+        const hint = dialog?.querySelector('[data-incoming-hint]');
         const matchesTarget = dialog?.querySelector('[data-incoming-matches]');
-        if (!dialog || !phone || !matchesTarget || !incoming.event_id) {
+        if (!dialog || !phone || !title || !hint || !matchesTarget || !incoming.event_id) {
             return;
         }
         if (dialog.open && dialog.dataset.eventId === incoming.event_id) {
@@ -758,7 +760,12 @@
         dialog.dataset.eventId = incoming.event_id;
         phone.textContent = 'Anrufer: ' + (incoming.caller_phone || 'Nummer nicht übermittelt');
         matchesTarget.replaceChildren();
-        (Array.isArray(incoming.matches) ? incoming.matches : []).forEach(function (match) {
+        const matches = Array.isArray(incoming.matches) ? incoming.matches : [];
+        title.textContent = matches.length > 0 ? 'Passenden Kontakt auswählen' : 'Nummer nicht im CRM gefunden';
+        hint.textContent = matches.length > 0
+            ? 'Die Rufnummer passt zu folgenden Zielkontakten. Wähle den richtigen Betrieb, um ihn reserviert in SpeedPhone zu öffnen.'
+            : 'Der Anruf wurde erkannt, aber diese Rufnummer ist bei keinem freigegebenen CRM-Kontakt hinterlegt.';
+        matches.forEach(function (match) {
             const button = document.createElement('button');
             const title = document.createElement('strong');
             const details = document.createElement('span');

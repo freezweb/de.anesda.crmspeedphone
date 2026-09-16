@@ -7,5 +7,5 @@
   "webhook_secret": "CHANGE_ME",
   "broadcast_extension": "6000",
   "trunk_channel_prefixes": ["PJSIP/WEMAG-"],
-  "incoming_contexts": ["from-pstn", "from-trunk"]
+  "incoming_contexts": ["from-pstn", "from-pstn-telegram", "from-trunk", "ext-did"]
 }

@@ -65,6 +65,16 @@ def post_event(config, phone, event_id):
         return result.get('data', {})
 
 
+def is_incoming_context(context, configured_contexts):
+    """Erkennt auch vorgeschaltete FreePBX-Kontexte wie from-pstn-telegram."""
+    return (
+        context in configured_contexts
+        or context.startswith('from-pstn')
+        or context.startswith('from-trunk')
+        or context == 'ext-did'
+    )
+
+
 def listen(config):
     prefixes = tuple(config.get('trunk_channel_prefixes', []))
     contexts = set(config.get('incoming_contexts', ['from-pstn', 'from-trunk']))
@@ -91,7 +101,7 @@ def listen(config):
                 continue
             channel = frame.get('Channel', '')
             context = frame.get('Context', '')
-            if not channel.startswith(prefixes) or context not in contexts:
+            if not channel.startswith(prefixes) or not is_incoming_context(context, contexts):
                 continue
             phone = frame.get('CallerIDNum', '').strip()
             event_id = (frame.get('Linkedid') or frame.get('Uniqueid') or '').strip()
