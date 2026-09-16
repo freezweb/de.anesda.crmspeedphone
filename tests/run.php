@@ -641,6 +641,19 @@ check(
     str_contains($installerSource, "'module' => 'Home'"),
     'Dashboard-Einstieg darf nicht vom Listenrecht der Zielkontakte abhängen.'
 );
+$dashboardDashletSource = file_get_contents(
+    __DIR__ . '/../module/copy/custom/modules/Home/Dashlets/CRMSpeedPhoneDashlet/CRMSpeedPhoneDashlet.php'
+);
+check(
+    str_contains($dashboardDashletSource, 'incoming_pbx_status')
+        && str_contains($dashboardDashletSource, 'data-speedphone-dashboard-incoming'),
+    'Das CRM-Dashboard meldet eingehende Festnetzanrufe nicht per AJAX.'
+);
+check(
+    str_contains($dashboardDashletSource, 'open_incoming_pbx')
+        && str_contains($dashboardDashletSource, 'prospect_id:match.prospect_id'),
+    'Ein Dashboard-Treffer lässt sich nicht gezielt in SpeedPhone öffnen.'
+);
 
 $speedPhoneViewSource = file_get_contents(
     __DIR__ . '/../module/copy/custom/modules/Prospects/views/view.speedphone.php'

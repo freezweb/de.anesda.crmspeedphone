@@ -159,6 +159,12 @@ try {
         exit;
     }
 
+    if ((string) ($_POST['operation'] ?? '') === 'incoming_pbx_status') {
+        $incoming = (new IncomingCallService($config, $db))->pendingPbxForCurrentUser($current_user);
+        echo json_encode(['success' => true, 'data' => ['incoming_call' => $incoming]], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        exit;
+    }
+
     if ((string) ($_POST['operation'] ?? '') === 'refresh_current') {
         $prospectIdInput = (string) ($_POST['prospect_id'] ?? '');
         $lockToken = (string) ($_POST['lock_token'] ?? '');
