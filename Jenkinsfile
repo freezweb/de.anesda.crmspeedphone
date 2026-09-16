@@ -42,7 +42,7 @@ pipeline {
                         $scp = (Get-Command scp -ErrorAction Stop).Source
                         $target = "${env:LIVE_SSH_USER}@${env:LIVE_HOST}"
                         $testArchive = Join-Path $PWD 'dist\\crm-speedphone-tests.tar.gz'
-                        & tar.exe -czf $testArchive module tests
+                        & tar.exe -czf $testArchive module tests infra/freepbx
                         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
                         & $scp -i $env:LIVE_SSH_KEY -o StrictHostKeyChecking=no `
                             $testArchive "${target}:/tmp/crm-speedphone-tests.tar.gz"
