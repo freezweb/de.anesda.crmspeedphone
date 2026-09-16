@@ -178,12 +178,13 @@ check(
 
 $flyerService = new ProductFlyerService(__DIR__ . '/../module/copy/custom/CRM/SpeedPhone/assets/flyers');
 $availableFlyers = $flyerService->available();
-check(count($availableFlyers) === 9, 'Es müssen genau neun versandbereite Produktbroschüren verfügbar sein.');
+check(count($availableFlyers) === 10, 'Es müssen genau zehn versandbereite Produktbroschüren verfügbar sein.');
 check(in_array('systemservice', array_column($availableFlyers, 'key'), true), 'Die Produktbroschüre für SystemService vor Ort fehlt.');
 check(in_array('individualentwicklung', array_column($availableFlyers, 'key'), true), 'Die Produktbroschüre für individuelle Software- und Hardwareentwicklung fehlt.');
 check(in_array('epaper_displays', array_column($availableFlyers, 'key'), true), 'Die Produktbroschüre für E-Paper Displays fehlt.');
-$loadedFlyers = $flyerService->loadSelected(['profipos', 'systemservice', 'individualentwicklung', 'epaper_displays']);
-check(count($loadedFlyers) === 4, 'Die ausgewählten Produktbroschüren werden nicht vollständig geladen.');
+check(in_array('maschinenvernetzung', array_column($availableFlyers, 'key'), true), 'Die Produktbroschüre für Maschinenvernetzung und Automatisierung fehlt.');
+$loadedFlyers = $flyerService->loadSelected(['profipos', 'systemservice', 'individualentwicklung', 'epaper_displays', 'maschinenvernetzung']);
+check(count($loadedFlyers) === 5, 'Die ausgewählten Produktbroschüren werden nicht vollständig geladen.');
 check(str_starts_with($loadedFlyers[0]['content'], '%PDF-'), 'Eine Produktbroschüre ist keine gültige PDF-Datei.');
 try {
     $flyerService->validateSelection(['../fremde-datei']);
@@ -215,6 +216,8 @@ $workspace = speedPhoneRenderWorkspace([
     'reasons' => ['Passende Unternehmensart'],
     'speedphone_attempts' => 1,
     'sent_emails' => [[
+        'id' => '12fc6200-da8e-47a5-9fc8-3b30e8451099',
+        'kind' => 'direct',
         'subject' => 'Informationsmail',
         'recipient' => 'info@example.org',
         'sent_at' => '2026-07-21 08:00:00',
@@ -261,12 +264,14 @@ check(str_contains($workspace, 'LinkedIn-Ansprechpartner'), 'LinkedIn-Ansprechpa
 check(str_contains($workspace, 'Erika Beispiel'), 'Ein gefundener LinkedIn-Ansprechpartner wird nicht angezeigt.');
 check(str_contains($workspace, '90 % Treffer'), 'Die Zuordnungssicherheit eines LinkedIn-Profils fehlt.');
 check(str_contains($workspace, 'info@example.org'), 'Empfängeradresse fehlt in der E-Mail-Historie.');
+check(str_contains($workspace, 'data-speedphone-email-preview'), 'E-Mail-Inhalte lassen sich in der Historie nicht öffnen.');
 check(str_contains($workspace, 'value="send_flyers"'), 'Aktion zum Versand ausgewählter Produktunterlagen mit Wiedervorlage fehlt.');
 check(str_contains($workspace, 'name="flyers[]"'), 'Auswahl der Produktbroschüren fehlt.');
 check(str_contains($workspace, 'ProduktionsBuddy'), 'ProduktionsBuddy fehlt in der Broschürenauswahl.');
 check(str_contains($workspace, 'SystemService vor Ort'), 'SystemService vor Ort fehlt in der Broschürenauswahl.');
 check(str_contains($workspace, 'Individuelle Software- und Hardwareentwicklung'), 'Individuelle Entwicklung fehlt in der Broschürenauswahl.');
 check(str_contains($workspace, 'E-Paper Displays und digitale Beschilderung'), 'E-Paper Displays fehlen in der Broschürenauswahl.');
+check(str_contains($workspace, 'Maschinenvernetzung &amp; Automatisierung'), 'Maschinenvernetzung und Automatisierung fehlt in der Broschürenauswahl.');
 check(str_contains($workspace, '3 Werktagen'), 'Die automatische Wiedervorlage nach Broschürenversand wird nicht erklärt.');
 check(preg_match('/name="callback_date"[^>]*value="\d{4}-\d{2}-\d{2}"/', $workspace) === 1, 'Rückrufdatum ist nicht vorbelegt.');
 check(preg_match('/name="callback_date"[^>]*min="\d{4}-\d{2}-\d{2}"/', $workspace) === 1, 'Rückrufdatum verhindert keine vergangenen Tage.');
@@ -282,8 +287,17 @@ check(str_contains($workspace, 'Kontaktverlauf'), 'Nachvollziehbarer Kontaktverl
 check(str_contains($workspace, 'Max Mustermann'), 'Anrufender Mitarbeiter fehlt im Kontaktverlauf.');
 check(str_contains($workspace, 'data-speedphone-live-status'), 'Sichtbarer Status der Live-Reservierung fehlt.');
 check(speedPhoneResultLabel('not_reached') === 'Nicht erreicht', 'Anrufergebnis wird nicht lesbar übersetzt.');
+check(
+    Anesda\CRM\SpeedPhone\QueueService::emailPreviewText('<p>Hallo&nbsp;Welt</p><script>alert(1)</script>') === "Hallo Welt\nalert(1)",
+    'Die E-Mail-Vorschau muss HTML ohne aktive Darstellung in lesbaren Text umwandeln.'
+);
 
 $emailServiceSource = file_get_contents(__DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/EmailService.php');
+$emailApiSource = file_get_contents(__DIR__ . '/../module/copy/custom/CRM/SpeedPhone/api.php');
+$speedPhoneJsSource = file_get_contents(__DIR__ . '/../module/copy/custom/CRM/SpeedPhone/assets/speedphone.js');
+check(str_contains($emailApiSource, "operation'] ?? '') === 'email_preview'"), 'API-Endpunkt für die E-Mail-Vorschau fehlt.');
+check(str_contains($emailApiSource, 'assertOwned($prospectId'), 'Die E-Mail-Vorschau muss die aktuelle Kontaktreservierung prüfen.');
+check(str_contains($speedPhoneJsSource, 'body.textContent = payload.data.body'), 'E-Mail-Inhalte dürfen nicht als aktives HTML in die Oberfläche gelangen.');
 check(str_contains($workspace, 'data-speedphone-dialer-call="work"'), 'Schaltfläche zum Anruf über das gekoppelte Handy fehlt.');
 check(!str_contains($workspace, 'data-speedphone-dialer-call="work" disabled'), 'Handywahl bleibt trotz empfangsbereitem Gerät gesperrt.');
 check(str_contains($workspace, 'data-speedphone-pbx-call="work"'), 'Schaltfläche zum Anruf über die Telefonanlage fehlt.');

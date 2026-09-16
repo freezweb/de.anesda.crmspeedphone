@@ -190,6 +190,18 @@ try {
         exit;
     }
 
+    if ((string) ($_POST['operation'] ?? '') === 'email_preview') {
+        $validator = new InputValidator();
+        $prospectId = $validator->uuid((string) ($_POST['prospect_id'] ?? ''));
+        $emailId = $validator->uuid((string) ($_POST['email_id'] ?? ''));
+        $lockService->assertOwned($prospectId, (string) ($_POST['lock_token'] ?? ''));
+        echo json_encode([
+            'success' => true,
+            'data' => $queue->getEmailPreview($prospectId, $emailId, (string) ($_POST['email_kind'] ?? '')),
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        exit;
+    }
+
     $emailService = new EmailService($config, $db, $current_user, $productFlyerService);
     if ((string) ($_POST['operation'] ?? '') === 'resend_email') {
         $validator = new InputValidator();

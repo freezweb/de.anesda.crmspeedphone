@@ -169,10 +169,15 @@
                 <?php else: ?>
                     <?php foreach ($candidate['sent_emails'] as $sentEmail): ?>
                         <article class="email-history__item">
-                            <div>
+                            <button type="button" class="email-history__open"
+                                    data-speedphone-email-preview
+                                    data-email-id="<?= speedPhoneEscape((string) $sentEmail['id']) ?>"
+                                    data-email-kind="<?= speedPhoneEscape((string) $sentEmail['kind']) ?>"
+                                    aria-haspopup="dialog" title="E-Mail-Inhalt anzeigen">
                                 <strong><?= speedPhoneEscape($sentEmail['subject']) ?></strong>
                                 <span>An: <?= speedPhoneEscape($sentEmail['recipient']) ?></span>
-                            </div>
+                                <small>Inhalt anzeigen</small>
+                            </button>
                             <div class="email-history__meta">
                                 <time datetime="<?= speedPhoneEscape($sentEmail['sent_at']) ?>"><?= speedPhoneEscape(speedPhoneDateTime($sentEmail['sent_at'], $userTimezone)) ?> Uhr</time>
                                 <span><?= speedPhoneEscape($sentEmail['source']) ?></span>

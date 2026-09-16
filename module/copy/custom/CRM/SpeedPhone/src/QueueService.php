@@ -469,6 +469,65 @@ final class QueueService
         return array_slice($emails, 0, 10);
     }
 
+    public function getEmailPreview(string $prospectId, string $emailId, string $kind): array
+    {
+        if (!$this->canEditProspect($prospectId)) {
+            throw new \RuntimeException('Kein Zugriff auf diesen Zielkontakt.');
+        }
+
+        $prospect = $this->db->quote($prospectId);
+        $email = $this->db->quote($emailId);
+        if ($kind === 'direct') {
+            $sql = "SELECT COALESCE(NULLIF(e.name,''),'E-Mail ohne Betreff') subject,
+                           COALESCE(e.date_sent_received,e.date_entered) sent_at,
+                           COALESCE(et.to_addrs,'') recipient,
+                           COALESCE(NULLIF(et.description,''),et.description_html,'') body
+                    FROM emails e
+                    INNER JOIN emails_text et ON et.email_id=e.id AND et.deleted=0
+                    WHERE e.id='{$email}' AND e.deleted=0 AND e.type='out' AND e.status='sent'
+                      AND ((e.parent_type='Prospects' AND e.parent_id='{$prospect}')
+                           OR EXISTS (SELECT 1 FROM emails_beans eb
+                                      WHERE eb.email_id=e.id AND eb.deleted=0
+                                        AND eb.bean_module='Prospects' AND eb.bean_id='{$prospect}'))
+                    LIMIT 1";
+        } elseif ($kind === 'campaign') {
+            $sql = "SELECT COALESCE(NULLIF(et.subject,''),NULLIF(em.name,''),NULLIF(c.name,''),'Kampagnenmail') subject,
+                           cl.activity_date sent_at,
+                           COALESCE(cl.more_information,'') recipient,
+                           COALESCE(NULLIF(et.body,''),et.body_html,'') body
+                    FROM campaign_log cl
+                    LEFT JOIN campaigns c ON c.id=cl.campaign_id AND c.deleted=0
+                    LEFT JOIN email_marketing em ON em.id=cl.marketing_id AND em.deleted=0
+                    LEFT JOIN email_templates et ON et.id=em.template_id AND et.deleted=0
+                    WHERE cl.id='{$email}' AND cl.deleted=0 AND cl.target_type='Prospects'
+                      AND cl.target_id='{$prospect}' AND cl.activity_type='targeted'
+                    LIMIT 1";
+        } else {
+            throw new \InvalidArgumentException('Unbekannte E-Mail-Quelle.');
+        }
+
+        $row = $this->db->fetchByAssoc($this->db->query($sql));
+        if (!is_array($row)) {
+            throw new \RuntimeException('Die E-Mail wurde für diesen Kontakt nicht gefunden.');
+        }
+        $row['recipient'] = $this->normalizeRecipients((string) $row['recipient']);
+        $row['body'] = self::emailPreviewText((string) $row['body']);
+
+        return $row;
+    }
+
+    public static function emailPreviewText(string $value): string
+    {
+        $value = preg_replace('~<(?:br|/p|/div|/li|/tr|/h[1-6])\b[^>]*>~iu', "\n", $value) ?? $value;
+        $value = html_entity_decode(strip_tags($value), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $value = str_replace(["\r\n", "\r", "\u{00A0}"], ["\n", "\n", ' '], $value);
+        $value = preg_replace('/[ \t]+/u', ' ', $value) ?? $value;
+        $value = preg_replace('/ *\n */u', "\n", $value) ?? $value;
+        $value = preg_replace('/\n{3,}/u', "\n\n", $value) ?? $value;
+
+        return mb_substr(trim($value), 0, 100000);
+    }
+
     private function fetchRows(string $sql, string $kind): array
     {
         $result = $this->db->query($sql);

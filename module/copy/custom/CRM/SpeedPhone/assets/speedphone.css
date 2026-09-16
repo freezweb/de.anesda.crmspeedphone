@@ -56,10 +56,26 @@
 .speedphone .email-history__heading > span, .speedphone .email-history__empty { color: var(--sp-muted); font-size: 13px; }
 .speedphone .email-history__item { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; padding: 13px 0; border-bottom: 1px solid #edf1f4; }
 .speedphone .email-history__item:last-child { border-bottom: 0; }
-.speedphone .email-history__item strong, .speedphone .email-history__item > div:first-child > span { display: block; overflow-wrap: anywhere; }
-.speedphone .email-history__item > div:first-child > span { color: var(--sp-muted); font-size: 13px; margin-top: 4px; }
+.speedphone .email-history__item strong, .speedphone .email-history__open > span { display: block; overflow-wrap: anywhere; }
+.speedphone .email-history__open { appearance: none; border: 0; border-radius: 9px; background: transparent; color: inherit; cursor: pointer; font: inherit; padding: 5px 7px; text-align: left; width: 100%; }
+.speedphone .email-history__open:hover { background: #edf6f8; }
+.speedphone .email-history__open:focus-visible { outline: 3px solid rgba(21, 94, 117, .22); }
+.speedphone .email-history__open > span { color: var(--sp-muted); font-size: 13px; margin-top: 4px; }
+.speedphone .email-history__open small { color: var(--sp-brand); display: block; font-size: 12px; font-weight: 750; margin-top: 5px; }
 .speedphone .email-history__meta { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; color: var(--sp-muted); font-size: 12px; white-space: nowrap; }
 .speedphone .email-history__signal { background: #e6f6ee; color: var(--sp-success); border-radius: 999px; padding: 3px 7px; font-weight: 700; }
+.speedphone .email-preview { border: 0; border-radius: 18px; box-shadow: 0 24px 80px rgba(10, 30, 45, .3); color: var(--sp-ink); max-height: min(84vh, 850px); padding: 0; width: min(760px, calc(100vw - 32px)); }
+.speedphone .email-preview::backdrop { background: rgba(8, 30, 43, .55); }
+.speedphone .email-preview__header { align-items: flex-start; background: var(--sp-bg); border-bottom: 1px solid var(--sp-border); display: flex; justify-content: space-between; padding: 20px 22px; }
+.speedphone .email-preview__header span { color: var(--sp-brand); font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+.speedphone .email-preview__header h2 { font-size: 21px; margin: 4px 0 0; overflow-wrap: anywhere; }
+.speedphone .email-preview__close { background: transparent; border: 0; color: var(--sp-muted); cursor: pointer; font-size: 31px; line-height: 1; padding: 0 4px; }
+.speedphone .email-preview__meta { display: grid; gap: 8px; grid-template-columns: 1fr 1fr; margin: 0; padding: 18px 22px 8px; }
+.speedphone .email-preview__meta div { min-width: 0; }
+.speedphone .email-preview__meta dt { color: var(--sp-muted); font-size: 11px; font-weight: 700; text-transform: uppercase; }
+.speedphone .email-preview__meta dd { margin: 2px 0 0; overflow-wrap: anywhere; }
+.speedphone .email-preview__privacy { background: #fff8df; color: #5b4500; font-size: 12px; margin: 8px 22px; padding: 9px 11px; }
+.speedphone .email-preview pre { background: #fff; border: 1px solid var(--sp-border); border-radius: 10px; font-family: inherit; font-size: 14px; line-height: 1.55; margin: 14px 22px 22px; max-height: 52vh; overflow: auto; padding: 18px; white-space: pre-wrap; word-break: break-word; }
 .speedphone .history { margin-top: 22px; border-top: 1px solid var(--sp-border); padding-top: 16px; }
 .speedphone .history__heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
 .speedphone .history__heading h3 { margin: 0; font-size: 16px; }
@@ -194,6 +210,8 @@
     .speedphone .contact-grid, .speedphone .field-row, .speedphone .actions { grid-template-columns: 1fr; }
     .speedphone .email-history__item { grid-template-columns: 1fr; }
     .speedphone .email-history__meta { align-items: flex-start; white-space: normal; }
+    .speedphone .email-preview__meta { grid-template-columns: 1fr; }
+    .speedphone .email-preview__header, .speedphone .email-preview pre { margin-left: 0; margin-right: 0; }
     .speedphone .candidate__main, .speedphone .quick-form { padding: 17px; }
     .speedphone .linkedin-contacts__footer small { text-align: left; }
     .speedphone .call-launcher__method { align-items: flex-start; flex-direction: column; }

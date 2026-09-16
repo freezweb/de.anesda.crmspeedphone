@@ -54,7 +54,7 @@ CRM SpeedPhone ist eine schnelle, abarbeitbare Telefonakquise-Warteschlange für
 - vorhandene Kampagnensignale wie Link-Klick und E-Mail-Öffnung als nachvollziehbare Priorisierung
 - signierte, idempotente Webhooks der eigenen Anesda-Mailplattform für Zustellung, Bounce, Beschwerde, Öffnung, Klick und Abmeldung
 - automatische Kennzeichnung ungültiger oder abgemeldeter Adressen aus der eigenen Zustellkette
-- chronologische Liste gesendeter Direkt- und Kampagnenmails mit Datum, Uhrzeit, Empfängeradresse und Betreff direkt am aktuellen Kontakt
+- chronologische Liste gesendeter Direkt- und Kampagnenmails mit Datum, Uhrzeit, Empfängeradresse und Betreff direkt am aktuellen Kontakt; ein Klick öffnet den protokollierten Inhalt in einer trackinggeschützten Vorschau
 - Kontaktwechsel und aktualisierte Kennzahlen per AJAX ohne vollständiges Neuladen der Seite
 - beliebig wiederholbare Handywahl für denselben Kontakt, etwa wenn besetzt war oder ein Anruf neu gestartet werden muss
 - Festnetz-Click-to-Call über Asterisk/FreePBX: zuerst klingelt die persönliche Mitarbeiter-Durchwahl, nach dem Abheben wird die Zielrufnummer aufgebaut
@@ -67,7 +67,7 @@ CRM SpeedPhone ist eine schnelle, abarbeitbare Telefonakquise-Warteschlange für
 - Android startet den Anruf nach erteilter Telefonberechtigung direkt; iOS zeigt die systembedingt vorgeschriebene Anrufbestätigung
 - Schnellaktionen für „nicht erreicht“, „Rückruf“, „kein Interesse“, „Interesse“, „falsche Nummer“ und „nicht mehr kontaktieren“
 - eigene Aktion „E-Mail jetzt senden + wieder anrufen“, die den Kontakt offen lässt und keinen Interessentenstatus setzt
-- neun mehrseitige Anesda-Produktbroschüren direkt im Gespräch auswählbar: ProfiPOS, ReservierFix, Transparent Laden, Druckfluss, ProduktionsBuddy, Kundenportal, SystemService vor Ort, individuelle Software- und Hardwareentwicklung sowie E-Paper Displays und digitale Beschilderung
+- zehn mehrseitige Anesda-Produktbroschüren direkt im Gespräch auswählbar: ProfiPOS, ReservierFix, Transparent Laden, Druckfluss, ProduktionsBuddy, Kundenportal, SystemService vor Ort, individuelle Software- und Hardwareentwicklung, E-Paper Displays und digitale Beschilderung sowie Maschinenvernetzung und Automatisierung
 - Aktion „Flyer senden + automatisch nachfassen“: hängt ausschließlich die angekreuzten Broschüren an, protokolliert Empfänger, Betreff und ausgewählte Unterlagen als reguläre SuiteCRM-E-Mail und legt den Kontakt automatisch nach der konfigurierten Zahl von Werktagen erneut vor
 - jeder Kontaktversuch wird als regulärer SuiteCRM-Anruf protokolliert
 - automatische Wiedervorlage mit zunehmenden Abständen

@@ -52,6 +52,11 @@ final class ProductFlyerService
             'filename' => 'Anesda-Nord-E-Paper-Displays-Produktbroschuere.pdf',
             'description' => 'Flexible Anzeigen in verschiedenen Größen und Farbvarianten',
         ],
+        'maschinenvernetzung' => [
+            'label' => 'Maschinenvernetzung & Automatisierung',
+            'filename' => 'Anesda-Nord-Maschinenvernetzung-und-Automatisierung-Produktbroschuere.pdf',
+            'description' => 'Maschinendaten, sichere Schnittstellen, Visualisierung und automatisierte Abläufe',
+        ],
     ];
 
     public function __construct(private readonly string $directory)

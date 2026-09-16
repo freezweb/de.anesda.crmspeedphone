@@ -121,6 +121,46 @@
     });
 
     root.addEventListener('click', async function (event) {
+        const emailPreviewButton = event.target.closest('[data-speedphone-email-preview]');
+        if (emailPreviewButton) {
+            const form = document.getElementById('speedphone-form');
+            const dialog = document.getElementById('speedphone-email-dialog');
+            if (!form || !dialog) {
+                return;
+            }
+            const title = dialog.querySelector('#speedphone-email-dialog-title');
+            const recipient = dialog.querySelector('[data-email-preview-recipient]');
+            const sentAt = dialog.querySelector('[data-email-preview-date]');
+            const body = dialog.querySelector('[data-email-preview-body]');
+            title.textContent = 'E-Mail wird geladen …';
+            recipient.textContent = '–';
+            sentAt.textContent = '–';
+            body.textContent = 'Inhalt wird geladen …';
+            if (typeof dialog.showModal === 'function') {
+                dialog.showModal();
+            } else {
+                dialog.setAttribute('open', '');
+            }
+            const data = new FormData();
+            data.set('operation', 'email_preview');
+            data.set('prospect_id', form.elements.prospect_id.value);
+            data.set('lock_token', form.elements.lock_token.value);
+            data.set('email_id', emailPreviewButton.dataset.emailId || '');
+            data.set('email_kind', emailPreviewButton.dataset.emailKind || '');
+            data.set('csrf', root.dataset.csrf);
+            try {
+                const payload = await request(data);
+                title.textContent = payload.data.subject || 'E-Mail ohne Betreff';
+                recipient.textContent = payload.data.recipient || 'Adresse nicht protokolliert';
+                sentAt.textContent = formatEmailPreviewDate(payload.data.sent_at);
+                body.textContent = payload.data.body || 'Für diese E-Mail ist kein Inhalt protokolliert.';
+            } catch (error) {
+                body.textContent = error.message || String(error);
+                showMessage(body.textContent, true);
+            }
+            return;
+        }
+
         const dialerToggle = event.target.closest('[data-speedphone-dialer-toggle]');
         if (dialerToggle) {
             const panel = document.getElementById('speedphone-dialer-panel');
@@ -406,6 +446,17 @@
         }
 
         return payload;
+    }
+
+    function formatEmailPreviewDate(value) {
+        const date = new Date(String(value || '').replace(' ', 'T') + 'Z');
+        if (Number.isNaN(date.getTime())) {
+            return value || 'Nicht protokolliert';
+        }
+        return date.toLocaleString('de-DE', {
+            day: '2-digit', month: '2-digit', year: 'numeric',
+            hour: '2-digit', minute: '2-digit'
+        }) + ' Uhr';
     }
 
     async function loadPairingCode() {
