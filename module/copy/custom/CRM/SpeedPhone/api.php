@@ -44,6 +44,16 @@ try {
     $lockService = new LockService($config, $db, $current_user);
     $queue = new QueueService($config, $db, $current_user, $lockService, $accessService, $assignmentService);
     $queue->assertUserAllowed();
+    if ((string) ($_POST['operation'] ?? '') === 'call_history') {
+        $history = (new Anesda\CRM\SpeedPhone\CallHistoryService($config, $db, $current_user, $accessService, $assignmentService))->list($_POST);
+        $userTimezone = (string) ($current_user->getPreference('timezone') ?: 'Europe/Berlin');
+        ob_start();
+        require __DIR__ . '/call_history_report.php';
+        $html = ob_get_clean();
+        echo json_encode(['success'=>true,'data'=>['report_html'=>$html,'page'=>$history['page'],
+            'total'=>$history['total'],'pages'=>$history['pages']]],JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        exit;
+    }
     if ((string) ($_POST['operation'] ?? '') === 'team_statistics') {
         $report = (new Anesda\CRM\SpeedPhone\TeamStatisticsService($config, $db, $accessService))->report(
             (string) ($_POST['period'] ?? '7days'), (string) ($_POST['start'] ?? ''),
@@ -156,6 +166,27 @@ try {
         $prospectId = $validator->uuid((string) ($_POST['prospect_id'] ?? ''));
         $lock = $lockService->heartbeat($prospectId, (string) ($_POST['lock_token'] ?? ''));
         echo json_encode(['success' => true, 'data' => ['expires_at' => $lock['expires_at']]], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+    if ((string) ($_POST['operation'] ?? '') === 'open_call_history') {
+        $historyService = new Anesda\CRM\SpeedPhone\CallHistoryService($config, $db, $current_user, $accessService, $assignmentService);
+        $prospectId = $historyService->prospectIdForCall((string) ($_POST['call_id'] ?? ''));
+        if (!$queue->canEditProspect($prospectId) || !ACLController::checkAccess('Prospects', 'edit', true)) {
+            throw new RuntimeException('Dieser Kontakt ist für dich nicht zur Bearbeitung freigegeben oder für Anrufe gesperrt.');
+        }
+        $candidate = $queue->openCandidateById($prospectId, false);
+        if ($candidate === null) {
+            throw new RuntimeException('Der Kontakt ist gerade bei einem anderen Mitarbeiter reserviert oder nicht mehr verfügbar.');
+        }
+        $userTimezone = (string) ($current_user->getPreference('timezone') ?: 'Europe/Berlin');
+        echo json_encode(['success'=>true,'data'=>[
+            'workspace_html'=>speedPhoneRenderWorkspace($candidate, $userTimezone,
+                (int) $config->get('default_callback_days',7),$dialerService->listDevices(),$pbxService->status(),
+                $productFlyerService->available(),(int) $config->get('flyer_followup_business_days',3)),
+            'statistics'=>$queue->getStatistics(),'expires_at'=>$candidate['lock_expires_at'] ?? null,
+            'display_name'=>$candidate['name'] ?? '',
+        ]],JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         exit;
     }
 

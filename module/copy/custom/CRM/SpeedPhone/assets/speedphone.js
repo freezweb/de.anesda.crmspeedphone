@@ -20,6 +20,10 @@
     let teamStatisticsInFlight = false;
     let teamStatisticsRequest = 0;
     let teamStatisticsTimer = null;
+    let callHistoryPage = 1;
+    let callHistoryInFlight = false;
+    let callHistoryRequest = 0;
+    let historyOpenInFlight = false;
     startTeamStatisticsUpdates();
     window.addEventListener('pagehide', stopTeamStatisticsUpdates);
     window.addEventListener('pageshow', startTeamStatisticsUpdates);
@@ -35,6 +39,12 @@
     window.addEventListener('pageshow', startLiveUpdates);
 
     root.addEventListener('submit', async function (event) {
+        if (event.target.id === 'speedphone-call-history-filter') {
+            event.preventDefault();
+            callHistoryPage = 1;
+            await refreshCallHistory(true);
+            return;
+        }
         if (event.target.id === 'team-statistics-filter') {
             event.preventDefault();
             await refreshTeamStatistics(true);
@@ -131,6 +141,52 @@
     });
 
     root.addEventListener('click', async function (event) {
+        const historyToggle = event.target.closest('[data-call-history-toggle]');
+        if (historyToggle) {
+            const panel = document.getElementById('speedphone-call-history');
+            panel.hidden = !panel.hidden;
+            historyToggle.setAttribute('aria-expanded', String(!panel.hidden));
+            if (!panel.hidden) { await refreshCallHistory(true); panel.scrollIntoView({behavior:'smooth',block:'start'}); }
+            return;
+        }
+        const historyPageButton = event.target.closest('[data-history-page]');
+        if (historyPageButton) {
+            callHistoryPage = Number(historyPageButton.dataset.historyPage) || 1;
+            await refreshCallHistory(true);
+            return;
+        }
+        const historyOpen = event.target.closest('[data-speedphone-history-open]');
+        if (historyOpen) {
+            if (historyOpenInFlight) { return; }
+            const currentForm = document.getElementById('speedphone-form');
+            if (currentForm?.classList.contains('is-busy')) { return; }
+            const data = new FormData();
+            data.set('operation','open_call_history');
+            data.set('call_id',historyOpen.dataset.speedphoneHistoryOpen);
+            data.set('csrf',root.dataset.csrf);
+            historyOpenInFlight = true;
+            historyOpen.disabled = true;
+            storeCurrentDraft(currentForm);
+            if (currentForm) { setBusy(currentForm,true); }
+            try {
+                const payload = await request(data);
+                workspace.innerHTML = payload.data.workspace_html;
+                restoreDraft(document.getElementById('speedphone-form'));
+                updateStatistics(payload.data.statistics || {});
+                updateLiveStatus(payload.data.expires_at);
+                startLiveUpdates();
+                workspace.scrollIntoView({behavior:'smooth',block:'start'});
+                showMessage((payload.data.display_name || 'Kontakt') + ' wurde wieder in SpeedPhone geöffnet. Es wurde noch kein Anruf gestartet.',false);
+                refreshCallHistory(true);
+            } catch (error) {
+                showMessage(error.message || String(error),true);
+            } finally {
+                historyOpenInFlight = false;
+                historyOpen.disabled = false;
+                if (currentForm && document.body.contains(currentForm)) { setBusy(currentForm,false); }
+            }
+            return;
+        }
         const statisticsToggle = event.target.closest('[data-team-statistics-toggle]');
         if (statisticsToggle) {
             const panel = document.getElementById('speedphone-team-statistics');
@@ -974,6 +1030,14 @@
     }
 
     root.addEventListener('change', function (event) {
+        const historyFilter = event.target.closest('#speedphone-call-history-filter');
+        if (historyFilter) {
+            if (event.target.name === 'search') { return; }
+            if (event.target.name === 'start' || event.target.name === 'end') { historyFilter.elements.period.value = 'custom'; }
+            callHistoryPage = 1;
+            refreshCallHistory(true);
+            return;
+        }
         const filter = event.target.closest('#team-statistics-filter');
         if (!filter) { return; }
         if (event.target.name === 'start' || event.target.name === 'end') {
@@ -995,7 +1059,46 @@
         teamStatisticsTimer = window.setInterval(function () {
             if (!document.body.contains(root)) { stopTeamStatisticsUpdates(); return; }
             refreshTeamStatistics();
+            refreshCallHistory();
         }, 30000);
+    }
+
+    async function refreshCallHistory(force = false) {
+        const panel = document.getElementById('speedphone-call-history');
+        const filter = document.getElementById('speedphone-call-history-filter');
+        if (!panel || panel.hidden || !filter || (!force && (callHistoryInFlight || historyOpenInFlight || filter.contains(document.activeElement)))) { return; }
+        const sequence = ++callHistoryRequest;
+        const status = panel.querySelector('[data-call-history-status]');
+        const data = new FormData(filter);
+        data.set('operation','call_history'); data.set('page',String(callHistoryPage)); data.set('csrf',root.dataset.csrf);
+        if (data.get('period') === 'custom' && (!data.get('start') || !data.get('end'))) {
+            callHistoryInFlight = false;
+            panel.setAttribute('aria-busy','false');
+            status.textContent = 'Bitte Beginn und Ende des Zeitraums angeben.'; return;
+        }
+        callHistoryInFlight = true;
+        panel.setAttribute('aria-busy','true');
+        status.textContent = 'Anrufliste wird geladen …';
+        try {
+            const payload = await request(data);
+            if (sequence !== callHistoryRequest) { return; }
+            const target = panel.querySelector('[data-call-history-report]');
+            const openNotes = Array.from(target.querySelectorAll('details[open]'),element=>element.dataset.historyNote);
+            const scroll = target.querySelector('.team-report__table-scroll')?.scrollLeft || 0;
+            target.innerHTML = payload.data.report_html;
+            target.querySelectorAll('details').forEach(function (element) { element.open = openNotes.includes(element.dataset.historyNote); });
+            const tableScroll = target.querySelector('.team-report__table-scroll');
+            if (tableScroll) { tableScroll.scrollLeft = scroll; }
+            callHistoryPage = payload.data.page;
+            status.textContent = 'Aktuell · automatische Aktualisierung alle 30 Sekunden.';
+            status.classList.remove('team-statistics__error');
+        } catch (error) {
+            if (sequence !== callHistoryRequest) { return; }
+            status.textContent = 'Anrufliste nicht aktualisiert: ' + (error.message || String(error));
+            status.classList.add('team-statistics__error');
+        } finally {
+            if (sequence === callHistoryRequest) { callHistoryInFlight = false; panel.setAttribute('aria-busy','false'); }
+        }
     }
 
     async function refreshTeamStatistics(force = false) {

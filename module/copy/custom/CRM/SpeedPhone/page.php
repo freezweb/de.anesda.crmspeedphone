@@ -76,7 +76,7 @@ $assetBase = $legacyBase . '/custom/CRM/SpeedPhone/assets';
 $userTimezone = (string) ($current_user->getPreference('timezone') ?: 'Europe/Berlin');
 
 ?>
-<link rel="stylesheet" href="<?= speedPhoneEscape($assetBase) ?>/speedphone.css?v=1.20.1">
+<link rel="stylesheet" href="<?= speedPhoneEscape($assetBase) ?>/speedphone.css?v=1.21.0">
 <main class="speedphone" data-api-url="index.php?entryPoint=crmSpeedPhoneApi" data-csrf="<?= speedPhoneEscape($_SESSION['crm_speedphone_csrf']) ?>">
     <header class="speedphone__header">
         <div>
@@ -89,6 +89,7 @@ $userTimezone = (string) ($current_user->getPreference('timezone') ?: 'Europe/Be
             </p>
         </div>
         <div class="speedphone__header-actions">
+            <button type="button" class="button button--secondary" data-call-history-toggle aria-expanded="false" aria-controls="speedphone-call-history">Bisherige Anrufe</button>
             <button type="button" class="button button--secondary" data-team-statistics-toggle aria-expanded="false" aria-controls="speedphone-team-statistics">Teamstatistik</button>
             <button type="button" class="button button--secondary" data-speedphone-dialer-toggle aria-expanded="false">
                 Handy koppeln
@@ -123,6 +124,20 @@ $userTimezone = (string) ($current_user->getPreference('timezone') ?: 'Europe/Be
         <article><strong data-stat="locked"><?= (int) $statistics['locked'] ?></strong><span>gerade reserviert</span></article>
     </section>
 
+    <section id="speedphone-call-history" class="team-statistics call-history" aria-labelledby="call-history-title" hidden>
+        <h2 id="call-history-title">Bisherige Anrufe</h2>
+        <p>Kontakt direkt wieder in der SpeedPhone-Anrufmaske öffnen. Es wird dabei noch kein neuer Anruf gestartet oder protokolliert.</p>
+        <form id="speedphone-call-history-filter">
+            <label>Suche<input type="search" name="search" maxlength="200" placeholder="Firma, Name, Telefon oder Notiz"></label>
+            <label>Anrufe<select name="scope"><option value="all">Alle freigegebenen Kontakte</option><option value="mine">Nur meine Anrufe</option></select></label>
+            <label>Zeitraum<select name="period"><option value="all">Gesamter Verlauf</option><option value="today">Heute</option><option value="7days">Letzte 7 Tage</option><option value="30days">Letzte 30 Tage</option><option value="month">Dieser Monat</option><option value="custom">Eigener Zeitraum</option></select></label>
+            <label>Von<input type="date" name="start"></label><label>Bis<input type="date" name="end"></label>
+            <button class="button button--secondary" type="submit">Suchen</button>
+        </form>
+        <p data-call-history-status role="status" aria-live="polite">Wird beim Öffnen geladen.</p>
+        <div data-call-history-report></div>
+        <p class="team-report__explanation">Es gelten deine SpeedPhone-Zuständigkeitsrechte. Geplante Rückrufe und Überspringen sind keine erledigten Anrufe. Der Verlauf bleibt auch für abgeschlossene oder weiter entfernte Kontakte sichtbar; Anrufverbote, fremde Reservierungen und der Regionalfilter für ausgehende Anrufe bleiben wirksam.</p>
+    </section>
     <section id="speedphone-team-statistics" class="team-statistics" aria-labelledby="team-statistics-title" hidden>
         <h2 id="team-statistics-title">Teamstatistik: Wer hat wie viel bearbeitet?</h2>
         <form id="team-statistics-filter">
@@ -273,4 +288,4 @@ $userTimezone = (string) ($current_user->getPreference('timezone') ?: 'Europe/Be
     <div class="speedphone__footer">CRM SpeedPhone © anesda</div>
 </main>
 <script src="<?= speedPhoneEscape($assetBase) ?>/vendor/qrcode-generator/qrcode.js?v=2.0.4"></script>
-<script src="<?= speedPhoneEscape($assetBase) ?>/speedphone.js?v=1.20.1"></script>
+<script src="<?= speedPhoneEscape($assetBase) ?>/speedphone.js?v=1.21.0"></script>

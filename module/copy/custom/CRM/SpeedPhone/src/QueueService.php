@@ -171,16 +171,18 @@ final class QueueService
      * Ist der Datensatz bereits bei einem anderen Mitarbeiter reserviert,
      * bleibt dessen Sperre unangetastet und es wird null zurückgegeben.
      */
-    public function openCandidateById(string $prospectId): ?array
+    public function openCandidateById(string $prospectId, bool $allowIncomingAccess = true): ?array
     {
         $this->assertUserAllowed();
         $listId = $this->getSourceListId();
-        $userCondition = $this->assignments->sqlIncomingAccessCondition();
+        $userCondition = $allowIncomingAccess
+            ? $this->assignments->sqlIncomingAccessCondition()
+            : $this->assignments->sqlAccessCondition();
         $candidate = $this->findCandidateById(
             $this->candidateSelectSql($listId, $userCondition, false),
             $prospectId
         );
-        if ($candidate === null) {
+        if ($candidate === null || (!$allowIncomingAccess && $this->isExcluded($candidate))) {
             return null;
         }
 

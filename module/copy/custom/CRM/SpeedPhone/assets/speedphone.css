@@ -438,3 +438,26 @@
     .speedphone #speedphone-industry-filter select { flex-basis: auto; width: 100%; }
     .speedphone .industry-contact .button { width: 100%; }
 }
+.speedphone #speedphone-call-history-filter { display:flex; flex-wrap:wrap; align-items:end; gap:12px; margin:18px 0; }
+.speedphone #speedphone-call-history-filter label { display:grid; gap:6px; font-size:13px; font-weight:700; }
+.speedphone #speedphone-call-history-filter input,
+.speedphone #speedphone-call-history-filter select { min-height:44px; height:auto !important; line-height:1.4 !important; padding:10px 12px !important; color:var(--sp-ink) !important; -webkit-text-fill-color:var(--sp-ink) !important; background:#fff !important; border:1px solid #b7c7d5; border-radius:10px; }
+.speedphone .call-history__summary { display:flex; flex-wrap:wrap; justify-content:space-between; gap:10px; margin:18px 0 8px; }
+.speedphone .call-history__hint { color:#526673; font-size:12px; }
+.speedphone .call-history__table { width:100%; border-collapse:collapse; min-width:950px; text-align:left; }
+.speedphone .call-history__table th { background:#eef5f8; padding:12px; font-size:13px; }
+.speedphone .call-history__table td { padding:12px; vertical-align:top; border-bottom:1px solid #dce4eb; }
+.speedphone .call-history__table td:first-child { white-space:nowrap; }
+.speedphone .call-history__table td:nth-child(2) { min-width:210px; }
+.speedphone .call-history__table td span,
+.speedphone .call-history__table td small { display:block; margin-top:5px; }
+.speedphone .call-history__table details { min-width:150px; max-width:300px; }
+.speedphone .call-history__table details p { overflow-wrap:anywhere; white-space:normal; }
+.speedphone .call-history__table summary { cursor:pointer; color:var(--sp-brand); }
+.speedphone .call-history__table button { white-space:nowrap; }
+.speedphone .call-history__pagination { display:flex; justify-content:center; align-items:center; gap:16px; margin-top:18px; }
+@media(max-width:650px) {
+    .speedphone #speedphone-call-history-filter label { flex:1 1 140px; min-width:0; }
+    .speedphone #speedphone-call-history-filter input,
+    .speedphone #speedphone-call-history-filter select { width:100%; min-width:0; box-sizing:border-box; }
+}
