@@ -133,11 +133,6 @@ final class ActionService
                 $message = 'Interesse wurde protokolliert; der Kontakt ist aus der Telefonliste entfernt.';
                 break;
 
-            case 'no_interest':
-                $status = 'no_interest';
-                $message = 'Kein Interesse wurde protokolliert; der Kontakt ist abgeschlossen.';
-                break;
-
             case 'wrong_number':
                 $status = 'invalid_phone';
                 $message = 'Die Telefonnummer wurde als falsch markiert.';

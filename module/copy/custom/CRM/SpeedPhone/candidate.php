@@ -304,7 +304,6 @@
                 <button type="submit" name="result" value="callback" class="button button--info" title="Am gewählten Tag erneut anrufen; eine Uhrzeit ist nur bei einem festen Termin nötig">Am Datum wieder anrufen</button>
                 <button type="submit" name="result" value="send_flyers" class="button button--mail" title="Ausgewählte Produktflyer senden und den Kontakt automatisch nach <?= (int) $flyerFollowupBusinessDays ?> Werktagen erneut vorlegen">Flyer senden + automatisch nachfassen</button>
                 <button type="submit" name="result" value="interested" class="button button--success">Erreicht · Interesse</button>
-                <button type="submit" name="result" value="no_interest" class="button button--muted">Erreicht · kein Interesse</button>
                 <button type="submit" name="result" value="wrong_number" class="button button--danger">Falsche Nummer</button>
                 <button type="submit" name="result" value="blocked" class="button button--danger">Dauerhaft nicht mehr kontaktieren</button>
                 <button type="submit" name="result" value="later" class="button button--secondary">Ohne Anruf später</button>

@@ -63,12 +63,18 @@ check($validator->uuid('befc6200-da8e-47a5-9fc8-3b30e8451018') === 'befc6200-da8
 check($validator->action('interested') === 'interested', 'Gültige Aktion wurde abgelehnt.');
 check($validator->action('email_callback') === 'email_callback', 'E-Mail mit Rückruf wurde als Aktion abgelehnt.');
 check($validator->action('send_flyers') === 'send_flyers', 'Produktunterlagen mit automatischer Wiedervorlage wurden als Aktion abgelehnt.');
+try {
+    $validator->action('no_interest');
+    check(false, 'Die entfernte Aktion „Kein Interesse“ darf auch über alte Seiten nicht mehr gespeichert werden.');
+} catch (InvalidArgumentException $error) {
+    check(str_contains($error->getMessage(), 'wurde entfernt'), 'Alte Seiten benötigen eine verständliche Meldung zur entfernten Aktion.');
+}
 check($validator->email('info@example.org') === 'info@example.org', 'Gültige E-Mail wurde abgelehnt.');
 check($validator->email('') === '', 'Leere optionale E-Mail wurde abgelehnt.');
 check(!AssignmentService::actionAssignsOwner('not_reached'), 'Ein erfolgloser Anruf darf keinen Besitzer erzeugen.');
 check(!AssignmentService::actionAssignsOwner('wrong_number'), 'Eine falsche Nummer darf keinen Besitzer erzeugen.');
 check(!AssignmentService::actionAssignsOwner('later'), 'Ein Verschieben ohne Anruf darf keinen Besitzer erzeugen.');
-check(AssignmentService::actionAssignsOwner('callback'), 'Ein vereinbarter RÃ¼ckruf muss den Kontakt zuordnen.');
+check(AssignmentService::actionAssignsOwner('callback'), 'Ein vereinbarter Rückruf muss den Kontakt zuordnen.');
 check(AssignmentService::actionAssignsOwner('email_callback'), 'Ein E-Mail-Wunsch muss den Kontakt zuordnen.');
 check(AssignmentService::actionAssignsOwner('send_flyers'), 'Der Versand von Produktunterlagen muss den Kontakt zuordnen.');
 check(AssignmentService::actionAssignsOwner('interested'), 'Ein Interessent muss dem erfolgreichen Mitarbeiter zugeordnet werden.');
@@ -597,6 +603,7 @@ check(str_contains($pbxServiceSource, 'crm_speedphone_pbx_calls'), 'Festnetz-Wah
 $manifestSource = file_get_contents(__DIR__ . '/../module/manifest.php');
 $pageSource = file_get_contents(__DIR__ . '/../module/copy/custom/CRM/SpeedPhone/page.php');
 $candidateSource = file_get_contents(__DIR__ . '/../module/copy/custom/CRM/SpeedPhone/candidate.php');
+check(!str_contains($candidateSource, 'value="no_interest"'), 'Die Schaltfläche „Erreicht · kein Interesse“ muss entfernt sein.');
 check(str_contains($candidateSource, 'data-speedphone-skip'), 'Schaltfläche zum kurzen Überspringen fehlt.');
 check(
     str_contains($candidateSource, 'bleibt für den nächsten freien Pick ganz oben'),

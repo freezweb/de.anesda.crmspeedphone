@@ -10,7 +10,6 @@ final class InputValidator
         'email_callback',
         'send_flyers',
         'interested',
-        'no_interest',
         'wrong_number',
         'blocked',
         'later',
@@ -28,6 +27,9 @@ final class InputValidator
 
     public function action(string $value): string
     {
+        if ($value === 'no_interest') {
+            throw new \InvalidArgumentException('„Kein Interesse“ wurde entfernt. Bitte „Am Datum wieder anrufen“ oder „Ohne Anruf später“ verwenden.');
+        }
         if (!in_array($value, self::ACTIONS, true)) {
             throw new \InvalidArgumentException('Ungültiges Anrufergebnis.');
         }
