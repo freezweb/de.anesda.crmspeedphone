@@ -31,6 +31,10 @@ Für große oder regelmäßige Läufe einen eigenen Routingdienst einsetzen.
 
 CRM SpeedPhone ist eine schnelle, abarbeitbare Telefonakquise-Warteschlange für SuiteCRM 8. Die Erweiterung verwendet ausschließlich vorhandene Zielkontakt-UUIDs (`Prospects.id`) und legt keine Kontaktkopien an.
 
+## Veröffentlichung 1.20.0
+
+Am 17.09.2026 über Jenkins **CRM-SpeedPhone, Build 46 SUCCESS** veröffentlicht, Quellcommit `41c0a6bd295a53a8b099ef56348f3a035ed2f52d`. Modultests, PHP-Syntaxprüfung aller Moduldateien, JavaScript-Syntax und ZIP-Paketprüfung erfolgreich. Zusätzliche ausschließlich lesende Integrationsprüfungen gegen die Live-Datenbank bestätigen identische Teamzahlen für sämtliche fünf internen/externen Profile, fehlenden Zugriff ohne SpeedPhone-Freischaltung und den Personenfilter in einem leeren Zeitraum. Browserprüfung auf Desktop-, Tablet- und Handybreite sowie echte AJAX-Filterwechsel mit synthetischen Daten erfolgreich: Gesprächsnotiz und geöffnete Tagesdetails bleiben erhalten; Datumsfehler werden angezeigt und automatische Nachladung funktioniert. Nach Deployment acht betroffene Moduldateien und öffentliches JavaScript per normalisiertem SHA-256 geprüft und die Rollenprüfung mit der ausgelieferten Statistikklasse wiederholt. Sicherung: `/srv/backups/crm-speedphone/custom-before-jenkins-46.tar.gz`. Keine Testanrufe oder Testmails ausgelöst.
+
 ## Veröffentlichung 1.18.0
 
 Am 17.09.2026 über Jenkins **CRM-SpeedPhone, Build 44 SUCCESS** veröffentlicht, Quellcommit `04e8df405e2751477f778c8f1257927694a169d6`. Modultests, PHP-Syntaxprüfung, JavaScript-Syntax und ZIP-Paketprüfung erfolgreich. Neun zusätzliche synthetische MariaDB-Abfragen bestätigen Branchenerkennung, manuelle Vorrangwerte und Filterung vor LIMIT. Browserprüfung mit den tatsächlich gerenderten PHP-Formularen erfolgreich. Nach Deployment elf geänderte Moduldateien per normalisiertem SHA-256, neue Datenbankspalte und öffentliches JavaScript geprüft. Sicherung: `/srv/backups/crm-speedphone/custom-before-jenkins-44.tar.gz`. Es wurden keine Telefonate oder E-Mails ausgelöst und keine persönlichen Branchenfilter produktiver Benutzer vorbelegt.
