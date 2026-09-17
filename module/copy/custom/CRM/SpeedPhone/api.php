@@ -272,6 +272,44 @@ try {
         exit;
     }
 
+    if ((string) ($_POST['operation'] ?? '') === 'skip_current') {
+        $validator = new InputValidator();
+        $prospectId = $validator->uuid((string) ($_POST['prospect_id'] ?? ''));
+        $candidate = $queue->skipCurrentCandidate(
+            $prospectId,
+            (string) ($_POST['lock_token'] ?? '')
+        );
+        $statistics = $queue->getStatistics();
+        $userTimezone = (string) ($current_user->getPreference('timezone') ?: 'Europe/Berlin');
+        $sameCandidate = $candidate !== null && hash_equals($prospectId, (string) $candidate['id']);
+        $devices = $dialerService->listDevices();
+        $message = $candidate === null
+            ? 'Kontakt freigegeben. Im aktuellen Filter ist gerade kein weiterer freier Kontakt verfügbar.'
+            : ($sameCandidate
+                ? 'Im aktuellen Filter ist kein anderer Kontakt verfügbar. Dieser Kontakt bleibt deshalb geöffnet.'
+                : 'Kontakt nur freigegeben und unverändert oben in der Warteschlange gelassen. Der nächste Kontakt ist geöffnet.');
+        echo json_encode([
+            'success' => true,
+            'data' => [
+                'workspace_html' => speedPhoneRenderWorkspace(
+                    $candidate,
+                    $userTimezone,
+                    (int) $config->get('default_callback_days', 7),
+                    $devices,
+                    $pbxService->status(),
+                    $productFlyerService->available(),
+                    (int) $config->get('flyer_followup_business_days', 3)
+                ),
+                'statistics' => $statistics,
+                'devices' => $devices,
+                'prospect_id' => $candidate['id'] ?? null,
+                'expires_at' => $candidate['lock_expires_at'] ?? null,
+                'message' => $message,
+            ],
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        exit;
+    }
+
     if ((string) ($_POST['operation'] ?? '') === 'email_preview') {
         $validator = new InputValidator();
         $prospectId = $validator->uuid((string) ($_POST['prospect_id'] ?? ''));

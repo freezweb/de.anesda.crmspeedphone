@@ -47,7 +47,7 @@
             <form data-speedphone-contact-industry class="industry-contact">
                 <input type="hidden" name="prospect_id" value="<?= speedPhoneEscape($candidate['id']) ?>">
                 <input type="hidden" name="lock_token" value="<?= speedPhoneEscape($candidate['lock_token']) ?>">
-                <label>Branche
+                <label>Branche dieses Kontakts
                     <select name="industry">
                         <?php foreach (Anesda\CRM\SpeedPhone\IndustryFilter::OPTIONS as $value => $label): ?>
                             <option value="<?= speedPhoneEscape($value) ?>" <?= ($candidate['industry_stored'] ?? '') === $value ? 'selected' : '' ?>><?= speedPhoneEscape($value === '' ? 'Automatische Vorzuordnung' : $label) ?></option>
@@ -55,7 +55,7 @@
                     </select>
                 </label>
                 <button type="submit" class="button button--secondary">Branche speichern</button>
-                <small>Aktuell: <?= speedPhoneEscape(Anesda\CRM\SpeedPhone\IndustryFilter::OPTIONS[$candidate['industry'] ?? 'unknown']) ?><?= empty($candidate['industry_stored']) ? ' · aus Firmenname abgeleitet' : ' · manuell gepflegt' ?></small>
+                <small>Gespeicherte Zuordnung des Kontakts: <strong><?= speedPhoneEscape(Anesda\CRM\SpeedPhone\IndustryFilter::OPTIONS[$candidate['industry'] ?? 'unknown']) ?></strong><?= empty($candidate['industry_stored']) ? ' · momentan automatisch aus dem Firmennamen vorgeschlagen' : ' · manuell gepflegt' ?></small>
             </form>
             <div class="contact-grid">
                 <?php if (!empty($candidate['phone_work'])): ?>
@@ -228,11 +228,15 @@
         <form id="speedphone-form" class="quick-form">
             <input type="hidden" name="prospect_id" value="<?= speedPhoneEscape($candidate['id']) ?>">
             <input type="hidden" name="lock_token" value="<?= speedPhoneEscape($candidate['lock_token']) ?>">
-            <h3>Anruf schnell eintragen</h3>
+            <div class="quick-form__heading">
+                <h3>Anruf schnell eintragen</h3>
+                <button type="button" class="button button--secondary button--skip" data-speedphone-skip>Nächsten Kontakt nehmen</button>
+            </div>
             <p class="lock-note">
                 Für dich reserviert · andere Telefonierer erhalten inzwischen einen anderen Kontakt.
                 <span data-speedphone-live-status>Live-Aktualisierung aktiv</span>
             </p>
+            <p class="skip-note">Nur kurz weiterschalten: Dieser Kontakt wird nicht verändert und bleibt für den nächsten freien Pick ganz oben.</p>
 
             <label for="speedphone-note">Kurze Notiz</label>
             <textarea id="speedphone-note" name="note" rows="4" placeholder="Gespräch, Ansprechpartner oder Grund der Wiedervorlage"></textarea>

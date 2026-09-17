@@ -24,9 +24,13 @@ final class QueueService
         $this->access->assertAllowed();
     }
 
-    public function getNextCandidate(): ?array
+    public function getNextCandidate(?string $excludedProspectId = null): ?array
     {
         $this->assertUserAllowed();
+        if ($excludedProspectId !== null
+            && preg_match('/^[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i', $excludedProspectId) !== 1) {
+            throw new \InvalidArgumentException('Die auszunehmende Kontaktkennung ist ungültig.');
+        }
         $listId = $this->getSourceListId();
         $batchSize = max(20, min(500, (int) $this->config->get('candidate_batch_size', 200)));
         $userCondition = $this->assignments->sqlAccessCondition();
@@ -36,13 +40,18 @@ final class QueueService
         $activeLock = $this->locks->getActiveForCurrentUser();
         if ($activeLock !== null) {
             $activeCandidate = $this->findCandidateById($baseSql, $activeLock['prospect_id']);
-            if ($activeCandidate !== null && !$this->isExcluded($activeCandidate)) {
+            if (($excludedProspectId === null || !hash_equals($excludedProspectId, $activeLock['prospect_id']))
+                && $activeCandidate !== null
+                && !$this->isExcluded($activeCandidate)) {
                 return $this->enrichCandidate($activeCandidate, $activeLock);
             }
             $this->locks->releaseCurrentUserLock();
         }
 
-        $sql = $baseSql . ' AND ' . IndustryFilter::allowedSql(IndustryFilter::selected($this->currentUser), fn (string $value): string => $this->db->quote($value)) . "
+        $excludedSql = $excludedProspectId === null
+            ? ''
+            : " AND p.id<>'" . $this->db->quote($excludedProspectId) . "'";
+        $sql = $baseSql . ' AND ' . IndustryFilter::allowedSql(IndustryFilter::selected($this->currentUser), fn (string $value): string => $this->db->quote($value)) . $excludedSql . "
                   AND NOT EXISTS (
                       SELECT 1 FROM crm_speedphone_locks spl
                       WHERE spl.prospect_id=p.id AND spl.expires_at>UTC_TIMESTAMP()
@@ -104,6 +113,27 @@ final class QueueService
         }
 
         return null;
+    }
+
+    /**
+     * Gibt nur die aktuelle Reservierung frei und nimmt dieselbe UUID einmalig
+     * aus dem unmittelbar folgenden Pick. Der Kontaktdatensatz und damit seine
+     * Position in der Warteschlange bleiben vollständig unverändert.
+     */
+    public function skipCurrentCandidate(string $prospectId, string $lockToken): ?array
+    {
+        $this->assertUserAllowed();
+        $this->locks->assertOwned($prospectId, $lockToken);
+        $this->locks->release($prospectId, $lockToken);
+
+        $nextCandidate = $this->getNextCandidate($prospectId);
+        if ($nextCandidate !== null) {
+            return $nextCandidate;
+        }
+
+        // Gibt es keine Alternative im aktuellen Filter, wird der unveränderte
+        // Kontakt wieder reserviert, statt eine fälschlich leere Liste zu zeigen.
+        return $this->getNextCandidate();
     }
 
     /**

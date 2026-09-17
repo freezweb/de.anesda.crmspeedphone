@@ -465,6 +465,44 @@
             return;
         }
 
+        const skipButton = event.target.closest('[data-speedphone-skip]');
+        if (skipButton) {
+            const form = document.getElementById('speedphone-form');
+            if (!form) {
+                return;
+            }
+            const data = new FormData();
+            data.set('operation', 'skip_current');
+            data.set('prospect_id', form.elements.prospect_id.value);
+            data.set('lock_token', form.elements.lock_token.value);
+            data.set('csrf', root.dataset.csrf);
+            const originalText = skipButton.textContent;
+            storeCurrentDraft(form);
+            stopLiveUpdates();
+            setBusy(form, true);
+            skipButton.textContent = 'Wechsle …';
+            try {
+                const payload = await request(data);
+                workspace.innerHTML = payload.data.workspace_html;
+                updateStatistics(payload.data.statistics || {});
+                renderDialerDevices(payload.data.devices || []);
+                updateLiveStatus(payload.data.expires_at);
+                restoreDraft(document.getElementById('speedphone-form'));
+                startLiveUpdates();
+                showMessage(payload.data.message, false);
+                workspace.querySelector('.candidate-name')?.focus({preventScroll: true});
+            } catch (error) {
+                if (document.body.contains(form)) {
+                    setBusy(form, false);
+                    skipButton.textContent = originalText;
+                    skipButton.focus();
+                }
+                startLiveUpdates();
+                showMessage(error.message || String(error), true);
+            }
+            return;
+        }
+
         const button = event.target.closest('[data-speedphone-retry]');
         if (!button) {
             return;

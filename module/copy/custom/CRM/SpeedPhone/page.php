@@ -76,7 +76,7 @@ $assetBase = $legacyBase . '/custom/CRM/SpeedPhone/assets';
 $userTimezone = (string) ($current_user->getPreference('timezone') ?: 'Europe/Berlin');
 
 ?>
-<link rel="stylesheet" href="<?= speedPhoneEscape($assetBase) ?>/speedphone.css?v=1.18.0">
+<link rel="stylesheet" href="<?= speedPhoneEscape($assetBase) ?>/speedphone.css?v=1.19.0">
 <main class="speedphone" data-api-url="index.php?entryPoint=crmSpeedPhoneApi" data-csrf="<?= speedPhoneEscape($_SESSION['crm_speedphone_csrf']) ?>">
     <header class="speedphone__header">
         <div>
@@ -124,16 +124,24 @@ $userTimezone = (string) ($current_user->getPreference('timezone') ?: 'Europe/Be
 
     <div id="speedphone-message" class="message" role="status" aria-live="polite" tabindex="-1" hidden></div>
 
-    <form id="speedphone-industry-filter" class="message">
-        <label for="speedphone-industry">Mein Branchenfilter</label>
-        <select id="speedphone-industry" name="industry">
-            <?php foreach (IndustryFilter::OPTIONS as $value => $label): ?>
-                <option value="<?= speedPhoneEscape($value) ?>" <?= IndustryFilter::selected($current_user) === $value ? 'selected' : '' ?>><?= speedPhoneEscape($label) ?></option>
-            <?php endforeach; ?>
-        </select>
-        <button type="submit" class="button button--secondary">Filter übernehmen</button>
-        <p>Gilt nur für dich und kann jederzeit geändert werden. Ein bereits geöffneter Kontakt bleibt erhalten; der Filter gilt für den nächsten Kontakt.</p>
-        <small>Branchen werden anhand des Firmennamens vorgeschlagen und können am Kontakt korrigiert werden. Nicht erkennbare Branchen bleiben „Nicht zugeordnet“. Die Tageskennzahlen bleiben branchenübergreifend.</small>
+    <form id="speedphone-industry-filter" class="industry-filter">
+        <div class="industry-filter__heading">
+            <div>
+                <span>Persönliche Ansicht</span>
+                <h2>Anrufliste nach Branche filtern</h2>
+            </div>
+            <div class="industry-filter__controls">
+                <label class="sr-only" for="speedphone-industry">Branche für meine Anrufliste</label>
+                <select id="speedphone-industry" name="industry" aria-label="Branche für meine Anrufliste">
+                    <?php foreach (IndustryFilter::OPTIONS as $value => $label): ?>
+                        <option value="<?= speedPhoneEscape($value) ?>" <?= IndustryFilter::selected($current_user) === $value ? 'selected' : '' ?>><?= speedPhoneEscape($label) ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <button type="submit" class="button button--secondary">Filter anwenden</button>
+            </div>
+        </div>
+        <p>Dieser Filter ändert keinen Kontakt. Ein bereits geöffneter Kontakt bleibt erhalten; die Auswahl gilt beim nächsten Kontakt.</p>
+        <small>Die Branche eines Kontakts steht weiter unten direkt bei seinen Stammdaten und kann dort korrigiert werden. Die Tageskennzahlen bleiben branchenübergreifend.</small>
     </form>
 
     <?php if ($config->get('travel_filter_enabled', false)): ?>
@@ -253,4 +261,4 @@ $userTimezone = (string) ($current_user->getPreference('timezone') ?: 'Europe/Be
     <div class="speedphone__footer">CRM SpeedPhone © anesda</div>
 </main>
 <script src="<?= speedPhoneEscape($assetBase) ?>/vendor/qrcode-generator/qrcode.js?v=2.0.4"></script>
-<script src="<?= speedPhoneEscape($assetBase) ?>/speedphone.js?v=1.18.0"></script>
+<script src="<?= speedPhoneEscape($assetBase) ?>/speedphone.js?v=1.19.0"></script>

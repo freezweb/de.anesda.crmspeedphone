@@ -514,6 +514,7 @@ check(str_contains($mailWebhookSource, 'ON DUPLICATE KEY UPDATE'), 'Webhook-Vera
 check(str_contains($mailWebhookSource, "'unique_opened'"), 'Eindeutige Öffnungen werden nicht als CRM-Aktivität übernommen.');
 
 $apiSource = file_get_contents(__DIR__ . '/../module/copy/custom/CRM/SpeedPhone/api.php');
+check(str_contains($apiSource, "'skip_current'"), 'API-Aktion zum kurzen Überspringen eines Kontakts fehlt.');
 check(str_contains($apiSource, "'compose_email'"), 'API-Aktion für die bearbeitbare E-Mail-Vorschau fehlt.');
 check(str_contains($apiSource, "'dialer_pairing'"), 'API-Aktion zur QR-Kopplung fehlt.');
 check(str_contains($apiSource, "'dialer_call'"), 'API-Aktion zur Handywahl fehlt.');
@@ -522,6 +523,26 @@ check(str_contains($apiSource, "'refresh_current'"), 'AJAX-Aktualisierung des re
 check(str_contains($apiSource, 'openPendingForCurrentUser'), 'Eingehende Rückrufe werden im Portal nicht automatisch geöffnet.');
 
 $queueSource = file_get_contents(__DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/QueueService.php');
+check(str_contains($queueSource, 'skipCurrentCandidate'), 'Warteschlange kann die aktuelle Reservierung nicht überspringen.');
+check(
+    str_contains($queueSource, 'getNextCandidate($prospectId)')
+        && str_contains($queueSource, "AND p.id<>'"),
+    'Der übersprungene Kontakt wird beim unmittelbar folgenden Pick nicht einmalig ausgelassen.'
+);
+check(
+    str_contains($queueSource, 'Position in der Warteschlange bleiben vollständig unverändert'),
+    'Die Kurz-überspringen-Funktion dokumentiert nicht, dass der Kontaktdatensatz unverändert bleiben muss.'
+);
+$skipMethod = [];
+check(
+    preg_match('/public function skipCurrentCandidate\(.*?(?=\n    \/\*\*)/s', $queueSource, $skipMethod) === 1,
+    'Die Kurz-überspringen-Implementierung konnte nicht isoliert geprüft werden.'
+);
+check(
+    !str_contains((string) ($skipMethod[0] ?? ''), 'speedphone_status')
+        && !str_contains((string) ($skipMethod[0] ?? ''), '->save('),
+    'Kurzes Überspringen darf weder Kontaktstatus noch Kontaktdatensatz verändern.'
+);
 check(str_contains($queueSource, 'getCurrentCandidate'), 'Aktueller Kontakt kann nicht ohne Warteschlangenwechsel aktualisiert werden.');
 check(
     str_contains($queueSource, 'erwirbt bewusst keine neue Reservierung'),
@@ -545,6 +566,8 @@ check(
 );
 
 $javascriptSource = file_get_contents(__DIR__ . '/../module/copy/custom/CRM/SpeedPhone/assets/speedphone.js');
+check(str_contains($javascriptSource, "data.set('operation', 'skip_current')"), 'Browser wechselt nicht per AJAX zum nächsten Kontakt.');
+check(str_contains($javascriptSource, 'storeCurrentDraft(form)'), 'Beim kurzen Überspringen werden begonnene Eingaben nicht lokal gesichert.');
 check(str_contains($javascriptSource, "data.set('operation', 'compose_email')"), 'Browser lädt den E-Mail-Entwurf nicht vor dem Versand.');
 check(str_contains($javascriptSource, "data.set('email_subject', emailDraft.subject)"), 'Bearbeiteter E-Mail-Betreff wird nicht versendet.');
 check(str_contains($javascriptSource, "data.set('email_body', emailDraft.body)"), 'Bearbeiteter E-Mail-Text wird nicht versendet.');
@@ -573,6 +596,28 @@ check(str_contains($pbxServiceSource, 'crm_speedphone_pbx_calls'), 'Festnetz-Wah
 
 $manifestSource = file_get_contents(__DIR__ . '/../module/manifest.php');
 $pageSource = file_get_contents(__DIR__ . '/../module/copy/custom/CRM/SpeedPhone/page.php');
+$candidateSource = file_get_contents(__DIR__ . '/../module/copy/custom/CRM/SpeedPhone/candidate.php');
+check(str_contains($candidateSource, 'data-speedphone-skip'), 'Schaltfläche zum kurzen Überspringen fehlt.');
+check(
+    str_contains($candidateSource, 'bleibt für den nächsten freien Pick ganz oben'),
+    'Die Oberfläche erklärt nicht, dass ein übersprungener Kontakt seine Warteschlangenposition behält.'
+);
+check(
+    str_contains($pageSource, 'Anrufliste nach Branche filtern')
+        && str_contains($pageSource, 'Dieser Filter ändert keinen Kontakt.'),
+    'Der persönliche Branchenfilter ist nicht eindeutig von der Kontaktbranche abgegrenzt.'
+);
+check(
+    str_contains($candidateSource, 'Branche dieses Kontakts')
+        && str_contains($candidateSource, 'Gespeicherte Zuordnung des Kontakts:'),
+    'Die gespeicherte Branche am Zielkontakt ist nicht eindeutig bezeichnet.'
+);
+$cssSource = file_get_contents(__DIR__ . '/../module/copy/custom/CRM/SpeedPhone/assets/speedphone.css');
+check(
+    str_contains($cssSource, '-webkit-text-fill-color: var(--sp-ink) !important')
+        && str_contains($cssSource, '#speedphone-industry-filter option'),
+    'Die Branchenauswahl erzwingt keinen lesbaren Textkontrast gegen SuiteCRM-Styles.'
+);
 check(
     str_contains($pageSource, 'data-stat="processed_today_mine"')
         && str_contains($pageSource, 'data-stat="processed_today_all"')
