@@ -13,6 +13,7 @@ foreach ([
     'InputValidator',
     'AclRoleService',
     'UserAccessService',
+    'TeamStatisticsService',
     'AssignmentService',
     'LockService',
     'CandidatePriorityService',

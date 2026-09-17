@@ -816,6 +816,7 @@ foreach ([
 }
 
 require __DIR__ . '/industry_filter.php';
+require __DIR__ . '/team_statistics.php';
 
 if ($failures !== []) {
     fwrite(STDERR, implode(PHP_EOL, $failures) . PHP_EOL);

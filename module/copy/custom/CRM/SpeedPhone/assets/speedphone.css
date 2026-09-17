@@ -378,6 +378,60 @@
 .speedphone .industry-contact small { color: var(--sp-muted); flex-basis: 100%; }
 .speedphone .industry-contact small strong { color: var(--sp-ink); }
 
+.speedphone__header-actions { flex-wrap: wrap; justify-content: flex-end; }
+.speedphone .team-statistics { background: #fff; border: 1px solid var(--sp-border); border-radius: 18px; margin-bottom: 22px; padding: 22px; }
+.speedphone .team-statistics h2 { font-size: 24px; margin: 0 0 16px; }
+.speedphone #team-statistics-filter { align-items: end; display: flex; flex-wrap: wrap; gap: 12px; }
+.speedphone #team-statistics-filter label { display: grid; font-size: 13px; font-weight: 750; gap: 5px; }
+.speedphone #team-statistics-filter input, .speedphone #team-statistics-filter select { background: #fff !important; border: 1px solid #8295a5; border-radius: 9px; color: var(--sp-ink) !important; -webkit-text-fill-color: var(--sp-ink) !important; font: inherit; height: auto !important; min-height: 44px; padding: 10px 12px; }
+.speedphone #team-statistics-filter option { background: #fff; color: #17202a; }
+.speedphone #team-statistics-filter .button { min-height: 44px; }
+.speedphone [data-team-statistics-status] { color: var(--sp-muted); font-size: 12px; margin: 12px 0; }
+.speedphone .team-statistics__error { color: #a12b2b !important; }
+.speedphone .team-report__meta { display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; margin: 18px 0 12px; }
+.speedphone .team-report__meta span { color: var(--sp-muted); font-size: 12px; }
+.speedphone .team-report__totals { display: grid; gap: 10px; grid-template-columns: repeat(6, minmax(0, 1fr)); }
+.speedphone .team-report__totals article { background: #f1f7f9; border-radius: 12px; padding: 12px; }
+.speedphone .team-report__totals strong { color: var(--sp-brand); display: block; font-size: 28px; }
+.speedphone .team-report__totals span { font-size: 13px; }
+.speedphone .team-report__charts { display: grid; gap: 24px; grid-template-columns: 1fr 1fr; margin: 22px 0; }
+.speedphone .team-report__charts section { min-width: 0; }
+.speedphone .team-report__charts h3 { font-size: 18px; margin: 0 0 6px; }
+.speedphone .team-report__legend { display: flex; font-size: 12px; gap: 16px; margin: 0 0 14px; }
+.speedphone .team-report__legend span::before { background: #92bed6; border-radius: 3px; content: ''; display: inline-block; height: 10px; margin-right: 5px; width: 10px; }
+.speedphone .team-report__legend span + span::before { background: #16734b; }
+.speedphone .team-report__member { margin-bottom: 14px; }
+.speedphone .team-report__member > div:first-child { display: flex; flex-wrap: wrap; font-size: 13px; gap: 8px; justify-content: space-between; margin-bottom: 5px; }
+.speedphone .team-report__member span { color: var(--sp-muted); }
+.speedphone .team-report__track { background: #f0f3f5; border-radius: 5px; height: 20px; overflow: hidden; }
+.speedphone .team-report__bar { background: #92bed6; height: 100%; }
+.speedphone .team-report__bar > div { background: #16734b; height: 100%; }
+.speedphone .team-report__timeline-scroll, .speedphone .team-report__table-scroll { max-width: 100%; overflow-x: auto; }
+.speedphone .team-report__timeline { align-items: end; display: flex; gap: 8px; }
+.speedphone .team-report__day { flex: 1 1 0; font-size: 11px; text-align: center; }
+.speedphone .team-report__day-track { border-bottom: 1px solid #bac6d0; height: 145px; position: relative; }
+.speedphone .team-report__day-track > div { background: #92bed6; bottom: 0; left: 15%; position: absolute; width: 70%; }
+.speedphone .team-report__day-track > div > div { background: #16734b; bottom: 0; position: absolute; width: 100%; }
+.speedphone .team-report__day > span { color: var(--sp-muted); display: block; margin-top: 5px; white-space: nowrap; }
+.speedphone .team-report__table { border-collapse: collapse; font-size: 13px; width: 100%; }
+.speedphone .team-report__table caption { color: var(--sp-ink); font-weight: 750; padding: 10px 0; text-align: left; }
+.speedphone .team-report__table th, .speedphone .team-report__table td { border-bottom: 1px solid var(--sp-border); padding: 10px 12px; text-align: right; }
+.speedphone .team-report__table th:first-child { min-width: 170px; text-align: left; }
+.speedphone .team-report__table thead, .speedphone .team-report__table tfoot { background: #f1f7f9; }
+.speedphone .team-report__daily-detail { margin-top: 18px; }
+.speedphone .team-report__daily-detail summary { color: var(--sp-brand); cursor: pointer; font-size: 14px; font-weight: 750; padding: 10px 0; }
+.speedphone .team-report__explanation { color: var(--sp-muted); font-size: 12px; line-height: 1.6; margin: 18px 0 0; }
+@media (max-width: 900px) {
+    .speedphone .team-report__charts { grid-template-columns: 1fr; }
+    .speedphone .team-report__totals { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 650px) {
+    .speedphone .team-statistics { padding: 15px; }
+    .speedphone #team-statistics-filter label { flex: 1 1 130px; min-width: 0; }
+    .speedphone #team-statistics-filter input, .speedphone #team-statistics-filter select { min-width: 0; width: 100%; }
+    .speedphone .team-report__totals { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
 @media (max-width: 650px) {
     .speedphone .industry-filter__heading, .speedphone .industry-filter__controls { align-items: stretch; flex-direction: column; }
     .speedphone .industry-filter__controls { margin-top: 12px; min-width: 0; width: 100%; }

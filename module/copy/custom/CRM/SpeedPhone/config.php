@@ -6,6 +6,7 @@ return [
     'travel_max_minutes' => 60,
     'travel_included_areas' => [],
     'source_list_name' => '',
+    'statistics_excluded_user_names' => [],
     'email_template_name' => '',
     'email_sending_enabled' => false,
     'mail_webhook_secret' => '',

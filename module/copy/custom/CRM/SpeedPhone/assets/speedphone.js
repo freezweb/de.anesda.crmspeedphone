@@ -17,6 +17,12 @@
     let refreshInFlight = false;
     let refreshFailures = 0;
     let pendingEmailSubmission = null;
+    let teamStatisticsInFlight = false;
+    let teamStatisticsRequest = 0;
+    let teamStatisticsTimer = null;
+    startTeamStatisticsUpdates();
+    window.addEventListener('pagehide', stopTeamStatisticsUpdates);
+    window.addEventListener('pageshow', startTeamStatisticsUpdates);
     startLiveUpdates();
 
     document.addEventListener('visibilitychange', function () {
@@ -29,6 +35,11 @@
     window.addEventListener('pageshow', startLiveUpdates);
 
     root.addEventListener('submit', async function (event) {
+        if (event.target.id === 'team-statistics-filter') {
+            event.preventDefault();
+            await refreshTeamStatistics(true);
+            return;
+        }
         const industryForm = event.target.closest('#speedphone-industry-filter, [data-speedphone-contact-industry]');
         if (industryForm) {
             event.preventDefault();
@@ -120,6 +131,17 @@
     });
 
     root.addEventListener('click', async function (event) {
+        const statisticsToggle = event.target.closest('[data-team-statistics-toggle]');
+        if (statisticsToggle) {
+            const panel = document.getElementById('speedphone-team-statistics');
+            panel.hidden = !panel.hidden;
+            statisticsToggle.setAttribute('aria-expanded', String(!panel.hidden));
+            if (!panel.hidden) {
+                await refreshTeamStatistics(true);
+                panel.scrollIntoView({behavior: 'smooth', block: 'start'});
+            }
+            return;
+        }
         if (event.target.closest('[data-email-compose-cancel]')) {
             closeEmailComposer();
             return;
@@ -948,6 +970,84 @@
             }
         } finally {
             refreshInFlight = false;
+        }
+    }
+
+    root.addEventListener('change', function (event) {
+        const filter = event.target.closest('#team-statistics-filter');
+        if (!filter) { return; }
+        if (event.target.name === 'start' || event.target.name === 'end') {
+            filter.elements.period.value = 'custom';
+            filter.elements.user_id.value = '';
+        } else if (event.target.name === 'period') {
+            filter.elements.user_id.value = '';
+        }
+        refreshTeamStatistics(true);
+    });
+
+    function stopTeamStatisticsUpdates() {
+        if (teamStatisticsTimer !== null) { window.clearInterval(teamStatisticsTimer); }
+        teamStatisticsTimer = null;
+    }
+
+    function startTeamStatisticsUpdates() {
+        if (teamStatisticsTimer !== null) { return; }
+        teamStatisticsTimer = window.setInterval(function () {
+            if (!document.body.contains(root)) { stopTeamStatisticsUpdates(); return; }
+            refreshTeamStatistics();
+        }, 30000);
+    }
+
+    async function refreshTeamStatistics(force = false) {
+        const panel = document.getElementById('speedphone-team-statistics');
+        const filter = document.getElementById('team-statistics-filter');
+        if (!panel || panel.hidden || !filter || (!force && teamStatisticsInFlight)) { return; }
+        const status = panel.querySelector('[data-team-statistics-status]');
+        if (filter.elements.period.value === 'custom' && (!filter.elements.start.value || !filter.elements.end.value)) {
+            teamStatisticsRequest++;
+            teamStatisticsInFlight = false;
+            panel.setAttribute('aria-busy', 'false');
+            status.textContent = 'Bitte Beginn und Ende des Zeitraums angeben.';
+            return;
+        }
+        const sequence = ++teamStatisticsRequest;
+        const data = new FormData(filter);
+        data.set('operation', 'team_statistics');
+        data.set('csrf', root.dataset.csrf);
+        teamStatisticsInFlight = true;
+        panel.setAttribute('aria-busy', 'true');
+        status.textContent = 'Teamstatistik wird aktualisiert …';
+        try {
+            const payload = await request(data);
+            if (sequence !== teamStatisticsRequest) { return; }
+            const reportTarget = panel.querySelector('[data-team-statistics-report]');
+            const detailsOpen = reportTarget.querySelector('details')?.open || false;
+            const scrollPositions = Array.from(reportTarget.querySelectorAll('.team-report__table-scroll, .team-report__timeline-scroll'), element => element.scrollLeft);
+            reportTarget.innerHTML = payload.data.report_html;
+            const details = reportTarget.querySelector('details');
+            if (details) { details.open = detailsOpen; }
+            reportTarget.querySelectorAll('.team-report__table-scroll, .team-report__timeline-scroll').forEach(function (element, index) {
+                element.scrollLeft = scrollPositions[index] || 0;
+            });
+            filter.elements.start.value = payload.data.range.start;
+            filter.elements.end.value = payload.data.range.end;
+            const selected = data.get('user_id') || '';
+            filter.elements.user_id.replaceChildren(new Option('Alle Mitarbeiter', ''));
+            (payload.data.users || []).forEach(function (user) {
+                filter.elements.user_id.add(new Option(user.name, user.id));
+            });
+            filter.elements.user_id.value = selected;
+            status.textContent = 'Für alle SpeedPhone-Mitarbeiter sichtbar · Aktualisierung alle 30 Sekunden.';
+            status.classList.remove('team-statistics__error');
+        } catch (error) {
+            if (sequence !== teamStatisticsRequest) { return; }
+            status.textContent = 'Statistik nicht aktualisiert: ' + (error.message || String(error));
+            status.classList.add('team-statistics__error');
+        } finally {
+            if (sequence === teamStatisticsRequest) {
+                teamStatisticsInFlight = false;
+                panel.setAttribute('aria-busy', 'false');
+            }
         }
     }
 

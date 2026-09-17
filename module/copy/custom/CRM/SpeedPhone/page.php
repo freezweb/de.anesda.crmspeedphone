@@ -76,7 +76,7 @@ $assetBase = $legacyBase . '/custom/CRM/SpeedPhone/assets';
 $userTimezone = (string) ($current_user->getPreference('timezone') ?: 'Europe/Berlin');
 
 ?>
-<link rel="stylesheet" href="<?= speedPhoneEscape($assetBase) ?>/speedphone.css?v=1.19.0">
+<link rel="stylesheet" href="<?= speedPhoneEscape($assetBase) ?>/speedphone.css?v=1.20.0">
 <main class="speedphone" data-api-url="index.php?entryPoint=crmSpeedPhoneApi" data-csrf="<?= speedPhoneEscape($_SESSION['crm_speedphone_csrf']) ?>">
     <header class="speedphone__header">
         <div>
@@ -89,6 +89,7 @@ $userTimezone = (string) ($current_user->getPreference('timezone') ?: 'Europe/Be
             </p>
         </div>
         <div class="speedphone__header-actions">
+            <button type="button" class="button button--secondary" data-team-statistics-toggle aria-expanded="false" aria-controls="speedphone-team-statistics">Teamstatistik</button>
             <button type="button" class="button button--secondary" data-speedphone-dialer-toggle aria-expanded="false">
                 Handy koppeln
             </button>
@@ -122,6 +123,17 @@ $userTimezone = (string) ($current_user->getPreference('timezone') ?: 'Europe/Be
         <article><strong data-stat="locked"><?= (int) $statistics['locked'] ?></strong><span>gerade reserviert</span></article>
     </section>
 
+    <section id="speedphone-team-statistics" class="team-statistics" aria-labelledby="team-statistics-title" hidden>
+        <h2 id="team-statistics-title">Teamstatistik: Wer hat wie viel bearbeitet?</h2>
+        <form id="team-statistics-filter">
+            <label>Zeitraum<select name="period"><option value="today">Heute</option><option value="7days" selected>Letzte 7 Tage</option><option value="30days">Letzte 30 Tage</option><option value="month">Dieser Monat</option><option value="custom">Eigener Zeitraum</option></select></label>
+            <label>Von<input type="date" name="start" required></label><label>Bis<input type="date" name="end" required></label>
+            <label>Mitarbeiter<select name="user_id"><option value="">Alle Mitarbeiter</option></select></label>
+            <button class="button button--secondary" type="submit">Anzeigen</button>
+        </form>
+        <p data-team-statistics-status role="status" aria-live="polite">Wird beim Öffnen geladen · automatische Aktualisierung alle 30 Sekunden.</p>
+        <div data-team-statistics-report></div>
+    </section>
     <div id="speedphone-message" class="message" role="status" aria-live="polite" tabindex="-1" hidden></div>
 
     <form id="speedphone-industry-filter" class="industry-filter">
@@ -261,4 +273,4 @@ $userTimezone = (string) ($current_user->getPreference('timezone') ?: 'Europe/Be
     <div class="speedphone__footer">CRM SpeedPhone © anesda</div>
 </main>
 <script src="<?= speedPhoneEscape($assetBase) ?>/vendor/qrcode-generator/qrcode.js?v=2.0.4"></script>
-<script src="<?= speedPhoneEscape($assetBase) ?>/speedphone.js?v=1.19.0"></script>
+<script src="<?= speedPhoneEscape($assetBase) ?>/speedphone.js?v=1.20.0"></script>

@@ -44,6 +44,18 @@ try {
     $lockService = new LockService($config, $db, $current_user);
     $queue = new QueueService($config, $db, $current_user, $lockService, $accessService, $assignmentService);
     $queue->assertUserAllowed();
+    if ((string) ($_POST['operation'] ?? '') === 'team_statistics') {
+        $report = (new Anesda\CRM\SpeedPhone\TeamStatisticsService($config, $db, $accessService))->report(
+            (string) ($_POST['period'] ?? '7days'), (string) ($_POST['start'] ?? ''),
+            (string) ($_POST['end'] ?? ''), (string) ($_POST['user_id'] ?? '')
+        );
+        ob_start();
+        require __DIR__ . '/team_statistics_report.php';
+        $html = ob_get_clean();
+        echo json_encode(['success' => true, 'data' => ['report_html' => $html, 'range' => $report['range'],
+            'users' => array_map(static fn (array $user): array => ['id' => $user['id'], 'name' => $user['name']], $report['users'])]], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        exit;
+    }
     if ((string) ($_POST['operation'] ?? '') === 'set_industry_filter') {
         $industry = Anesda\CRM\SpeedPhone\IndustryFilter::save($current_user, (string) ($_POST['industry'] ?? ''));
         echo json_encode(['success' => true, 'data' => ['industry' => $industry,
