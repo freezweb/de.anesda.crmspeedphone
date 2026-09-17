@@ -31,6 +31,10 @@ Für große oder regelmäßige Läufe einen eigenen Routingdienst einsetzen.
 
 CRM SpeedPhone ist eine schnelle, abarbeitbare Telefonakquise-Warteschlange für SuiteCRM 8. Die Erweiterung verwendet ausschließlich vorhandene Zielkontakt-UUIDs (`Prospects.id`) und legt keine Kontaktkopien an.
 
+## Veröffentlichung 1.18.0
+
+Am 17.09.2026 über Jenkins **CRM-SpeedPhone, Build 44 SUCCESS** veröffentlicht, Quellcommit `04e8df405e2751477f778c8f1257927694a169d6`. Modultests, PHP-Syntaxprüfung, JavaScript-Syntax und ZIP-Paketprüfung erfolgreich. Neun zusätzliche synthetische MariaDB-Abfragen bestätigen Branchenerkennung, manuelle Vorrangwerte und Filterung vor LIMIT. Browserprüfung mit den tatsächlich gerenderten PHP-Formularen erfolgreich. Nach Deployment elf geänderte Moduldateien per normalisiertem SHA-256, neue Datenbankspalte und öffentliches JavaScript geprüft. Sicherung: `/srv/backups/crm-speedphone/custom-before-jenkins-44.tar.gz`. Es wurden keine Telefonate oder E-Mails ausgelöst und keine persönlichen Branchenfilter produktiver Benutzer vorbelegt.
+
 ## Persönlicher Branchenfilter
 
 Jeder freigeschaltete Benutzer kann direkt in SpeedPhone unter **Mein Branchenfilter** eine Branche oder **Alle Branchen** wählen und mit **Filter übernehmen** speichern. Die Auswahl gehört ausschließlich zum eigenen CRM-Benutzer und bleibt beim erneuten Öffnen erhalten. Ein bereits reservierter Kontakt bleibt geöffnet; neue Kontakte werden innerhalb der gewählten Branche priorisiert und reserviert. Ist die Liste leer, kann eine andere Branche gewählt werden. Tageskennzahlen bleiben branchenübergreifend.
