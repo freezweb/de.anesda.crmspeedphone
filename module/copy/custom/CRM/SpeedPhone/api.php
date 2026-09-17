@@ -44,9 +44,35 @@ try {
     $lockService = new LockService($config, $db, $current_user);
     $queue = new QueueService($config, $db, $current_user, $lockService, $accessService, $assignmentService);
     $queue->assertUserAllowed();
+    if ((string) ($_POST['operation'] ?? '') === 'set_industry_filter') {
+        $industry = Anesda\CRM\SpeedPhone\IndustryFilter::save($current_user, (string) ($_POST['industry'] ?? ''));
+        echo json_encode(['success' => true, 'data' => ['industry' => $industry,
+            'message' => 'Dein Branchenfilter ist gespeichert. Er gilt für den nächsten Kontakt.']], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
     $dialerService = new DialerService($db, $current_user);
     $pbxService = new PbxService($config, $db, $current_user, $accessService);
     $productFlyerService = new ProductFlyerService(__DIR__ . '/assets/flyers');
+
+    if ((string) ($_POST['operation'] ?? '') === 'set_contact_industry') {
+        $prospectId = (new InputValidator())->uuid((string) ($_POST['prospect_id'] ?? ''));
+        $lockService->assertOwned($prospectId, (string) ($_POST['lock_token'] ?? ''));
+        if (!$queue->canEditProspect($prospectId) || !ACLController::checkAccess('Prospects', 'edit', true)) {
+            throw new RuntimeException('Kein Zugriff auf diesen Zielkontakt.');
+        }
+        $industry = Anesda\CRM\SpeedPhone\IndustryFilter::validate((string) ($_POST['industry'] ?? ''));
+        $prospect = BeanFactory::getBean('Prospects', $prospectId);
+        if (!$prospect || empty($prospect->id) || (int) $prospect->deleted === 1) {
+            throw new RuntimeException('Der Zielkontakt wurde nicht gefunden.');
+        }
+        $prospect->speedphone_industry_c = $industry;
+        $prospect->save(false);
+        $name = trim((string) ($prospect->account_name ?: trim($prospect->first_name . ' ' . $prospect->last_name)));
+        $effective = Anesda\CRM\SpeedPhone\IndustryFilter::classify($name, $industry);
+        echo json_encode(['success' => true, 'data' => ['message' => 'Branche des Kontakts gespeichert. Der laufende Kontakt bleibt geöffnet.',
+            'industry_label' => 'Aktuell: ' . Anesda\CRM\SpeedPhone\IndustryFilter::OPTIONS[$effective] . ($industry === '' ? ' · aus Firmenname abgeleitet' : ' · manuell gepflegt')]], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
 
     if ((string) ($_POST['operation'] ?? '') === 'dialer_pairing') {
         $siteUrl = rtrim((string) ($sugar_config['site_url'] ?? ''), '/');

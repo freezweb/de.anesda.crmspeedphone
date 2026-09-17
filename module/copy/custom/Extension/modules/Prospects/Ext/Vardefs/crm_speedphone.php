@@ -1,5 +1,14 @@
 <?php
 
+$dictionary['Prospect']['fields']['speedphone_industry_c'] = [
+    'name' => 'speedphone_industry_c',
+    'vname' => 'LBL_SPEEDPHONE_INDUSTRY',
+    'type' => 'varchar',
+    'len' => 40,
+    'source' => 'custom_fields',
+    'audited' => true,
+];
+
 foreach ([
     'status' => ['type' => 'enum', 'options' => 'speedphone_travel_status_list', 'len' => 40],
     'minutes' => ['type' => 'int'],

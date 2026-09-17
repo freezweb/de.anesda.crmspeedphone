@@ -42,7 +42,7 @@ final class QueueService
             $this->locks->releaseCurrentUserLock();
         }
 
-        $sql = $baseSql . "
+        $sql = $baseSql . ' AND ' . IndustryFilter::allowedSql(IndustryFilter::selected($this->currentUser), fn (string $value): string => $this->db->quote($value)) . "
                   AND NOT EXISTS (
                       SELECT 1 FROM crm_speedphone_locks spl
                       WHERE spl.prospect_id=p.id AND spl.expires_at>UTC_TIMESTAMP()
@@ -316,6 +316,8 @@ final class QueueService
         }
 
         $candidate['name'] = trim((string) ($prospect->account_name ?: trim($prospect->first_name . ' ' . $prospect->last_name)));
+        $candidate['industry_stored'] = (string) ($prospect->speedphone_industry_c ?? '');
+        $candidate['industry'] = IndustryFilter::classify($candidate['name'], $candidate['industry_stored']);
         $candidate['email'] = (string) ($prospect->emailAddress?->getPrimaryAddress($prospect) ?? '');
         $candidate['website'] = $this->extractWebsite((string) $prospect->description);
         $candidate['linkedin'] = $this->linkedInContacts->discover(

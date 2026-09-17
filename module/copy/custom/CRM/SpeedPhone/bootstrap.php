@@ -8,6 +8,7 @@ $speedPhoneBase = __DIR__;
 foreach ([
     'Config',
     'TravelFilter',
+    'IndustryFilter',
     'BusinessDayCalculator',
     'InputValidator',
     'AclRoleService',

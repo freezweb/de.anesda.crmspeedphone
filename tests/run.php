@@ -770,6 +770,8 @@ foreach ([
     }
 }
 
+require __DIR__ . '/industry_filter.php';
+
 if ($failures !== []) {
     fwrite(STDERR, implode(PHP_EOL, $failures) . PHP_EOL);
     exit(1);

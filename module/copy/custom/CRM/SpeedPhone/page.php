@@ -8,6 +8,7 @@ require_once __DIR__ . '/bootstrap.php';
 require_once __DIR__ . '/render.php';
 
 use Anesda\CRM\SpeedPhone\Config;
+use Anesda\CRM\SpeedPhone\IndustryFilter;
 use Anesda\CRM\SpeedPhone\DialerService;
 use Anesda\CRM\SpeedPhone\AssignmentService;
 use Anesda\CRM\SpeedPhone\PbxService;
@@ -75,7 +76,7 @@ $assetBase = $legacyBase . '/custom/CRM/SpeedPhone/assets';
 $userTimezone = (string) ($current_user->getPreference('timezone') ?: 'Europe/Berlin');
 
 ?>
-<link rel="stylesheet" href="<?= speedPhoneEscape($assetBase) ?>/speedphone.css?v=1.17.0">
+<link rel="stylesheet" href="<?= speedPhoneEscape($assetBase) ?>/speedphone.css?v=1.18.0">
 <main class="speedphone" data-api-url="index.php?entryPoint=crmSpeedPhoneApi" data-csrf="<?= speedPhoneEscape($_SESSION['crm_speedphone_csrf']) ?>">
     <header class="speedphone__header">
         <div>
@@ -122,6 +123,18 @@ $userTimezone = (string) ($current_user->getPreference('timezone') ?: 'Europe/Be
     </section>
 
     <div id="speedphone-message" class="message" role="status" aria-live="polite" tabindex="-1" hidden></div>
+
+    <form id="speedphone-industry-filter" class="message">
+        <label for="speedphone-industry">Mein Branchenfilter</label>
+        <select id="speedphone-industry" name="industry">
+            <?php foreach (IndustryFilter::OPTIONS as $value => $label): ?>
+                <option value="<?= speedPhoneEscape($value) ?>" <?= IndustryFilter::selected($current_user) === $value ? 'selected' : '' ?>><?= speedPhoneEscape($label) ?></option>
+            <?php endforeach; ?>
+        </select>
+        <button type="submit" class="button button--secondary">Filter übernehmen</button>
+        <p>Gilt nur für dich und kann jederzeit geändert werden. Ein bereits geöffneter Kontakt bleibt erhalten; der Filter gilt für den nächsten Kontakt.</p>
+        <small>Branchen werden anhand des Firmennamens vorgeschlagen und können am Kontakt korrigiert werden. Nicht erkennbare Branchen bleiben „Nicht zugeordnet“. Die Tageskennzahlen bleiben branchenübergreifend.</small>
+    </form>
 
     <?php if ($config->get('travel_filter_enabled', false)): ?>
         <aside class="message" role="note">
@@ -240,4 +253,4 @@ $userTimezone = (string) ($current_user->getPreference('timezone') ?: 'Europe/Be
     <div class="speedphone__footer">CRM SpeedPhone © anesda</div>
 </main>
 <script src="<?= speedPhoneEscape($assetBase) ?>/vendor/qrcode-generator/qrcode.js?v=2.0.4"></script>
-<script src="<?= speedPhoneEscape($assetBase) ?>/speedphone.js?v=1.17.0"></script>
+<script src="<?= speedPhoneEscape($assetBase) ?>/speedphone.js?v=1.18.0"></script>

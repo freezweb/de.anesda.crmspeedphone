@@ -31,6 +31,12 @@ Für große oder regelmäßige Läufe einen eigenen Routingdienst einsetzen.
 
 CRM SpeedPhone ist eine schnelle, abarbeitbare Telefonakquise-Warteschlange für SuiteCRM 8. Die Erweiterung verwendet ausschließlich vorhandene Zielkontakt-UUIDs (`Prospects.id`) und legt keine Kontaktkopien an.
 
+## Persönlicher Branchenfilter
+
+Jeder freigeschaltete Benutzer kann direkt in SpeedPhone unter **Mein Branchenfilter** eine Branche oder **Alle Branchen** wählen und mit **Filter übernehmen** speichern. Die Auswahl gehört ausschließlich zum eigenen CRM-Benutzer und bleibt beim erneuten Öffnen erhalten. Ein bereits reservierter Kontakt bleibt geöffnet; neue Kontakte werden innerhalb der gewählten Branche priorisiert und reserviert. Ist die Liste leer, kann eine andere Branche gewählt werden. Tageskennzahlen bleiben branchenübergreifend.
+
+Die vorhandenen OSM-Zielkontakte besitzen bisher keine Branchenzuordnung. SpeedPhone leitet deshalb zunächst eine ausdrücklich als Vorschlag bezeichnete Branche aus dem Firmennamen ab; nicht erkennbare Betriebe bleiben **Nicht zugeordnet**. Am reservierten Kontakt kann die Branche korrigiert oder bewusst **Nicht zugeordnet** gesetzt werden. Manuelle Angaben haben Vorrang. Es werden keine Kontaktkopien und keine automatischen Massenänderungen angelegt. Region, Kontaktsperren, Zuständigkeiten und Reservierungen bleiben zusätzliche Bedingungen. Eingehende Rückrufe werden nicht durch den persönlichen Branchenfokus ausgeschlossen.
+
 ## Funktionen
 
 - priorisierte Telefonliste aus einer bestehenden SuiteCRM-Zielkontaktliste

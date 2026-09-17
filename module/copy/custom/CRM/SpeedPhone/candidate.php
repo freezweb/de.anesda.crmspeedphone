@@ -1,7 +1,8 @@
 <?php if ($candidate === null): ?>
     <section class="empty">
         <h2>Die aktuelle Warteschlange ist abgearbeitet</h2>
-        <p>Es gibt momentan keinen fälligen, freigegebenen Zielkontakt mit Telefonnummer.</p>
+        <p>Es gibt momentan keinen fälligen, freigegebenen Zielkontakt mit Telefonnummer für deine Auswahl. Du kannst oben eine andere Branche oder „Alle Branchen“ wählen.</p>
+        <button type="button" class="button" data-speedphone-retry>Nächsten Kontakt laden</button>
     </section>
 <?php else: ?>
     <section class="candidate" data-prospect-id="<?= speedPhoneEscape($candidate['id']) ?>">
@@ -43,6 +44,19 @@
                 </aside>
             <?php endif; ?>
 
+            <form data-speedphone-contact-industry class="industry-contact">
+                <input type="hidden" name="prospect_id" value="<?= speedPhoneEscape($candidate['id']) ?>">
+                <input type="hidden" name="lock_token" value="<?= speedPhoneEscape($candidate['lock_token']) ?>">
+                <label>Branche
+                    <select name="industry">
+                        <?php foreach (Anesda\CRM\SpeedPhone\IndustryFilter::OPTIONS as $value => $label): ?>
+                            <option value="<?= speedPhoneEscape($value) ?>" <?= ($candidate['industry_stored'] ?? '') === $value ? 'selected' : '' ?>><?= speedPhoneEscape($value === '' ? 'Automatische Vorzuordnung' : $label) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </label>
+                <button type="submit" class="button button--secondary">Branche speichern</button>
+                <small>Aktuell: <?= speedPhoneEscape(Anesda\CRM\SpeedPhone\IndustryFilter::OPTIONS[$candidate['industry'] ?? 'unknown']) ?><?= empty($candidate['industry_stored']) ? ' · aus Firmenname abgeleitet' : ' · manuell gepflegt' ?></small>
+            </form>
             <div class="contact-grid">
                 <?php if (!empty($candidate['phone_work'])): ?>
                     <a class="contact-card contact-card--phone" href="tel:<?= speedPhoneEscape(preg_replace('/[^+0-9]/', '', $candidate['phone_work'])) ?>">

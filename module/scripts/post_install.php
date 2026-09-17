@@ -137,6 +137,7 @@ function speedPhoneCreateGuid(): string
 }
 
 speedPhoneEnsureCustomTableAndColumns($db, 'prospects_cstm', [
+    'speedphone_industry_c' => 'varchar(40) NULL',
     'speedphone_travel_status_c' => 'varchar(40) NULL',
     'speedphone_travel_minutes_c' => 'int NULL',
     'speedphone_travel_origin_c' => 'varchar(255) NULL',

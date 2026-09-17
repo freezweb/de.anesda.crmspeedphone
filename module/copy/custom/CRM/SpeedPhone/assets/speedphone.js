@@ -29,6 +29,29 @@
     window.addEventListener('pageshow', startLiveUpdates);
 
     root.addEventListener('submit', async function (event) {
+        const industryForm = event.target.closest('#speedphone-industry-filter, [data-speedphone-contact-industry]');
+        if (industryForm) {
+            event.preventDefault();
+            const data = new FormData(industryForm);
+            data.set('operation', industryForm.id === 'speedphone-industry-filter' ? 'set_industry_filter' : 'set_contact_industry');
+            data.set('csrf', root.dataset.csrf);
+            setBusy(industryForm, true);
+            try {
+                const payload = await request(data);
+                showMessage(payload.data.message, false);
+                if (industryForm.id === 'speedphone-industry-filter' && !document.getElementById('speedphone-form')) {
+                    await loadNextCandidate();
+                }
+                if (payload.data.industry_label && industryForm.querySelector('small')) {
+                    industryForm.querySelector('small').textContent = payload.data.industry_label;
+                }
+            } catch (error) {
+                showMessage(error.message || String(error), true);
+            } finally {
+                setBusy(industryForm, false);
+            }
+            return;
+        }
         const teamForm = event.target.closest('#speedphone-team-form');
         if (teamForm) {
             event.preventDefault();
@@ -968,6 +991,11 @@
             return;
         }
 
+        const currentIndustry = currentMain.querySelector('[data-speedphone-contact-industry]');
+        const incomingIndustry = incomingMain.querySelector('[data-speedphone-contact-industry]');
+        if (currentIndustry && incomingIndustry) {
+            incomingIndustry.replaceWith(currentIndustry);
+        }
         currentMain.replaceWith(incomingMain);
     }
 
