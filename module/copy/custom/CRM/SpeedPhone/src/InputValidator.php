@@ -72,4 +72,16 @@ final class InputValidator
 
         return $value;
     }
+
+    public function emailBodyHtml(string $value): string
+    {
+        if (mb_strlen($value, 'UTF-8') > 100000) {
+            throw new \InvalidArgumentException('Die formatierte E-Mail darf höchstens 100.000 Zeichen lang sein.');
+        }
+        $html = EmailContentService::sanitizeHtml($value);
+        if (EmailContentService::htmlToPlain($html) === '') {
+            throw new \InvalidArgumentException('Die E-Mail-Nachricht darf nicht leer sein.');
+        }
+        return $html;
+    }
 }

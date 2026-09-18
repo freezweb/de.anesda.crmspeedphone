@@ -124,6 +124,12 @@
 .speedphone .email-compose__content output { background: var(--sp-bg); border-radius: 10px; display: block; padding: 10px 12px; overflow-wrap: anywhere; }
 .speedphone .email-compose__content input, .speedphone .email-compose__content textarea { background: #fff; border: 1px solid #bac6d0; border-radius: 10px; box-sizing: border-box; font: inherit; padding: 11px 12px; width: 100%; }
 .speedphone .email-compose__content textarea { line-height: 1.5; min-height: 320px; resize: vertical; }
+.speedphone .email-compose__toolbar { display:flex;flex-wrap:wrap;gap:6px;padding:8px;background:#f5fafb;border:1px solid #bac6d0;border-radius:10px 10px 0 0; }
+.speedphone .email-compose__toolbar button, .speedphone .email-compose__link button { border:1px solid #bac6d0;border-radius:6px;background:#fff;color:#17202a;padding:8px 10px;cursor:pointer;font:inherit;font-size:13px; }
+.speedphone .email-compose__toolbar button:focus-visible { outline:3px solid #087ea4; }
+.speedphone .email-compose__editor { background:#fff;border:1px solid #bac6d0;border-radius:0 0 10px 10px;box-sizing:border-box;width:100%;height:48vh;min-height:320px; }
+.speedphone .email-compose__link { padding:10px;background:#edf9f7;border:1px solid #b9e5db;border-radius:8px; }
+.speedphone .email-compose__link[hidden] { display:none; }
 .speedphone .email-compose__content input:focus, .speedphone .email-compose__content textarea:focus { border-color: var(--sp-brand); outline: 3px solid rgba(21, 94, 117, .16); }
 .speedphone .email-compose__attachments { background: #f5fafb; border-left: 4px solid var(--sp-brand); border-radius: 8px; margin-top: 5px; padding: 10px 12px; }
 .speedphone .email-compose__actions { display: flex; gap: 10px; justify-content: flex-end; padding: 12px 22px 20px; }

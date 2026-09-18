@@ -25,6 +25,11 @@ $entry_point_registry['anesdaMailWebhook'] = [
     'auth' => false,
 ];
 
+$entry_point_registry['crmSpeedPhoneEmailLogo'] = [
+    'file' => 'custom/CRM/SpeedPhone/email_logo.php',
+    'auth' => false,
+];
+
 $entry_point_registry['crmSpeedPhonePbxIncoming'] = [
     'file' => 'custom/CRM/SpeedPhone/pbx_incoming.php',
     'auth' => false,

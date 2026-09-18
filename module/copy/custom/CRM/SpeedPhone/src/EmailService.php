@@ -43,6 +43,7 @@ final class EmailService
             'recipient' => $draft['email'],
             'subject' => $draft['subject'],
             'body' => $draft['body_text'],
+            'body_html' => EmailContentService::sanitizeHtml($draft['body_html']),
             'flyers' => $draft['flyer_labels'],
         ];
     }
@@ -55,7 +56,8 @@ final class EmailService
         bool $explicitOneTimeRequest = false,
         array $flyerKeys = [],
         ?string $customSubject = null,
-        ?string $customBodyText = null
+        ?string $customBodyText = null,
+        ?string $customBodyHtml = null
     ): array
     {
         if (!(bool) $this->config->get('email_sending_enabled', false)) {
@@ -74,17 +76,41 @@ final class EmailService
 
         $emailBean = \BeanFactory::newBean('Emails');
         $defaults = $emailBean->getSystemDefaultEmail();
-        $mailSubject = $customSubject === null ? $draft['subject'] : trim($customSubject);
+        $mailSubject = $customSubject === null ? $draft['subject']
+            : EmailContentService::replaceVariables(trim($customSubject), $draft['replacements']);
         $bodyText = $customBodyText === null
             ? $draft['body_text']
-            : trim(str_replace(["\r\n", "\r"], "\n", $customBodyText));
+            : EmailContentService::replaceVariables(
+                trim(str_replace(["\r\n", "\r"], "\n", $customBodyText)), $draft['replacements']
+            );
         if ($mailSubject === '' || $bodyText === '') {
             throw new \InvalidArgumentException('Betreff und E-Mail-Text dürfen nicht leer sein.');
         }
         $bodyHtml = $customBodyText === null || $bodyText === $draft['body_text']
             ? $draft['body_html']
-            : self::editableTextToHtml($bodyText);
+            : EmailContentService::editableTextToHtml($bodyText, $draft['body_html']);
+        $bodyText = EmailContentService::editableTextToPlain($bodyText);
+        if ($customBodyHtml !== null) {
+            $bodyHtml = EmailContentService::sanitizeHtml(EmailContentService::replaceVariables(
+                $customBodyHtml, $draft['replacements'], true
+            ));
+            $bodyText = EmailContentService::htmlToPlain($bodyHtml);
+            if ($bodyText === '') {
+                throw new \InvalidArgumentException('Die E-Mail-Nachricht darf nicht leer sein.');
+            }
+        }
         $transportReference = null;
+        $logoTracking = (bool) $this->config->get('email_logo_tracking_enabled', false)
+            && !((bool) $this->config->get('mail_api_enabled', false) && $attachments === []);
+        if ($logoTracking) {
+            $emailBean->id = create_guid();
+            $emailBean->new_with_id = true;
+            $siteUrl = rtrim((string) ($GLOBALS['sugar_config']['site_url'] ?? ''), '/');
+            $legacyUrl = str_ends_with($siteUrl, '/legacy') ? $siteUrl : $siteUrl . '/legacy';
+            $bodyHtml = EmailLogoTrackingService::instrument(
+                $bodyHtml, $emailBean->id, $legacyUrl, $this->config->requireString('mail_webhook_secret')
+            );
+        }
         if ((bool) $this->config->get('mail_api_enabled', false) && $attachments === []) {
             $transportReference = $this->sendThroughMailApi(
                 $prospect,
@@ -122,6 +148,9 @@ final class EmailService
         $emailBean->date_sent_received = \TimeDate::getInstance()->nowDb();
         if ($transportReference !== null) {
             $emailBean->description = "Anesda-Mail-ID: {$transportReference}\n\n" . $emailBean->description;
+        }
+        if ($logoTracking) {
+            $emailBean->description = "SpeedPhone-Mail-ID: {$emailBean->id}\n\n" . $emailBean->description;
         }
         if ($flyerLabels !== []) {
             $emailBean->description = 'Angehängte Produktflyer: ' . implode(', ', $flyerLabels)
@@ -180,9 +209,14 @@ final class EmailService
             '$first_name' => (string) $prospect->first_name,
             '$last_name' => (string) $prospect->last_name,
         ];
-        $subject = from_html(strtr((string) $template->subject, $replacements));
-        $bodyHtml = self::decodeStoredHtml(strtr((string) $template->body_html, $replacements));
-        $bodyText = trim(strip_tags(strtr((string) $template->body, $replacements) ?: $bodyHtml));
+        foreach (['first_name', 'last_name', 'account_name'] as $field) {
+            $replacements['$contact_' . $field] = $replacements['$' . $field];
+            $replacements['$prospect_' . $field] = $replacements['$' . $field];
+        }
+        $replacements['$contact_email1'] = $email;
+        $subject = EmailContentService::replaceVariables(from_html((string) $template->subject), $replacements);
+        $bodyHtml = EmailContentService::replaceVariables(self::decodeStoredHtml((string) $template->body_html), $replacements, true);
+        $bodyText = trim(strip_tags(EmailContentService::replaceVariables((string) $template->body, $replacements) ?: $bodyHtml));
         if ($flyerLabels !== []) {
             $joinedLabels = implode(', ', $flyerLabels);
             $subject = mb_strlen($joinedLabels, 'UTF-8') <= 120
@@ -210,17 +244,8 @@ final class EmailService
             'body_text' => $bodyText,
             'attachments' => $attachments,
             'flyer_labels' => $flyerLabels,
+            'replacements' => $replacements,
         ];
-    }
-
-    private static function editableTextToHtml(string $bodyText): string
-    {
-        $escaped = htmlspecialchars($bodyText, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-
-        return '<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.6;'
-            . 'color:#17202a;max-width:720px;margin:0 auto">'
-            . nl2br($escaped, false)
-            . '</div>';
     }
 
     /**

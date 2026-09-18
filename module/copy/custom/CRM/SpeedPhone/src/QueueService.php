@@ -564,7 +564,7 @@ final class QueueService
     /** @return list<array{type: string, occurred_at: string, detail: string}> */
     private function directEmailInteractions(string $recipient, string $trackingSource): array
     {
-        if (preg_match('/Anesda-Mail-ID:\s*([0-9a-f-]{36})/i', $trackingSource, $match) !== 1) {
+        if (preg_match('/(?:Anesda|SpeedPhone)-Mail-ID:\s*([0-9a-f-]{36})/i', $trackingSource, $match) !== 1) {
             return [];
         }
         $messageId = strtolower($match[1]);

@@ -424,6 +424,9 @@ try {
                 : null,
             array_key_exists('email_body', $_POST)
                 ? $validator->emailBody((string) $_POST['email_body'])
+                : null,
+            array_key_exists('email_body_html', $_POST)
+                ? $validator->emailBodyHtml((string) $_POST['email_body_html'])
                 : null
         );
         echo json_encode([

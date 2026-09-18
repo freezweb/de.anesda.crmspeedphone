@@ -31,6 +31,15 @@ Für große oder regelmäßige Läufe einen eigenen Routingdienst einsetzen.
 
 CRM SpeedPhone ist eine schnelle, abarbeitbare Telefonakquise-Warteschlange für SuiteCRM 8. Die Erweiterung verwendet ausschließlich vorhandene Zielkontakt-UUIDs (`Prospects.id`) und legt keine Kontaktkopien an.
 
+## Veröffentlichung 1.22.0
+
+- Ausgehende SpeedPhone-Mails werden direkt als formatierter HTML-Entwurf bearbeitet: Fett, Kursiv, Unterstreichen, Listen, Links und Rückgängig/Wiederholen.
+- Vorschau und Versand nutzen den HTML-Inhalt statt einer verlustbehafteten Text-/Markdown-Rückumwandlung. Serverseitige Bereinigung entfernt aktive Inhalte; Textalternativen werden aus dem HTML erzeugt. Alte geöffnete Texteditoren bleiben kompatibel.
+- Die Anesda-Informationsvorlage enthält das Firmenlogo zusätzlich im Footer. Fremde Vorlagen erhalten kein Anesda-Logo.
+- Optionales `email_logo_tracking_enabled` (Standard `false`) erfasst signierte Footer-Logo-Abrufe für SMTP-Mails, insbesondere mit PDF-Anhängen, im bestehenden Öffnungsverlauf. Erfordert `mail_webhook_secret` und eine öffentliche HTTPS-CRM-Adresse. API-Mails verwenden weiterhin ihre bestehende Erfassung, ohne zusätzliche Doppelzählung durch das Logo.
+- Die CRM-interne Historienvorschau lädt keine externen Bilder und erzeugt dadurch keine Öffnungsereignisse. Bildblockierung, Proxys und Caches machen Öffnungssignale unvollständig; Logo-Abrufe beweisen keine persönliche Lektüre.
+- Bestehende gesendete Mails werden nicht verändert oder erneut versendet.
+
 ## Veröffentlichung 1.21.0
 
 Am 17.09.2026 über Jenkins **CRM-SpeedPhone, Build 48 SUCCESS** veröffentlicht, Quellcommit `5304a608794c111d66a376d33ed66c7d0e95751c`. Modultests einschließlich sicherer Historien-Darstellung, historischer Ergebniszuordnung, fremder/eigener Reservierung und Anrufverbot erfolgreich; PHP-/JavaScript-Syntax und ZIP-Paketprüfung erfolgreich. Lesende Integrationsprüfung gegen die tatsächliche CRM-Datenbank für alle fünf Profile bestätigt berechtigungsgerechte Gesamt-/Eigenlisten, 50er-Seiten, begrenzte Seitenauswahl, leere Zeiträume, Datumsfehler, wörtliche Suchbegriffe und Call-UUID-Auflösung. Externer Zugriff auf einen fremden exklusiven Anruf sowie Zugriff ohne Freischaltung abgelehnt. Browserprüfung mit synthetischen Daten bestätigt Blättern, Suche, Eigenfilter, lesbare Desktop-/Tabletansicht, direkte AJAX-Öffnung ohne Navigation zur CRM-Detailseite und erhaltenen Gesprächsentwurf. Nach Deployment acht betroffene Moduldateien und öffentliches JavaScript per normalisiertem SHA-256 geprüft und die Datenbank-/Rollenprüfung mit der ausgelieferten Klasse wiederholt. Sicherung: `/srv/backups/crm-speedphone/custom-before-jenkins-48.tar.gz`. Keine echten Testanrufe, Mails oder Übernahmen produktiver Reservierungen ausgelöst.

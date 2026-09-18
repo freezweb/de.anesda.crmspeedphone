@@ -21,6 +21,8 @@ foreach ([
     'LinkedInContactService',
     'QueueService',
     'ProductFlyerService',
+    'EmailContentService',
+    'EmailLogoTrackingService',
     'EmailService',
     'EmailTemplateBrandService',
     'ActionService',

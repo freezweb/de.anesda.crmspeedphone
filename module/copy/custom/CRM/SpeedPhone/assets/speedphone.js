@@ -207,8 +207,8 @@
         if (composeSendButton) {
             const dialog = document.getElementById('speedphone-email-compose-dialog');
             const subject = dialog?.querySelector('[data-email-compose-subject]')?.value.trim() || '';
-            const body = dialog?.querySelector('[data-email-compose-body]')?.value.trim() || '';
-            if (!pendingEmailSubmission || !subject || !body) {
+            const body = dialog?.speedPhoneEditor?.getHtml() || '';
+            if (!pendingEmailSubmission || !subject || !dialog?.speedPhoneEditor?.getText()) {
                 showMessage('Betreff und E-Mail-Text dürfen nicht leer sein.', true);
                 return;
             }
@@ -626,8 +626,10 @@
         recipient.textContent = composeValues.new_email || form?.elements.new_email?.value || 'Wird geladen …';
         subject.value = '';
         subject.placeholder = 'Entwurf wird geladen …';
-        body.value = '';
-        body.placeholder = 'Entwurf wird geladen …';
+        if (!dialog.speedPhoneEditor) { dialog.speedPhoneEditor = new window.SpeedPhoneEmailEditor(dialog); }
+        dialog.speedPhoneEditor.setHtml('<p>Entwurf wird geladen …</p>');
+        const sendButton = dialog.querySelector('[data-email-compose-send]');
+        sendButton.disabled = true;
         attachments.hidden = true;
         attachments.textContent = '';
         if (typeof dialog.showModal === 'function') {
@@ -646,9 +648,9 @@
             const payload = await request(data);
             recipient.textContent = payload.data.recipient || 'Keine Empfängeradresse';
             subject.value = payload.data.subject || '';
-            body.value = payload.data.body || '';
+            dialog.speedPhoneEditor.setHtml(payload.data.body_html || '');
             subject.placeholder = '';
-            body.placeholder = '';
+            sendButton.disabled = false;
             const flyers = Array.isArray(payload.data.flyers) ? payload.data.flyers : [];
             if (flyers.length > 0) {
                 attachments.textContent = 'Anhänge: ' + flyers.join(', ');
@@ -684,7 +686,7 @@
         data.set('csrf', root.dataset.csrf);
         if (emailDraft) {
             data.set('email_subject', emailDraft.subject);
-            data.set('email_body', emailDraft.body);
+            data.set('email_body_html', emailDraft.body);
         }
         button.dataset.submitting = 'true';
         setBusy(form, true);
@@ -721,7 +723,7 @@
         const data = new FormData(form);
         data.set('operation', 'resend_email');
         data.set('email_subject', emailDraft.subject);
-        data.set('email_body', emailDraft.body);
+        data.set('email_body_html', emailDraft.body);
         data.set('csrf', root.dataset.csrf);
         setBusy(form, true);
         try {
@@ -746,7 +748,7 @@
         data.set('new_email', email);
         data.set('email_address_confirmed', '1');
         data.set('email_subject', emailDraft.subject);
-        data.set('email_body', emailDraft.body);
+        data.set('email_body_html', emailDraft.body);
         data.set('csrf', root.dataset.csrf);
         button.disabled = true;
         try {

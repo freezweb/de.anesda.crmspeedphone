@@ -160,6 +160,7 @@ TEXT;
 <a href="https://anesda-nord.de/kontakt" style="display:inline-block;background:#2980b9;color:#fff;padding:14px 32px;text-decoration:none;border-radius:6px;font-weight:bold;">Unverbindlich Kontakt aufnehmen</a>
 </td></tr>
 <tr><td style="background:#eaf2f8;padding:24px 40px;text-align:center;font-size:14px;line-height:1.7;">
+<img data-speedphone-footer-logo="1" src="https://anesda-nord.de/anesda_logo.png" alt="Anesda Nord" width="190" style="display:block;margin:0 auto 16px;max-width:190px;height:auto;">
 <strong>Anesda Nord UG (haftungsbeschränkt)</strong><br>Parkstr. 5 · 19309 Lanz<br>
 <a href="tel:+4938780579999" style="color:#1a5276;">+49 38780 579999</a> · <a href="mailto:info@anesda-nord.de" style="color:#1a5276;">info@anesda-nord.de</a>
 </td></tr>

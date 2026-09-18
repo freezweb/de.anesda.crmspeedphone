@@ -76,7 +76,7 @@ $assetBase = $legacyBase . '/custom/CRM/SpeedPhone/assets';
 $userTimezone = (string) ($current_user->getPreference('timezone') ?: 'Europe/Berlin');
 
 ?>
-<link rel="stylesheet" href="<?= speedPhoneEscape($assetBase) ?>/speedphone.css?v=1.21.0">
+<link rel="stylesheet" href="<?= speedPhoneEscape($assetBase) ?>/speedphone.css?v=1.22.0">
 <main class="speedphone" data-api-url="index.php?entryPoint=crmSpeedPhoneApi" data-csrf="<?= speedPhoneEscape($_SESSION['crm_speedphone_csrf']) ?>">
     <header class="speedphone__header">
         <div>
@@ -238,7 +238,24 @@ $userTimezone = (string) ($current_user->getPreference('timezone') ?: 'Europe/Be
             <label for="speedphone-email-compose-subject">Betreff</label>
             <input id="speedphone-email-compose-subject" type="text" maxlength="255" data-email-compose-subject>
             <label for="speedphone-email-compose-body">Nachricht</label>
-            <textarea id="speedphone-email-compose-body" rows="16" maxlength="20000" data-email-compose-body></textarea>
+            <div class="email-compose__toolbar" role="toolbar" aria-label="Nachricht formatieren">
+                <button type="button" data-email-editor-command="bold" title="Fett"><strong>Fett</strong></button>
+                <button type="button" data-email-editor-command="italic" title="Kursiv"><em>Kursiv</em></button>
+                <button type="button" data-email-editor-command="underline">Unterstreichen</button>
+                <button type="button" data-email-editor-command="insertUnorderedList">Aufzählung</button>
+                <button type="button" data-email-editor-command="insertOrderedList">Nummerierung</button>
+                <button type="button" data-email-editor-command="createLink">Link</button>
+                <button type="button" data-email-editor-command="unlink">Link entfernen</button>
+                <button type="button" data-email-editor-command="undo">Zurück</button>
+                <button type="button" data-email-editor-command="redo">Wiederholen</button>
+            </div>
+            <div class="email-compose__link" data-email-editor-link hidden>
+                <label for="speedphone-email-link-url">Linkadresse</label>
+                <input id="speedphone-email-link-url" type="url" data-email-editor-link-url placeholder="https://…">
+                <button type="button" data-email-editor-link-save>Link übernehmen</button>
+                <button type="button" data-email-editor-link-cancel>Abbrechen</button>
+            </div>
+            <iframe id="speedphone-email-compose-body" class="email-compose__editor" title="E-Mail-Nachricht bearbeiten" sandbox="allow-same-origin" data-email-compose-body></iframe>
             <div class="email-compose__attachments" data-email-compose-attachments hidden></div>
             <p class="field-hint">Die hier bearbeitete Fassung wird genau so versendet und anschließend im CRM protokolliert.</p>
         </div>
@@ -288,4 +305,5 @@ $userTimezone = (string) ($current_user->getPreference('timezone') ?: 'Europe/Be
     <div class="speedphone__footer">CRM SpeedPhone © anesda</div>
 </main>
 <script src="<?= speedPhoneEscape($assetBase) ?>/vendor/qrcode-generator/qrcode.js?v=2.0.4"></script>
-<script src="<?= speedPhoneEscape($assetBase) ?>/speedphone.js?v=1.21.0"></script>
+<script src="<?= speedPhoneEscape($assetBase) ?>/email-editor.js?v=1.22.0"></script>
+<script src="<?= speedPhoneEscape($assetBase) ?>/speedphone.js?v=1.22.0"></script>

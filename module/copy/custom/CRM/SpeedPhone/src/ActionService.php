@@ -34,6 +34,8 @@ final class ActionService
         $customEmailBody = array_key_exists('email_body', $input)
             ? $validator->emailBody((string) $input['email_body'])
             : null;
+        $customEmailHtml = array_key_exists('email_body_html', $input)
+            ? $validator->emailBodyHtml((string) $input['email_body_html']) : null;
 
         if (($action === 'send_flyers' || ($action === 'interested' && $emailRequested)) && $flyerKeys === []) {
             throw new \InvalidArgumentException('Bitte wählen Sie mindestens einen passenden Produktflyer aus.');
@@ -175,7 +177,8 @@ final class ActionService
                     $emailAddressConfirmed,
                     $flyerKeys,
                     $customEmailSubject,
-                    $customEmailBody
+                    $customEmailBody,
+                    $customEmailHtml
                 );
                 if ($emailResult['sent'] === false) {
                     $emailResult['retry_allowed'] = true;

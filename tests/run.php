@@ -576,7 +576,7 @@ check(str_contains($javascriptSource, "data.set('operation', 'skip_current')"), 
 check(str_contains($javascriptSource, 'storeCurrentDraft(form)'), 'Beim kurzen Überspringen werden begonnene Eingaben nicht lokal gesichert.');
 check(str_contains($javascriptSource, "data.set('operation', 'compose_email')"), 'Browser lädt den E-Mail-Entwurf nicht vor dem Versand.');
 check(str_contains($javascriptSource, "data.set('email_subject', emailDraft.subject)"), 'Bearbeiteter E-Mail-Betreff wird nicht versendet.');
-check(str_contains($javascriptSource, "data.set('email_body', emailDraft.body)"), 'Bearbeiteter E-Mail-Text wird nicht versendet.');
+check(str_contains($javascriptSource, "data.set('email_body_html', emailDraft.body)"), 'Bearbeitete formatierte E-Mail wird nicht versendet.');
 check(str_contains($javascriptSource, "data.set('operation', 'refresh_current')"), 'Browser fragt keine aktuellen Kontaktdaten per AJAX ab.');
 check(str_contains($javascriptSource, 'LIVE_UPDATE_INTERVAL_MS = 10000'), 'Live-Aktualisierung läuft nicht im vorgesehenen Intervall.');
 check(
@@ -825,6 +825,12 @@ foreach ([
 require __DIR__ . '/industry_filter.php';
 require __DIR__ . '/team_statistics.php';
 require __DIR__ . '/call_history.php';
+require __DIR__ . '/email_content.php';
+
+$mailTestOutput = [];
+$mailTestExit = 0;
+exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(__DIR__ . '/email_delivery.php') . ' 2>&1', $mailTestOutput, $mailTestExit);
+check($mailTestExit === 0, 'Isolierter HTML-Mailversand fehlgeschlagen: ' . implode("\n", $mailTestOutput));
 
 if ($failures !== []) {
     fwrite(STDERR, implode(PHP_EOL, $failures) . PHP_EOL);

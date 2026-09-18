@@ -9,6 +9,7 @@ return [
     'statistics_excluded_user_names' => [],
     'email_template_name' => '',
     'email_sending_enabled' => false,
+    'email_logo_tracking_enabled' => false,
     'mail_webhook_secret' => '',
     'mail_api_enabled' => false,
     'mail_api_url' => 'https://mail01.mail.anesda.de/mailcontrol/v1/outbound/messages',
