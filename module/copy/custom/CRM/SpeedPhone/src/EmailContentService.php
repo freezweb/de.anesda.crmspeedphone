@@ -54,7 +54,7 @@ final class EmailContentService
                                 if (count($parts) !== 2) { continue; }
                                 [$property, $setting] = array_map('trim', $parts);
                                 if (preg_match('/^(?:color|background(?:-color)?|font-(?:family|size|weight|style)|line-height|text-(?:align|decoration|transform)|letter-spacing|margin(?:-(?:top|right|bottom|left))?|padding(?:-(?:top|right|bottom|left))?|border(?:-(?:top|right|bottom|left|radius|collapse))?|(?:max-|min-)?(?:width|height)|display|overflow)$/i', $property)
-                                    && preg_match('/^[a-zA-Z0-9#.,%\s()\x27"+\/-]+$/', $setting)
+                                    && preg_match('/^[a-zA-Z0-9#.,%\s()\x27"+\/-]+$/', preg_replace('/\s*!important\s*$/i', '', $setting) ?? $setting)
                                     && !preg_match('/url|expression|javascript|behavior|binding/i', $setting)) {
                                     $styles[] = $property . ':' . $setting;
                                 }
@@ -149,7 +149,7 @@ final class EmailContentService
 
             return '<div style="margin-top:24px;padding-top:20px;border-top:1px solid #d8e1e6">'
                 . '<img data-speedphone-footer-logo="1" src="' . self::escape($url) . '" alt="' . self::escape($logo->getAttribute('alt'))
-                . '" width="190" style="display:block;max-width:190px;height:auto" /></div>';
+                . '" width="190" style="display:block;max-width:190px;height:auto;background-color:#ffffff !important;border-radius:8px;padding:8px" /></div>';
         } finally {
             libxml_clear_errors();
             libxml_use_internal_errors($previous);

@@ -16,7 +16,7 @@ $manifest = [
     'name' => 'CRM SpeedPhone',
     'published_date' => '18.09.2026',
     'type' => 'module',
-    'version' => '1.22.0',
+    'version' => '1.22.1',
 ];
 
 $installdefs = [

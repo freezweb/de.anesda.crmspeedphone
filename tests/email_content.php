@@ -32,6 +32,9 @@ check(!preg_match('/onclick|onerror|<script|<iframe|javascript:|data:|url\(|posi
 check(str_contains($attack, 'color:red'), 'Sichere Inline-Formatierung wird unnötig entfernt.');
 check(str_contains(EmailContentService::htmlToPlain($formatted), 'Kontakt (https://anesda-nord.de/kontakt)'), 'Die HTML-Nachricht hat keine brauchbare Textalternative.');
 check(str_contains(EmailContentService::sanitizeHtml($template), 'data-speedphone-footer-logo'), 'Das Logo fehlt bereits im HTML-Entwurf.');
+check(substr_count(EmailContentService::sanitizeHtml($template), 'background-color:#ffffff !important') === 2, 'Kopf- und Footer-Logo verlieren ihren weißen Hintergrund bei der HTML-Bereinigung.');
+check(str_contains(EmailContentService::footerLogoFromHtml($template), 'background-color:#ffffff !important'), 'Das Logo alter Textentwürfe hat keinen weißen Hintergrund.');
+check(!str_contains(EmailContentService::sanitizeHtml('<p style="background:url(https://evil.org) !important">Text</p>'), 'url('), 'Important darf keine unsicheren CSS-Werte freischalten.');
 try { (new Anesda\CRM\SpeedPhone\InputValidator())->emailBodyHtml('<p><br></p><script>evil()</script>'); check(false, 'Eine leere HTML-Nachricht darf nicht versendet werden.'); } catch (InvalidArgumentException) {}
 $pageSource = file_get_contents(__DIR__ . '/../module/copy/custom/CRM/SpeedPhone/page.php');
 check(str_contains($pageSource, 'sandbox="allow-same-origin"'), 'Der Mailentwurf muss ohne Skriptausführung dargestellt werden.');

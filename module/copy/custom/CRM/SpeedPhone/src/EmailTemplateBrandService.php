@@ -136,7 +136,7 @@ TEXT;
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f0f2f5;"><tr><td align="center" style="padding:24px 12px;">
 <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;background:#fff;border-radius:12px;overflow:hidden;">
 <tr><td style="background:#0d1b2a;padding:32px 40px;text-align:center;">
-<img src="https://anesda-nord.de/anesda_logo.png" alt="Anesda Nord" width="190" style="display:block;margin:0 auto 14px;max-width:190px;height:auto;background:#fff;border-radius:8px;padding:8px;">
+<img src="https://anesda-nord.de/anesda_logo.png" alt="Anesda Nord" width="190" style="display:block;margin:0 auto 14px;max-width:190px;height:auto;background-color:#ffffff !important;border-radius:8px;padding:8px;">
 <p style="color:#7fc4ef;margin:0;font-size:14px;letter-spacing:2px;text-transform:uppercase;">Wir fangen an, wo andere aufhören</p>
 </td></tr>
 <tr><td style="background:#1a5276;padding:24px 40px;text-align:center;color:#fff;">
@@ -160,7 +160,7 @@ TEXT;
 <a href="https://anesda-nord.de/kontakt" style="display:inline-block;background:#2980b9;color:#fff;padding:14px 32px;text-decoration:none;border-radius:6px;font-weight:bold;">Unverbindlich Kontakt aufnehmen</a>
 </td></tr>
 <tr><td style="background:#eaf2f8;padding:24px 40px;text-align:center;font-size:14px;line-height:1.7;">
-<img data-speedphone-footer-logo="1" src="https://anesda-nord.de/anesda_logo.png" alt="Anesda Nord" width="190" style="display:block;margin:0 auto 16px;max-width:190px;height:auto;">
+<img data-speedphone-footer-logo="1" src="https://anesda-nord.de/anesda_logo.png" alt="Anesda Nord" width="190" style="display:block;margin:0 auto 16px;max-width:190px;height:auto;background-color:#ffffff !important;border-radius:8px;padding:8px;">
 <strong>Anesda Nord UG (haftungsbeschränkt)</strong><br>Parkstr. 5 · 19309 Lanz<br>
 <a href="tel:+4938780579999" style="color:#1a5276;">+49 38780 579999</a> · <a href="mailto:info@anesda-nord.de" style="color:#1a5276;">info@anesda-nord.de</a>
 </td></tr>
