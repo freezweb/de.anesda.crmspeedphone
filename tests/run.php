@@ -832,6 +832,11 @@ $mailTestExit = 0;
 exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(__DIR__ . '/email_delivery.php') . ' 2>&1', $mailTestOutput, $mailTestExit);
 check($mailTestExit === 0, 'Isolierter HTML-Mailversand fehlgeschlagen: ' . implode("\n", $mailTestOutput));
 
+$countTestOutput = [];
+$countTestExit = 0;
+exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(__DIR__ . '/industry_counts.php') . ' 2>&1', $countTestOutput, $countTestExit);
+check($countTestExit === 0, 'Isolierte Branchenzählung fehlgeschlagen: ' . implode("\n", $countTestOutput));
+
 if ($failures !== []) {
     fwrite(STDERR, implode(PHP_EOL, $failures) . PHP_EOL);
     exit(1);

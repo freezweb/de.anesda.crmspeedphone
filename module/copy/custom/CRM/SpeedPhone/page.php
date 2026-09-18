@@ -76,7 +76,7 @@ $assetBase = $legacyBase . '/custom/CRM/SpeedPhone/assets';
 $userTimezone = (string) ($current_user->getPreference('timezone') ?: 'Europe/Berlin');
 
 ?>
-<link rel="stylesheet" href="<?= speedPhoneEscape($assetBase) ?>/speedphone.css?v=1.22.1">
+<link rel="stylesheet" href="<?= speedPhoneEscape($assetBase) ?>/speedphone.css?v=1.23.0">
 <main class="speedphone" data-api-url="index.php?entryPoint=crmSpeedPhoneApi" data-csrf="<?= speedPhoneEscape($_SESSION['crm_speedphone_csrf']) ?>">
     <header class="speedphone__header">
         <div>
@@ -161,14 +161,14 @@ $userTimezone = (string) ($current_user->getPreference('timezone') ?: 'Europe/Be
                 <label class="sr-only" for="speedphone-industry">Branche für meine Anrufliste</label>
                 <select id="speedphone-industry" name="industry" aria-label="Branche für meine Anrufliste">
                     <?php foreach (IndustryFilter::OPTIONS as $value => $label): ?>
-                        <option value="<?= speedPhoneEscape($value) ?>" <?= IndustryFilter::selected($current_user) === $value ? 'selected' : '' ?>><?= speedPhoneEscape($label) ?></option>
+                        <option value="<?= speedPhoneEscape($value) ?>" data-industry-label="<?= speedPhoneEscape($label) ?>" <?= IndustryFilter::selected($current_user) === $value ? 'selected' : '' ?>><?= speedPhoneEscape($label) ?> (<?= isset($statistics['industry_counts'][$value]) ? (int) $statistics['industry_counts'][$value] : '–' ?>)</option>
                     <?php endforeach; ?>
                 </select>
                 <button type="submit" class="button button--secondary">Filter anwenden</button>
             </div>
         </div>
         <p>Dieser Filter ändert keinen Kontakt. Ein bereits geöffneter Kontakt bleibt erhalten; die Auswahl gilt beim nächsten Kontakt.</p>
-        <small>Die Branche eines Kontakts steht weiter unten direkt bei seinen Stammdaten und kann dort korrigiert werden. Die Tageskennzahlen bleiben branchenübergreifend.</small>
+        <small>Die Zahlen zeigen die aktuell für dich anrufbaren Kontakte; spätere Rückrufe und fremde Reservierungen zählen nicht mit. Die Werte werden automatisch aktualisiert. Die Branche kann direkt beim Kontakt korrigiert werden. Die Tageskennzahlen bleiben branchenübergreifend.</small>
     </form>
 
     <?php if ($config->get('travel_filter_enabled', false)): ?>
@@ -305,5 +305,5 @@ $userTimezone = (string) ($current_user->getPreference('timezone') ?: 'Europe/Be
     <div class="speedphone__footer">CRM SpeedPhone © anesda</div>
 </main>
 <script src="<?= speedPhoneEscape($assetBase) ?>/vendor/qrcode-generator/qrcode.js?v=2.0.4"></script>
-<script src="<?= speedPhoneEscape($assetBase) ?>/email-editor.js?v=1.22.1"></script>
-<script src="<?= speedPhoneEscape($assetBase) ?>/speedphone.js?v=1.22.1"></script>
+<script src="<?= speedPhoneEscape($assetBase) ?>/email-editor.js?v=1.23.0"></script>
+<script src="<?= speedPhoneEscape($assetBase) ?>/speedphone.js?v=1.23.0"></script>

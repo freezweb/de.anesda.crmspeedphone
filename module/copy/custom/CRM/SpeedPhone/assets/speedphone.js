@@ -59,6 +59,7 @@
             setBusy(industryForm, true);
             try {
                 const payload = await request(data);
+                updateIndustryCounts(payload.data.industry_counts);
                 showMessage(payload.data.message, false);
                 if (industryForm.id === 'speedphone-industry-filter' && !document.getElementById('speedphone-form')) {
                     await loadNextCandidate();
@@ -911,11 +912,26 @@
     }
 
     function updateStatistics(statistics) {
+        updateIndustryCounts(statistics.industry_counts);
         Object.keys(statistics).forEach(function (key) {
             const target = root.querySelector('[data-stat="' + key + '"]');
             if (target) {
                 target.textContent = String(statistics[key]);
             }
+        });
+    }
+
+    function updateIndustryCounts(counts) {
+        if (!counts || typeof counts !== 'object' || Array.isArray(counts)) { return; }
+        const select = document.getElementById('speedphone-industry');
+        if (!select) { return; }
+        // Bestehende Optionen erhalten: Auswahl und Fokus bleiben bei AJAX-Updates unangetastet.
+        Array.from(select.options).forEach(function (option) {
+            if (!Object.prototype.hasOwnProperty.call(counts, option.value)) { return; }
+            const count = Number(counts[option.value]);
+            if (!Number.isSafeInteger(count) || count < 0 || !option.dataset.industryLabel) { return; }
+            const label = option.dataset.industryLabel + ' (' + count + ')';
+            if (option.textContent !== label) { option.textContent = label; }
         });
     }
 

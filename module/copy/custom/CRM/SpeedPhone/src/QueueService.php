@@ -232,6 +232,7 @@ final class QueueService
         $processedTodayAll = $this->scalar("SELECT COUNT(DISTINCT c.id) n {$processedCommon}");
 
         return [
+            'industry_counts' => $this->getIndustryCounts(),
             'open' => $this->scalar("SELECT COUNT(*) n {$common}
                 AND (TRIM(COALESCE(p.phone_work, ''))<>'' OR TRIM(COALESCE(p.phone_mobile, ''))<>'')
                 AND COALESCE(pc.speedphone_status_c, '') NOT IN ('interested','no_interest','invalid_phone','blocked','paused')"),
@@ -252,6 +253,31 @@ final class QueueService
                    AND plp.prospect_list_id='" . $this->db->quote($listId) . "' AND plp.deleted=0
                 WHERE spl.expires_at>UTC_TIMESTAMP()"),
         ];
+    }
+
+    /** Aktuell anrufbare Kontakte je Branche, ohne den persönlichen Branchenfilter. */
+    public function getIndustryCounts(): array
+    {
+        $this->assertUserAllowed();
+        $counts = array_fill_keys(array_keys(IndustryFilter::OPTIONS), 0);
+        $baseSql = $this->candidateSelectSql($this->getSourceListId(), $this->assignments->sqlAccessCondition(), true, true);
+        $userId = $this->db->quote((string) $this->currentUser->id);
+        $result = $this->db->query($baseSql . " AND NOT EXISTS (
+            SELECT 1 FROM crm_speedphone_locks industry_lock
+            WHERE industry_lock.prospect_id=p.id AND industry_lock.expires_at>UTC_TIMESTAMP()
+              AND industry_lock.user_id<>'{$userId}'
+        )");
+        $seen = [];
+        while ($row = $this->db->fetchByAssoc($result)) {
+            $id = (string) ($row['id'] ?? '');
+            if ($id === '' || isset($seen[$id]) || $this->isExcluded($row)) { continue; }
+            $seen[$id] = true;
+            $industry = (string) ($row['speedphone_effective_industry'] ?? 'unknown');
+            if ($industry === '' || !array_key_exists($industry, $counts)) { $industry = 'unknown'; }
+            $counts[$industry]++;
+            $counts['']++;
+        }
+        return $counts;
     }
 
     /**
@@ -741,7 +767,7 @@ final class QueueService
         return (int) ($row['n'] ?? 0);
     }
 
-    private function candidateSelectSql(string $listId, string $userCondition, bool $onlyDue = true): string
+    private function candidateSelectSql(string $listId, string $userCondition, bool $onlyDue = true, bool $countsOnly = false): string
     {
         $escalatedExpression = $this->assignments->sqlEscalatedExpression();
         $nameExpression = $this->candidateNameSql();
@@ -752,13 +778,19 @@ final class QueueService
             fn (string $value): string => $this->db->quote($value)
         );
         $travelCondition = $onlyDue ? ' AND ' . $this->travelAllowedSql() : '';
+        $industryExpression = IndustryFilter::sqlExpression(fn (string $value): string => $this->db->quote($value));
         $dueCondition = $onlyDue
             ? "AND COALESCE(pc.speedphone_status_c, '') NOT IN
                       ('interested', 'no_interest', 'invalid_phone', 'blocked', 'paused')
                   AND (pc.speedphone_next_call_c IS NULL OR pc.speedphone_next_call_c='' OR pc.speedphone_next_call_c<=UTC_TIMESTAMP())"
             : '';
 
-        return "SELECT p.id, p.first_name, p.last_name, p.account_name, p.description,
+        // Die Zählung nutzt dieselbe Freigabe, benötigt aber weder Kampagnenaggregation
+        // noch Rangfolge, Adressdaten oder Eskalationsanzeige.
+        $projection = $countsOnly
+            ? "p.id, p.first_name, p.last_name, p.account_name, p.description,
+               {$industryExpression} speedphone_effective_industry"
+            : "p.id, p.first_name, p.last_name, p.account_name, p.description,
                        p.phone_work, p.phone_mobile, p.primary_address_street,
                        p.primary_address_postalcode, p.primary_address_city,
                        COALESCE(pc.speedphone_status_c, '') speedphone_status,
@@ -772,7 +804,17 @@ final class QueueService
                        CASE WHEN {$escalatedExpression} THEN 1 ELSE 0 END speedphone_is_escalated,
                        COALESCE(eng.clicked, 0) clicked,
                        COALESCE(eng.viewed, 0) viewed,
-                       {$priorityExpression} speedphone_priority_tier
+                       {$priorityExpression} speedphone_priority_tier";
+        $engagementJoin = $countsOnly ? '' : "LEFT JOIN (
+                    SELECT target_id,
+                           MAX(activity_type='link') clicked,
+                           MAX(activity_type='viewed') viewed
+                    FROM campaign_log
+                    WHERE deleted=0 AND target_type='Prospects'
+                    GROUP BY target_id
+                ) eng ON eng.target_id=p.id";
+
+        return "SELECT {$projection}
                 FROM prospects p
                 INNER JOIN prospect_lists_prospects plp
                     ON plp.related_id=p.id
@@ -782,14 +824,7 @@ final class QueueService
                 LEFT JOIN prospects_cstm pc ON pc.id_c=p.id
                 LEFT JOIN crm_speedphone_assignments spa ON spa.prospect_id=p.id
                 LEFT JOIN crm_speedphone_user_settings sp_creator ON sp_creator.user_id=p.created_by
-                LEFT JOIN (
-                    SELECT target_id,
-                           MAX(activity_type='link') clicked,
-                           MAX(activity_type='viewed') viewed
-                    FROM campaign_log
-                    WHERE deleted=0 AND target_type='Prospects'
-                    GROUP BY target_id
-                ) eng ON eng.target_id=p.id
+                {$engagementJoin}
                 WHERE p.deleted=0
                   AND p.do_not_call=0
                   AND {$userCondition}

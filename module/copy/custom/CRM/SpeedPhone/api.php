@@ -69,6 +69,7 @@ try {
     if ((string) ($_POST['operation'] ?? '') === 'set_industry_filter') {
         $industry = Anesda\CRM\SpeedPhone\IndustryFilter::save($current_user, (string) ($_POST['industry'] ?? ''));
         echo json_encode(['success' => true, 'data' => ['industry' => $industry,
+            'industry_counts' => $queue->getIndustryCounts(),
             'message' => 'Dein Branchenfilter ist gespeichert. Er gilt für den nächsten Kontakt.']], JSON_UNESCAPED_UNICODE);
         exit;
     }
@@ -92,6 +93,7 @@ try {
         $name = trim((string) ($prospect->account_name ?: trim($prospect->first_name . ' ' . $prospect->last_name)));
         $effective = Anesda\CRM\SpeedPhone\IndustryFilter::classify($name, $industry);
         echo json_encode(['success' => true, 'data' => ['message' => 'Branche des Kontakts gespeichert. Der laufende Kontakt bleibt geöffnet.',
+            'industry_counts' => $queue->getIndustryCounts(),
             'industry_label' => 'Aktuell: ' . Anesda\CRM\SpeedPhone\IndustryFilter::OPTIONS[$effective] . ($industry === '' ? ' · aus Firmenname abgeleitet' : ' · manuell gepflegt')]], JSON_UNESCAPED_UNICODE);
         exit;
     }

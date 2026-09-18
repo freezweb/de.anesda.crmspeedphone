@@ -31,6 +31,12 @@ Für große oder regelmäßige Läufe einen eigenen Routingdienst einsetzen.
 
 CRM SpeedPhone ist eine schnelle, abarbeitbare Telefonakquise-Warteschlange für SuiteCRM 8. Die Erweiterung verwendet ausschließlich vorhandene Zielkontakt-UUIDs (`Prospects.id`) und legt keine Kontaktkopien an.
 
+## Veröffentlichung 1.23.0
+
+Der persönliche Branchenfilter zeigt hinter jeder Kategorie die Anzahl der aktuell für diesen Benutzer anrufbaren Kontakte, einschließlich „Alle Branchen“ und leerer Kategorien `(0)`. Zählung und Anrufliste verwenden dieselben Auswahlregeln: bestehende Zielkontaktliste, Regionalfilter, offene fällige Kontakte, Zuständigkeiten einschließlich Eskalation, Anrufverbote, zentrale Handelsketten und zusätzliche Ausschlussmuster. Fremde aktive Reservierungen werden abgezogen, die eigene Reservierung bleibt enthalten. Doppelte Listenverknüpfungen zählen dieselbe Kontakt-UUID nur einmal. Die Zählung verändert keine Kontakte oder Reservierungen.
+
+Die vorhandenen AJAX-Aktualisierungen erneuern die Zahlen auch bei leerem Arbeitsbereich und nach einem Anruf. Branchenänderungen aktualisieren sofort. Die aktuelle Auswahl und ein laufendes Gespräch bleiben erhalten; Kategorien werden nicht automatisch gesperrt oder umgeschaltet.
+
 ## Veröffentlichung 1.22.1
 
 Kopf- und Footer-Logo sind mit einem weißen Inline-CSS-Hintergrund (`background-color:#ffffff !important`), Innenabstand und abgerundeten Ecken hinterlegt. Die HTML-Bereinigung erhält sichere `!important`-Deklarationen; unsichere CSS-Werte bleiben gesperrt. Auch die Logo-Ausgabe für ältere Textentwürfe verwendet den weißen Hintergrund.
