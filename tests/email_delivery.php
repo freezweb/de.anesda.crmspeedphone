@@ -36,7 +36,7 @@ class BeanFactory
     public static function getBean($module, $id) {
         $template = EmailTemplateBrandService::informationTemplate();
         $template['subject'] = 'Hallo $contact_first_name';
-        $template['body_html'] = str_replace('Sehr geehrte Damen und Herren,', 'Hallo $contact_first_name von $account_name,', $template['body_html']);
+        $template['body_html'] = str_replace('Guten Tag,', 'Hallo $contact_first_name von $account_name,', $template['body_html']);
         return (object) (['id'=>'template-test'] + $template);
     }
 }
@@ -62,9 +62,11 @@ $mail = SugarPHPMailer::$messages[0];
 $log = TestEmailBean::$saved[0];
 assertMail($mail->Subject === 'Danke Antonia', 'Der bearbeitete Betreff löst Platzhalter nicht auf.');
 assertMail(str_contains($mail->Body, '<strong>Vielen Dank für das nette Gespräch</strong>'), 'Die HTML-Bearbeitung kommt nicht beim Transport an.');
-assertMail(str_contains($mail->Body, 'href="https://anesda-nord.de/kontakt"') && !str_contains($mail->Body, '[Unverbindlich'), 'Die Mail enthält wieder Link-Markierungen.');
+assertMail(!preg_match('/Ihr regionaler IT-Partner|Unsere Leistungen|Unverbindlich Kontakt aufnehmen|Wir fangen an/iu', $mail->Body), 'Die versendete Mail enthält noch einen Werbe-Header oder Handlungsaufruf.');
+assertMail(strpos($mail->Body, 'Im Anhang finden Sie') < strpos($mail->Body, 'Wenn Sie dazu Fragen haben'), 'Die Anhänge werden nicht innerhalb der Nachricht angekündigt.');
+assertMail(substr_count($mail->Body, '<img ') === 1, 'Die versendete Mail darf ausschließlich das Logo im Footer enthalten.');
 assertMail(str_contains($mail->Body, 'entryPoint=crmSpeedPhoneEmailLogo'), 'PDF-Mails erhalten keine Logo-Erfassung.');
-assertMail(str_contains($mail->AltBody, 'Unverbindlich Kontakt aufnehmen (https://anesda-nord.de/kontakt)'), 'Textalternative fehlt beim Versand.');
+assertMail(str_contains($mail->AltBody, 'Im Anhang finden Sie:') && str_contains($mail->AltBody, 'Kundenportal'), 'Die Textalternative nennt die angeforderten Unterlagen nicht.');
 assertMail(count($mail->attachments) === 1, 'Der Produktflyer geht beim HTML-Versand verloren.');
 assertMail($log->description_html === $mail->Body && str_contains($log->description, 'SpeedPhone-Mail-ID: '.$log->id), 'CRM-Protokoll und übergebene HTML-Mail unterscheiden sich.');
 assertMail($log->parent_id === $prospect->id && $log->new_with_id, 'Die Referenz auf den vorhandenen Kontakt oder die Mail-ID fehlt.');

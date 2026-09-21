@@ -32,8 +32,13 @@ check(!preg_match('/onclick|onerror|<script|<iframe|javascript:|data:|url\(|posi
 check(str_contains($attack, 'color:red'), 'Sichere Inline-Formatierung wird unnötig entfernt.');
 check(str_contains(EmailContentService::htmlToPlain($formatted), 'Kontakt (https://anesda-nord.de/kontakt)'), 'Die HTML-Nachricht hat keine brauchbare Textalternative.');
 check(str_contains(EmailContentService::sanitizeHtml($template), 'data-speedphone-footer-logo'), 'Das Logo fehlt bereits im HTML-Entwurf.');
-check(substr_count(EmailContentService::sanitizeHtml($template), 'background-color:#ffffff !important') === 2, 'Kopf- und Footer-Logo verlieren ihren weißen Hintergrund bei der HTML-Bereinigung.');
+check(substr_count(EmailContentService::sanitizeHtml($template), '<img ') === 1, 'Die persönliche Mail darf ausschließlich das Logo im Footer enthalten.');
+check(substr_count(EmailContentService::sanitizeHtml($template), 'background-color:#ffffff !important') === 1, 'Das Footer-Logo verliert seinen weißen Hintergrund bei der HTML-Bereinigung.');
 check(str_contains(EmailContentService::footerLogoFromHtml($template), 'background-color:#ffffff !important'), 'Das Logo alter Textentwürfe hat keinen weißen Hintergrund.');
+check(!preg_match('/Ihr regionaler IT-Partner|Unsere Leistungen|Unverbindlich Kontakt aufnehmen|Wir fangen an/iu', $template), 'Die persönliche Mail enthält noch Werbeelemente.');
+$requested = EmailContentService::insertRequestedInformation($template, '<p>Im Anhang: Kundenportal</p>');
+check(strpos($requested, 'Im Anhang: Kundenportal') < strpos($requested, 'Wenn Sie dazu Fragen haben'), 'Die angeforderten Unterlagen stehen nicht im natürlichen Lesefluss.');
+check(strpos($requested, 'Wenn Sie dazu Fragen haben') < strpos($requested, 'data-speedphone-footer-logo'), 'Der Logo-Footer steht nicht am Ende der Nachricht.');
 check(!str_contains(EmailContentService::sanitizeHtml('<p style="background:url(https://evil.org) !important">Text</p>'), 'url('), 'Important darf keine unsicheren CSS-Werte freischalten.');
 try { (new Anesda\CRM\SpeedPhone\InputValidator())->emailBodyHtml('<p><br></p><script>evil()</script>'); check(false, 'Eine leere HTML-Nachricht darf nicht versendet werden.'); } catch (InvalidArgumentException) {}
 $pageSource = file_get_contents(__DIR__ . '/../module/copy/custom/CRM/SpeedPhone/page.php');

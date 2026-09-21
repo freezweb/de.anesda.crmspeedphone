@@ -359,11 +359,11 @@ check(str_contains($migratedTemplate, 'https://anesda-nord.de'), 'Alte Webdomain
 check(str_contains($migratedTemplate, 'info@anesda-nord.de'), 'Alte E-Mail-Domain wird in Vorlagen nicht ersetzt.');
 $informationTemplate = EmailTemplateBrandService::informationTemplate();
 $informationTemplateContent = implode("\n", $informationTemplate);
-check(str_contains($informationTemplate['subject'], 'Anesda Nord'), 'SpeedPhone-Infomail hat noch den alten Betreff.');
-check(str_contains($informationTemplateContent, 'Anesda Nord UG (haftungsbeschränkt)'), 'SpeedPhone-Infomail nennt nicht die neue Gesellschaft.');
-check(str_contains($informationTemplateContent, 'Parkstr. 5'), 'SpeedPhone-Infomail enthält nicht die neue Anschrift.');
-check(str_contains($informationTemplateContent, 'info@anesda-nord.de'), 'SpeedPhone-Infomail enthält nicht die neue E-Mail-Adresse.');
-check(str_contains($informationTemplateContent, 'https://anesda-nord.de/kontakt'), 'SpeedPhone-Infomail verlinkt nicht auf den neuen Kontaktweg.');
+check($informationTemplate['subject'] === 'Wie telefonisch besprochen', 'SpeedPhone-Infomail hat keinen persönlichen Betreff.');
+check(str_contains($informationTemplateContent, 'Ihr Team von Anesda Nord'), 'Die persönliche Grußformel der SpeedPhone-Mail fehlt.');
+check(substr_count(EmailService::decodeStoredHtml($informationTemplate['body_html']), '<img ') === 1, 'Die SpeedPhone-Mail darf nur ein Logo im Footer enthalten.');
+check(!preg_match('/Ihr regionaler IT-Partner|Unsere Leistungen|Unverbindlich Kontakt aufnehmen|Wir fangen an/iu', $informationTemplateContent), 'Die SpeedPhone-Mail wirkt noch wie eine Werbemail.');
+check(strpos($informationTemplateContent, 'vielen Dank für das freundliche Gespräch') < strpos($informationTemplateContent, 'data-speedphone-footer-logo'), 'Gesprächsnachricht und Footer sind falsch angeordnet.');
 check(!str_contains($informationTemplateContent, 'anesda.de'), 'SpeedPhone-Infomail enthält noch die alte Domain.');
 check(!str_contains($informationTemplateContent, 'Anesda UG'), 'SpeedPhone-Infomail enthält noch die alte Gesellschaftsbezeichnung.');
 check(!str_contains($informationTemplateContent, 'Memmingen'), 'SpeedPhone-Infomail enthält noch den alten Ort.');

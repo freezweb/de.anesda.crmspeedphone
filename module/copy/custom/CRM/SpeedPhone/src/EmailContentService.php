@@ -37,7 +37,7 @@ final class EmailContentService
                     foreach (iterator_to_array($child->attributes) as $attribute) {
                         $name = strtolower($attribute->name);
                         $value = $attribute->value;
-                        $keep = in_array($name, ['alt','title','align','valign','role','data-speedphone-footer-logo'], true);
+                        $keep = in_array($name, ['alt','title','align','valign','role','data-speedphone-footer-logo','data-speedphone-requested-information'], true);
                         if (in_array($name, ['width','height','cellpadding','cellspacing','border','colspan','rowspan'], true)) {
                             $keep = preg_match('/^\d{1,4}%?$/', $value) === 1;
                         }
@@ -128,6 +128,18 @@ final class EmailContentService
         }, $text) ?? $text;
     }
 
+    public static function insertRequestedInformation(string $html, string $requestedInformationHtml): string
+    {
+        $marker = '<div data-speedphone-requested-information="1"></div>';
+        $content = self::sanitizeHtml($requestedInformationHtml);
+        if (str_contains($html, $marker)) {
+            return str_replace($marker, $content, $html);
+        }
+
+        // Kompatibilität für eine noch nicht migrierte, ältere Vorlage.
+        return $content . $html;
+    }
+
     public static function footerLogoFromHtml(string $html): string
     {
         if ($html === '') {
@@ -149,7 +161,7 @@ final class EmailContentService
 
             return '<div style="margin-top:24px;padding-top:20px;border-top:1px solid #d8e1e6">'
                 . '<img data-speedphone-footer-logo="1" src="' . self::escape($url) . '" alt="' . self::escape($logo->getAttribute('alt'))
-                . '" width="190" style="display:block;max-width:190px;height:auto;background-color:#ffffff !important;border-radius:8px;padding:8px" /></div>';
+                . '" width="140" style="display:block;max-width:140px;height:auto;background-color:#ffffff !important;border-radius:6px;padding:6px" /></div>';
         } finally {
             libxml_clear_errors();
             libxml_use_internal_errors($previous);

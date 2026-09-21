@@ -218,23 +218,21 @@ final class EmailService
         $bodyHtml = EmailContentService::replaceVariables(self::decodeStoredHtml((string) $template->body_html), $replacements, true);
         $bodyText = trim(strip_tags(EmailContentService::replaceVariables((string) $template->body, $replacements) ?: $bodyHtml));
         if ($flyerLabels !== []) {
-            $joinedLabels = implode(', ', $flyerLabels);
-            $subject = mb_strlen($joinedLabels, 'UTF-8') <= 120
-                ? 'Ihre Unterlagen: ' . $joinedLabels
-                : 'Ihre ausgewählten Produktinformationen von Anesda Nord';
-            $flyerHtml = '<div style="margin:20px 0;padding:16px;border:1px solid #d8e1e6;'
-                . 'border-left:5px solid #087ea4;background:#f5fafb">'
-                . '<strong>Wie telefonisch besprochen, erhalten Sie folgende Produktunterlagen:</strong><ul><li>'
+            $subject = 'Wie telefonisch besprochen: Ihre Unterlagen';
+            $flyerHtml = '<div style="margin:0 0 16px">'
+                . '<p style="margin:0 0 6px">Im Anhang finden Sie:</p><ul style="margin:0;padding-left:22px"><li>'
                 . implode('</li><li>', array_map(
                     static fn (string $label): string => htmlspecialchars($label, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
                     $flyerLabels
                 ))
                 . '</li></ul></div>';
-            $bodyHtml = str_contains(strtolower($bodyHtml), '</body>')
-                ? preg_replace('~</body>~i', $flyerHtml . '</body>', $bodyHtml, 1) ?? ($bodyHtml . $flyerHtml)
-                : $bodyHtml . $flyerHtml;
-            $bodyText = "Wie telefonisch besprochen, erhalten Sie folgende Produktunterlagen: "
-                . $joinedLabels . ".\n\n" . $bodyText;
+            $bodyHtml = EmailContentService::insertRequestedInformation($bodyHtml, $flyerHtml);
+            $bodyText = str_replace(
+                "Wie telefonisch besprochen, sende ich Ihnen die gewünschten Informationen zu.\n\n",
+                "Wie telefonisch besprochen, sende ich Ihnen die gewünschten Informationen zu.\n\n"
+                    . "Im Anhang finden Sie:\n- " . implode("\n- ", $flyerLabels) . "\n\n",
+                $bodyText
+            );
         }
 
         return [
