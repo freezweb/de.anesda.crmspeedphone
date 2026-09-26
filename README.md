@@ -275,4 +275,4 @@ Get-ChildItem -Recurse -Filter *.php | ForEach-Object { php -l $_.FullName }
 
 ## Lizenz
 
-MIT-Lizenz. Copyright © 2026 Anesda UG (haftungsbeschränkt), Memmingen.
+MIT-Lizenz. Copyright © 2026 Anesda Nord UG (haftungsbeschränkt), Lanz.
