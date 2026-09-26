@@ -17,6 +17,7 @@ final class EmailTemplateBrandService
                 name='" . $this->db->quote($informationTemplateName) . "'
                 OR LOWER(CONCAT_WS(' ',name,subject,body,body_html)) LIKE '%anesda.de%'
                 OR LOWER(CONCAT_WS(' ',name,subject,body,body_html)) LIKE '%anesda ug%'
+                OR LOWER(CONCAT_WS(' ',name,subject,body,body_html)) LIKE '%anesda nord%'
                 OR LOWER(CONCAT_WS(' ',name,subject,body,body_html)) LIKE '%memmingen%'
                 OR CONCAT_WS(' ',name,subject,body,body_html) LIKE '%08331%'
              )"
@@ -31,6 +32,8 @@ final class EmailTemplateBrandService
                     'body' => self::rewriteLegacyBranding((string) ($row['body'] ?? '')),
                     'body_html' => self::rewriteLegacyBranding((string) ($row['body_html'] ?? '')),
                 ];
+            $values['body'] = self::appendLegalFooter($values['body'], false);
+            $values['body_html'] = self::appendLegalFooter($values['body_html'], true);
             if (
                 $values['subject'] === (string) ($row['subject'] ?? '')
                 && $values['body'] === (string) ($row['body'] ?? '')
@@ -61,6 +64,8 @@ final class EmailTemplateBrandService
                 'D-87700 Memmingen',
                 '87700 Memmingen',
                 'Anesda UG',
+                'Amtsgericht Memmingen',
+                'HRB 21598',
                 'https://www.anesda.de',
                 'http://www.anesda.de',
                 'https://anesda.de',
@@ -82,6 +87,8 @@ final class EmailTemplateBrandService
                 '19309 Lanz',
                 '19309 Lanz',
                 'Anesda Nord UG',
+                'Amtsgericht Neuruppin',
+                'HRB 15818',
                 'https://anesda-nord.de',
                 'https://anesda-nord.de',
                 'https://anesda-nord.de',
@@ -137,8 +144,30 @@ HTML;
 
         return [
             'subject' => $subject,
-            'body' => $body,
-            'body_html' => htmlspecialchars($html, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+            'body' => self::appendLegalFooter($body, false),
+            'body_html' => self::appendLegalFooter(htmlspecialchars($html, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'), true),
         ];
+    }
+
+    public static function appendLegalFooter(string $value, bool $html): string
+    {
+        if (trim($value) === '' || str_contains($value, 'HRB 15818')) {
+            return $value;
+        }
+        $lines = [
+            'Anesda Nord UG (haftungsbeschränkt) · Parkstraße 5 · 19309 Lanz',
+            'Sitz: Lanz · Amtsgericht Neuruppin · HRB 15818',
+            'Geschäftsführer: Daniel Eschenlohr · info@anesda-nord.de',
+        ];
+        if (! $html) {
+            return rtrim($value) . "\n\n" . implode("\n", $lines);
+        }
+        $encoded = str_contains($value, '&lt;') && ! str_contains($value, '<');
+        $text = $encoded ? html_entity_decode($value, ENT_QUOTES | ENT_HTML5, 'UTF-8') : $value;
+        $footer = '<p style="font-size:12px;color:#666">' . implode('<br>', $lines) . '</p>';
+        $text = stripos($text, '</body>') !== false
+            ? preg_replace('~</body>~i', $footer . '</body>', $text, 1)
+            : $text . $footer;
+        return $encoded ? htmlspecialchars($text, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') : $text;
     }
 }
