@@ -9,7 +9,7 @@ $manifest = [
         'regex_matches' => ['7\\.14\\..*'],
     ],
     'acceptable_sugar_flavors' => ['CE'],
-    'author' => 'Anesda UG (haftungsbeschränkt)',
+    'author' => 'Anesda Nord UG (haftungsbeschränkt)',
     'description' => 'UUID-basierte Telefonakquise-Warteschlange für SuiteCRM 8',
     'icon' => '',
     'is_uninstallable' => true,
