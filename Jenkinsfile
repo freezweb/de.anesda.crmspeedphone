@@ -1,5 +1,5 @@
 pipeline {
-    agent { label 'windows' }
+    agent { label 'php82' }
 
     options {
         disableConcurrentBuilds()
@@ -20,11 +20,7 @@ pipeline {
 
         stage('Installationspaket') {
             steps {
-                powershell '''
-                    $ErrorActionPreference = 'Stop'
-                    & .\\tools\\build.ps1
-                    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-                '''
+                sh 'php tools/build.php'
                 archiveArtifacts artifacts: 'dist/de.anesda.crmspeedphone-*.zip', fingerprint: true
             }
         }
@@ -36,21 +32,16 @@ pipeline {
                     keyFileVariable: 'LIVE_SSH_KEY',
                     usernameVariable: 'LIVE_SSH_USER'
                 )]) {
-                    powershell '''
-                        $ErrorActionPreference = 'Stop'
-                        $ssh = (Get-Command ssh -ErrorAction Stop).Source
-                        $scp = (Get-Command scp -ErrorAction Stop).Source
-                        $target = "${env:LIVE_SSH_USER}@${env:LIVE_HOST}"
-                        $testArchive = Join-Path $PWD 'dist\\crm-speedphone-tests.tar.gz'
-                        & tar.exe -czf $testArchive module tests infra/freepbx
-                        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-                        & $scp -i $env:LIVE_SSH_KEY -o StrictHostKeyChecking=no `
-                            $testArchive "${target}:/tmp/crm-speedphone-tests.tar.gz"
-                        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-
-                        $remote = @'
+                    sh '''
+                        set -eu
+                        target="${LIVE_SSH_USER}@${LIVE_HOST}"
+                        tar -czf dist/crm-speedphone-tests.tar.gz module tests infra/freepbx
+                        scp -i "$LIVE_SSH_KEY" -o StrictHostKeyChecking=no dist/crm-speedphone-tests.tar.gz "$target:/tmp/crm-speedphone-tests.tar.gz"
+                        ssh -i "$LIVE_SSH_KEY" -o StrictHostKeyChecking=no "$target" "bash -s -- $BUILD_NUMBER" <<'REMOTE'
 set -euo pipefail
-test_root="/tmp/crm-speedphone-ci-${BUILD_NUMBER}"
+build_number="$1"
+[[ "$build_number" =~ ^[0-9]+$ ]]
+test_root="/tmp/crm-speedphone-ci-${build_number}"
 [[ "$test_root" == /tmp/crm-speedphone-ci-* ]]
 rm -rf -- "$test_root"
 mkdir -p "$test_root"
@@ -58,12 +49,7 @@ tar -xzf /tmp/crm-speedphone-tests.tar.gz -C "$test_root"
 cd "$test_root"
 php tests/run.php
 find module -type f -name '*.php' -print0 | xargs -0 -n1 php -l >/dev/null
-'@
-                        $remote = $remote.Replace('${BUILD_NUMBER}', $env:BUILD_NUMBER)
-                        $encoded = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($remote))
-                        & $ssh -i $env:LIVE_SSH_KEY -o StrictHostKeyChecking=no $target `
-                            "echo $encoded | base64 -d | bash"
-                        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+REMOTE
                     '''
                 }
             }
@@ -81,25 +67,16 @@ find module -type f -name '*.php' -print0 | xargs -0 -n1 php -l >/dev/null
                     keyFileVariable: 'LIVE_SSH_KEY',
                     usernameVariable: 'LIVE_SSH_USER'
                 )]) {
-                    powershell '''
-                        $ErrorActionPreference = 'Stop'
-                        $ssh = (Get-Command ssh -ErrorAction Stop).Source
-                        $scp = (Get-Command scp -ErrorAction Stop).Source
-                        $target = "${env:LIVE_SSH_USER}@${env:LIVE_HOST}"
-                        $zip = Get-ChildItem -LiteralPath dist -Filter 'de.anesda.crmspeedphone-*.zip' |
-                            Sort-Object LastWriteTime -Descending |
-                            Select-Object -First 1
-                        if ($null -eq $zip) { throw 'Installationspaket fehlt.' }
-
-                        & $scp -i $env:LIVE_SSH_KEY -o StrictHostKeyChecking=no `
-                            $zip.FullName "${target}:/tmp/crm-speedphone.zip"
-                        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-                        & $scp -i $env:LIVE_SSH_KEY -o StrictHostKeyChecking=no `
-                            'tools/install-live.php' "${target}:/tmp/crm-speedphone-install.php"
-                        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-
-                        $remote = @'
+                    sh '''
+                        set -eu
+                        target="${LIVE_SSH_USER}@${LIVE_HOST}"
+                        archive=$(php -r 'require "module/manifest.php"; echo "dist/de.anesda.crmspeedphone-" . $manifest["version"] . ".zip";')
+                        scp -i "$LIVE_SSH_KEY" -o StrictHostKeyChecking=no "$archive" "$target:/tmp/crm-speedphone.zip"
+                        scp -i "$LIVE_SSH_KEY" -o StrictHostKeyChecking=no tools/install-live.php "$target:/tmp/crm-speedphone-install.php"
+                        ssh -i "$LIVE_SSH_KEY" -o StrictHostKeyChecking=no "$target" "bash -s -- $BUILD_NUMBER" <<'REMOTE'
 set -euo pipefail
+build_number="$1"
+[[ "$build_number" =~ ^[0-9]+$ ]]
 legacy=/srv/www/vhosts/crm.anesda.de/public/legacy
 deploy=/tmp/crm-speedphone-deploy
 archive=/tmp/crm-speedphone.zip
@@ -109,7 +86,7 @@ runner=/tmp/crm-speedphone-install.php
 [[ -f "$archive" && -f "$runner" ]]
 mkdir -p /srv/backups/crm-speedphone
 cd "$legacy"
-tar -czf "/srv/backups/crm-speedphone/custom-before-jenkins-${BUILD_NUMBER}.tar.gz" \
+tar -czf "/srv/backups/crm-speedphone/custom-before-jenkins-${build_number}.tar.gz" \
   custom/CRM/SpeedPhone \
   custom/Extension/application/Ext/EntryPointRegistry/crm_speedphone.php \
   custom/Extension/modules/Prospects/Ext/Menus/crm_speedphone.php \
@@ -133,12 +110,7 @@ apache2ctl graceful
 php -l custom/CRM/SpeedPhone/dialer_setup.php
 grep -q crmSpeedPhoneDialerSetup custom/application/Ext/EntryPointRegistry/entry_point_registry.ext.php
 curl -fsS -o /dev/null "https://crm.anesda.de/legacy/index.php?entryPoint=crmSpeedPhoneDialerSetup"
-'@
-                        $remote = $remote.Replace('${BUILD_NUMBER}', $env:BUILD_NUMBER)
-                        $encoded = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($remote))
-                        & $ssh -i $env:LIVE_SSH_KEY -o StrictHostKeyChecking=no $target `
-                            "echo $encoded | base64 -d | bash"
-                        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+REMOTE
                     '''
                 }
             }
