@@ -24,6 +24,9 @@
     let callHistoryInFlight = false;
     let callHistoryRequest = 0;
     let historyOpenInFlight = false;
+    let callbackPage = 1;
+    let callbacksInFlight = false;
+    let callbacksRequest = 0;
     startTeamStatisticsUpdates();
     window.addEventListener('pagehide', stopTeamStatisticsUpdates);
     window.addEventListener('pageshow', startTeamStatisticsUpdates);
@@ -39,6 +42,12 @@
     window.addEventListener('pageshow', startLiveUpdates);
 
     root.addEventListener('submit', async function (event) {
+        if (event.target.id === 'speedphone-callback-filter') {
+            event.preventDefault();
+            callbackPage = 1;
+            await refreshCallbacks(true);
+            return;
+        }
         if (event.target.id === 'speedphone-call-history-filter') {
             event.preventDefault();
             callHistoryPage = 1;
@@ -142,6 +151,32 @@
     });
 
     root.addEventListener('click', async function (event) {
+        const callbackToggle = event.target.closest('[data-callback-toggle]');
+        if (callbackToggle) {
+            const panel = document.getElementById('speedphone-callbacks');
+            const filter = document.getElementById('speedphone-callback-filter');
+            panel.hidden = false;
+            filter.elements.scope.value = callbackToggle.dataset.callbackToggle;
+            filter.elements.search.value = '';
+            callbackPage = 1;
+            updateCallbackExpanded();
+            await refreshCallbacks(true);
+            panel.scrollIntoView({behavior:'smooth',block:'start'});
+            return;
+        }
+        if (event.target.closest('[data-callback-close]')) {
+            document.getElementById('speedphone-callbacks').hidden = true;
+            callbacksRequest++;
+            callbacksInFlight = false;
+            updateCallbackExpanded();
+            return;
+        }
+        const callbackPageButton = event.target.closest('[data-callback-page]');
+        if (callbackPageButton) {
+            callbackPage = Number(callbackPageButton.dataset.callbackPage) || 1;
+            await refreshCallbacks(true);
+            return;
+        }
         const historyToggle = event.target.closest('[data-call-history-toggle]');
         if (historyToggle) {
             const panel = document.getElementById('speedphone-call-history');
@@ -156,14 +191,15 @@
             await refreshCallHistory(true);
             return;
         }
-        const historyOpen = event.target.closest('[data-speedphone-history-open]');
+        const historyOpen = event.target.closest('[data-speedphone-history-open], [data-speedphone-callback-open]');
         if (historyOpen) {
             if (historyOpenInFlight) { return; }
             const currentForm = document.getElementById('speedphone-form');
             if (currentForm?.classList.contains('is-busy')) { return; }
             const data = new FormData();
-            data.set('operation','open_call_history');
-            data.set('call_id',historyOpen.dataset.speedphoneHistoryOpen);
+            const fromCallback = historyOpen.hasAttribute('data-speedphone-callback-open');
+            data.set('operation',fromCallback ? 'open_callback' : 'open_call_history');
+            data.set(fromCallback ? 'prospect_id' : 'call_id',fromCallback ? historyOpen.dataset.speedphoneCallbackOpen : historyOpen.dataset.speedphoneHistoryOpen);
             data.set('csrf',root.dataset.csrf);
             historyOpenInFlight = true;
             historyOpen.disabled = true;
@@ -179,6 +215,7 @@
                 workspace.scrollIntoView({behavior:'smooth',block:'start'});
                 showMessage((payload.data.display_name || 'Kontakt') + ' wurde wieder in SpeedPhone geöffnet. Es wurde noch kein Anruf gestartet.',false);
                 refreshCallHistory(true);
+                refreshCallbacks(true);
             } catch (error) {
                 showMessage(error.message || String(error),true);
             } finally {
@@ -773,6 +810,7 @@
             const payload = await request(data);
             workspace.innerHTML = payload.data.workspace_html;
             updateStatistics(payload.data.statistics || {});
+            refreshCallbacks(true);
             if (payload.data.devices) {
                 renderDialerDevices(payload.data.devices);
             }
@@ -1048,6 +1086,14 @@
     }
 
     root.addEventListener('change', function (event) {
+        if (event.target.closest('#speedphone-callback-filter')) {
+            if (event.target.name === 'scope') {
+                callbackPage = 1;
+                updateCallbackExpanded();
+                refreshCallbacks(true);
+            }
+            return;
+        }
         const historyFilter = event.target.closest('#speedphone-call-history-filter');
         if (historyFilter) {
             if (event.target.name === 'search') { return; }
@@ -1078,6 +1124,7 @@
             if (!document.body.contains(root)) { stopTeamStatisticsUpdates(); return; }
             refreshTeamStatistics();
             refreshCallHistory();
+            refreshCallbacks();
         }, 30000);
     }
 
@@ -1116,6 +1163,48 @@
             status.classList.add('team-statistics__error');
         } finally {
             if (sequence === callHistoryRequest) { callHistoryInFlight = false; panel.setAttribute('aria-busy','false'); }
+        }
+    }
+
+    function updateCallbackExpanded() {
+        const panel = document.getElementById('speedphone-callbacks');
+        const scope = document.getElementById('speedphone-callback-filter')?.elements.scope.value;
+        root.querySelectorAll('[data-callback-toggle]').forEach(button => {
+            button.setAttribute('aria-expanded', String(!panel.hidden && button.dataset.callbackToggle === scope));
+        });
+    }
+
+    async function refreshCallbacks(force = false) {
+        const panel = document.getElementById('speedphone-callbacks');
+        const filter = document.getElementById('speedphone-callback-filter');
+        if (!panel || panel.hidden || !filter || (!force && (callbacksInFlight || historyOpenInFlight || filter.contains(document.activeElement)))) { return; }
+        const sequence = ++callbacksRequest;
+        const status = panel.querySelector('[data-callback-status]');
+        const data = new FormData(filter);
+        data.set('operation','callbacks'); data.set('page',String(callbackPage)); data.set('csrf',root.dataset.csrf);
+        callbacksInFlight = true;
+        panel.setAttribute('aria-busy','true');
+        status.textContent = 'Rückrufe werden geladen …';
+        try {
+            const payload = await request(data);
+            if (sequence !== callbacksRequest) { return; }
+            const target = panel.querySelector('[data-callback-report]');
+            const openNotes = Array.from(target.querySelectorAll('details[open]'), element=>element.dataset.callbackNote);
+            const scroll = target.querySelector('.team-report__table-scroll')?.scrollLeft || 0;
+            target.innerHTML = payload.data.report_html;
+            target.querySelectorAll('details').forEach(element=>{element.open=openNotes.includes(element.dataset.callbackNote);});
+            const tableScroll = target.querySelector('.team-report__table-scroll');
+            if (tableScroll) { tableScroll.scrollLeft = scroll; }
+            callbackPage = payload.data.page;
+            updateStatistics(payload.data.statistics || {});
+            status.textContent = 'Aktuell · automatische Aktualisierung alle 30 Sekunden.';
+            status.classList.remove('team-statistics__error');
+        } catch (error) {
+            if (sequence !== callbacksRequest) { return; }
+            status.textContent = 'Rückrufliste konnte nicht aktualisiert werden: ' + (error.message || String(error));
+            status.classList.add('team-statistics__error');
+        } finally {
+            if (sequence === callbacksRequest) { callbacksInFlight = false; panel.setAttribute('aria-busy','false'); }
         }
     }
 

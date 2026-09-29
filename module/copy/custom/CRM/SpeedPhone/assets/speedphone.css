@@ -31,6 +31,14 @@
 .speedphone .stats article { background: var(--sp-card); border: 1px solid var(--sp-border); border-radius: 16px; padding: 18px; display: flex; flex-direction: column; }
 .speedphone .stats strong { font-size: 28px; }
 .speedphone .stats span { color: var(--sp-muted); }
+.speedphone .stats__callbacks > div { display:flex; gap:8px; margin-top:6px; }
+.speedphone .stats__callbacks button { background:#f1f7f9; border:1px solid #c5d7e1; border-radius:10px; color:var(--sp-ink); cursor:pointer; display:flex; flex:1; flex-direction:column; align-items:center; font:inherit; padding:6px 8px; }
+.speedphone .stats__callbacks button:hover, .speedphone .stats__callbacks button[aria-expanded="true"] { background:#e1f1f7; border-color:var(--sp-brand); }
+.speedphone .stats__callbacks button:focus-visible { outline:3px solid var(--sp-brand); outline-offset:2px; }
+.speedphone .callbacks__heading { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:12px; }
+.speedphone #speedphone-callback-filter { display:flex; flex-wrap:wrap; gap:12px; align-items:end; margin:18px 0; }
+.speedphone #speedphone-callback-filter label { display:grid; gap:6px; font-size:13px; font-weight:700; flex:1 1 160px; min-width:0; }
+.speedphone #speedphone-callback-filter input, .speedphone #speedphone-callback-filter select { box-sizing:border-box; width:100%; min-height:44px; height:auto !important; line-height:1.4 !important; padding:10px 12px !important; color:var(--sp-ink) !important; -webkit-text-fill-color:var(--sp-ink) !important; background:#fff !important; border:1px solid #b7c7d5; border-radius:10px; }
 .speedphone .candidate { display: grid; grid-template-columns: minmax(0, .95fr) minmax(0, 1.05fr); gap: 18px; align-items: start; }
 .speedphone .candidate__main, .speedphone .quick-form, .speedphone .empty { background: var(--sp-card); border: 1px solid var(--sp-border); border-radius: 20px; padding: 24px; box-shadow: 0 10px 32px rgba(23, 32, 42, .06); }
 .speedphone .candidate__title { display: flex; justify-content: space-between; gap: 18px; align-items: flex-start; }

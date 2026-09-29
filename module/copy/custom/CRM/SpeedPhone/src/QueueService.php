@@ -230,15 +230,16 @@ final class QueueService
              AND c.assigned_user_id='" . $this->db->quote((string) $this->currentUser->id) . "'"
         );
         $processedTodayAll = $this->scalar("SELECT COUNT(DISTINCT c.id) n {$processedCommon}");
+        $callbacks = (new CallbackService($this->config, $this->db, $this->currentUser, $this->access, $this->assignments))->counts();
 
         return [
             'industry_counts' => $this->getIndustryCounts(),
             'open' => $this->scalar("SELECT COUNT(*) n {$common}
                 AND (TRIM(COALESCE(p.phone_work, ''))<>'' OR TRIM(COALESCE(p.phone_mobile, ''))<>'')
                 AND COALESCE(pc.speedphone_status_c, '') NOT IN ('interested','no_interest','invalid_phone','blocked','paused')"),
-            'callbacks_due' => $this->scalar("SELECT COUNT(*) n {$common}
-                AND pc.speedphone_status_c='callback'
-                AND pc.speedphone_next_call_c<=UTC_TIMESTAMP()"),
+            'callbacks_due' => $callbacks['all'],
+            'callbacks_due_mine' => $callbacks['mine'],
+            'callbacks_due_all' => $callbacks['all'],
             // Der bisherige Schlüssel bleibt für bestehende API-Nutzer erhalten.
             'processed_today' => $processedTodayMine,
             'processed_today_mine' => $processedTodayMine,

@@ -42,6 +42,8 @@ $candidate = null;
 $statistics = [
     'open' => 0,
     'callbacks_due' => 0,
+    'callbacks_due_mine' => 0,
+    'callbacks_due_all' => 0,
     'processed_today_mine' => 0,
     'processed_today_all' => 0,
     'interested' => 0,
@@ -76,7 +78,7 @@ $assetBase = $legacyBase . '/custom/CRM/SpeedPhone/assets';
 $userTimezone = (string) ($current_user->getPreference('timezone') ?: 'Europe/Berlin');
 
 ?>
-<link rel="stylesheet" href="<?= speedPhoneEscape($assetBase) ?>/speedphone.css?v=1.24.0">
+<link rel="stylesheet" href="<?= speedPhoneEscape($assetBase) ?>/speedphone.css?v=1.25.0">
 <main class="speedphone" data-api-url="index.php?entryPoint=crmSpeedPhoneApi" data-csrf="<?= speedPhoneEscape($_SESSION['crm_speedphone_csrf']) ?>">
     <header class="speedphone__header">
         <div>
@@ -117,11 +119,26 @@ $userTimezone = (string) ($current_user->getPreference('timezone') ?: 'Europe/Be
 
     <section class="stats" aria-label="Tagesübersicht">
         <article><strong data-stat="open"><?= (int) $statistics['open'] ?></strong><span>offen</span></article>
-        <article><strong data-stat="callbacks_due"><?= (int) $statistics['callbacks_due'] ?></strong><span>Rückrufe fällig</span></article>
+        <article class="stats__callbacks"><span>Rückrufe fällig</span><div>
+            <button type="button" data-callback-toggle="mine" aria-expanded="false" aria-controls="speedphone-callbacks"><strong data-stat="callbacks_due_mine"><?= (int) $statistics['callbacks_due_mine'] ?></strong><span>Meine</span></button>
+            <button type="button" data-callback-toggle="all" aria-expanded="false" aria-controls="speedphone-callbacks"><strong data-stat="callbacks_due_all"><?= (int) $statistics['callbacks_due_all'] ?></strong><span>Alle</span></button>
+        </div></article>
         <article><strong data-stat="processed_today_mine"><?= (int) $statistics['processed_today_mine'] ?></strong><span>heute · ich</span></article>
         <article><strong data-stat="processed_today_all"><?= (int) $statistics['processed_today_all'] ?></strong><span>heute · alle</span></article>
         <article><strong data-stat="interested"><?= (int) $statistics['interested'] ?></strong><span>Interessenten</span></article>
         <article><strong data-stat="locked"><?= (int) $statistics['locked'] ?></strong><span>gerade reserviert</span></article>
+    </section>
+
+    <section id="speedphone-callbacks" class="team-statistics" aria-labelledby="callbacks-title" hidden>
+        <div class="callbacks__heading"><h2 id="callbacks-title">Fällige Rückrufe</h2><button type="button" class="button button--secondary" data-callback-close>Schließen</button></div>
+        <form id="speedphone-callback-filter">
+            <label>Rückrufe<select name="scope"><option value="mine">Meine Rückrufe</option><option value="all">Alle freigegebenen Rückrufe</option></select></label>
+            <label>Suche<input type="search" name="search" maxlength="200" placeholder="Firma, Telefon, Mitarbeiter oder Notiz"></label>
+            <button type="submit" class="button button--secondary">Suchen</button>
+        </form>
+        <p data-callback-status role="status" aria-live="polite">Wird beim Öffnen geladen.</p>
+        <div data-callback-report></div>
+        <p class="team-report__explanation">„Meine“ folgt der aktuellen Zuständigkeit, bei älteren Einträgen dem letzten Telefonierer. Die Übersicht enthält heute fällige und überfällige Rückrufe aus dem aktuellen Anfahrtsgebiet, unabhängig vom Branchenfilter. Das Öffnen startet noch keinen Anruf. Zuständigkeiten und Reservierungen bleiben wirksam.</p>
     </section>
 
     <section id="speedphone-call-history" class="team-statistics call-history" aria-labelledby="call-history-title" hidden>
@@ -305,5 +322,5 @@ $userTimezone = (string) ($current_user->getPreference('timezone') ?: 'Europe/Be
     <div class="speedphone__footer">CRM SpeedPhone © anesda</div>
 </main>
 <script src="<?= speedPhoneEscape($assetBase) ?>/vendor/qrcode-generator/qrcode.js?v=2.0.4"></script>
-<script src="<?= speedPhoneEscape($assetBase) ?>/email-editor.js?v=1.24.0"></script>
-<script src="<?= speedPhoneEscape($assetBase) ?>/speedphone.js?v=1.24.0"></script>
+<script src="<?= speedPhoneEscape($assetBase) ?>/email-editor.js?v=1.25.0"></script>
+<script src="<?= speedPhoneEscape($assetBase) ?>/speedphone.js?v=1.25.0"></script>
