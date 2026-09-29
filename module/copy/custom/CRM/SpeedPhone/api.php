@@ -44,6 +44,16 @@ try {
     $lockService = new LockService($config, $db, $current_user);
     $queue = new QueueService($config, $db, $current_user, $lockService, $accessService, $assignmentService);
     $queue->assertUserAllowed();
+    if ((string) ($_POST['operation'] ?? '') === 'callbacks') {
+        $callbacks = (new Anesda\CRM\SpeedPhone\CallbackService($config, $db, $current_user, $accessService, $assignmentService))->list($_POST);
+        $userTimezone = (string) ($current_user->getPreference('timezone') ?: 'Europe/Berlin');
+        ob_start();
+        require __DIR__ . '/callback_report.php';
+        $html = ob_get_clean();
+        echo json_encode(['success'=>true,'data'=>['report_html'=>$html,'page'=>$callbacks['page'],
+            'statistics'=>['callbacks_due_mine'=>$callbacks['counts']['mine'],'callbacks_due_all'=>$callbacks['counts']['all']]]], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        exit;
+    }
     if ((string) ($_POST['operation'] ?? '') === 'call_history') {
         $history = (new Anesda\CRM\SpeedPhone\CallHistoryService($config, $db, $current_user, $accessService, $assignmentService))->list($_POST);
         $userTimezone = (string) ($current_user->getPreference('timezone') ?: 'Europe/Berlin');
@@ -171,9 +181,14 @@ try {
         exit;
     }
 
-    if ((string) ($_POST['operation'] ?? '') === 'open_call_history') {
-        $historyService = new Anesda\CRM\SpeedPhone\CallHistoryService($config, $db, $current_user, $accessService, $assignmentService);
-        $prospectId = $historyService->prospectIdForCall((string) ($_POST['call_id'] ?? ''));
+    if (in_array((string) ($_POST['operation'] ?? ''), ['open_call_history', 'open_callback'], true)) {
+        if ((string) $_POST['operation'] === 'open_callback') {
+            $prospectId = (new InputValidator())->uuid((string) ($_POST['prospect_id'] ?? ''));
+            (new Anesda\CRM\SpeedPhone\CallbackService($config, $db, $current_user, $accessService, $assignmentService))->assertCanOpen($prospectId);
+        } else {
+            $historyService = new Anesda\CRM\SpeedPhone\CallHistoryService($config, $db, $current_user, $accessService, $assignmentService);
+            $prospectId = $historyService->prospectIdForCall((string) ($_POST['call_id'] ?? ''));
+        }
         if (!$queue->canEditProspect($prospectId) || !ACLController::checkAccess('Prospects', 'edit', true)) {
             throw new RuntimeException('Dieser Kontakt ist für dich nicht zur Bearbeitung freigegeben oder für Anrufe gesperrt.');
         }

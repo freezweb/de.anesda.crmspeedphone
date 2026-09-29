@@ -825,6 +825,7 @@ foreach ([
 require __DIR__ . '/industry_filter.php';
 require __DIR__ . '/team_statistics.php';
 require __DIR__ . '/call_history.php';
+require __DIR__ . '/callbacks.php';
 require __DIR__ . '/email_content.php';
 
 $mailTestOutput = [];

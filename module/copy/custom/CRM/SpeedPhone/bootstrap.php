@@ -16,6 +16,7 @@ foreach ([
     'TeamStatisticsService',
     'AssignmentService',
     'CallHistoryService',
+    'CallbackService',
     'LockService',
     'CandidatePriorityService',
     'LinkedInContactService',
