@@ -37,6 +37,8 @@ CRM SpeedPhone ist eine schnelle, abarbeitbare Telefonakquise-Warteschlange für
 
 Die Übersicht verändert weder Besitzer noch Reservierungen. Fremde Reservierungen und exklusive Zuständigkeiten verhindern die Öffnung, bis ein Kontakt regulär freigegeben oder eskaliert ist. Beim Öffnen werden Fälligkeit und Rechte erneut geprüft und die vorhandene UUID über die reguläre Reservierung geladen. Es wird kein Anruf automatisch gestartet oder protokolliert. Offene Rückruflisten aktualisieren sich alle 30 Sekunden sowie nach dem Bearbeiten eines Kontakts. Tagesrückrufe werden ohne Uhrzeit dargestellt.
 
+Jenkins baut das PHP-Modul auf dem vorhandenen `php82`-Knoten. `php tools/build.php` erstellt plattformunabhängig dasselbe Modulformat wie das weiterhin verfügbare Windows-Skript `tools/build.ps1`; lokale Konfigurationsdateien bleiben ausgeschlossen. Tests, Sicherung und produktive Installation laufen weiterhin über den bestehenden Job `CRM-SpeedPhone`.
+
 ## Veröffentlichung 1.24.0
 
 Die SpeedPhone-Mailvorlage ist als kurze, persönlich formulierte Gesprächsnachricht aufgebaut. Sie enthält keinen Werbe-Header, keine allgemeine Leistungsübersicht und keinen Handlungsaufruf. Ausgewählte Unterlagen werden direkt im Nachrichtentext genannt; anschließend folgen Rückfragemöglichkeit, Grußformel und als einziges Gestaltungselement ein kleines Logo im Footer. Der WYSIWYG-Entwurf bleibt vor dem Versand vollständig bearbeitbar.
