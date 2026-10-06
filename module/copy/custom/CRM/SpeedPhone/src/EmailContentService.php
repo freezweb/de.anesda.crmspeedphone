@@ -87,6 +87,19 @@ final class EmailContentService
         return trim(preg_replace('/\n[ \t]*\n(?:[ \t]*\n)+/', "\n\n", html_entity_decode(strip_tags($html), ENT_QUOTES | ENT_HTML5, 'UTF-8')) ?? '');
     }
 
+    public static function normalizeHtmlSource(string $html): string
+    {
+        $clean = self::sanitizeHtml($html);
+        $text = self::htmlToPlain($clean);
+        // Ein als Text eingefügter HTML-Entwurf wird vom Editor als &lt;...&gt; gespeichert.
+        // Nur vollständige HTML-Quelltexte umwandeln, normalen Nachrichtentext unverändert lassen.
+        if (preg_match('~^\s*<(?:!doctype\s+html|html|body|div|p|table)\b~i', $text) === 1
+            && preg_match('~<(?:br\b[^>]*|/(?:html|body|div|p|table)\s*)>~i', $text) === 1) {
+            return self::sanitizeHtml($text);
+        }
+        return $clean;
+    }
+
     private static function escape(string $value): string
     {
         return htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');

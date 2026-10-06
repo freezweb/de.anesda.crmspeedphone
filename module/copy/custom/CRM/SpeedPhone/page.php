@@ -78,7 +78,7 @@ $assetBase = $legacyBase . '/custom/CRM/SpeedPhone/assets';
 $userTimezone = (string) ($current_user->getPreference('timezone') ?: 'Europe/Berlin');
 
 ?>
-<link rel="stylesheet" href="<?= speedPhoneEscape($assetBase) ?>/speedphone.css?v=1.26.0">
+<link rel="stylesheet" href="<?= speedPhoneEscape($assetBase) ?>/speedphone.css?v=1.26.1">
 <main class="speedphone" data-api-url="index.php?entryPoint=crmSpeedPhoneApi" data-csrf="<?= speedPhoneEscape($_SESSION['crm_speedphone_csrf']) ?>">
     <header class="speedphone__header">
         <div>
@@ -275,6 +275,7 @@ $userTimezone = (string) ($current_user->getPreference('timezone') ?: 'Europe/Be
             <iframe id="speedphone-email-compose-body" class="email-compose__editor" title="E-Mail-Nachricht bearbeiten" sandbox="allow-same-origin" data-email-compose-body></iframe>
             <div class="email-compose__attachments" data-email-compose-attachments hidden></div>
             <p class="field-hint">Die hier bearbeitete Fassung wird genau so versendet und anschließend im CRM protokolliert.</p>
+            <p class="field-hint" data-email-compose-status role="status" aria-live="polite" hidden></p>
         </div>
         <div class="email-compose__actions">
             <button type="button" class="button button--secondary" data-email-compose-cancel>Abbrechen</button>
@@ -322,5 +323,5 @@ $userTimezone = (string) ($current_user->getPreference('timezone') ?: 'Europe/Be
     <div class="speedphone__footer">CRM SpeedPhone © anesda</div>
 </main>
 <script src="<?= speedPhoneEscape($assetBase) ?>/vendor/qrcode-generator/qrcode.js?v=2.0.4"></script>
-<script src="<?= speedPhoneEscape($assetBase) ?>/email-editor.js?v=1.26.0"></script>
-<script src="<?= speedPhoneEscape($assetBase) ?>/speedphone.js?v=1.26.0"></script>
+<script src="<?= speedPhoneEscape($assetBase) ?>/email-editor.js?v=1.26.1"></script>
+<script src="<?= speedPhoneEscape($assetBase) ?>/speedphone.js?v=1.26.1"></script>

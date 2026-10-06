@@ -92,7 +92,7 @@ final class EmailService
         $bodyText = EmailContentService::editableTextToPlain($bodyText);
         if ($customBodyHtml !== null) {
             $bodyHtml = EmailContentService::sanitizeHtml(EmailContentService::replaceVariables(
-                $customBodyHtml, $draft['replacements'], true
+                EmailContentService::normalizeHtmlSource($customBodyHtml), $draft['replacements'], true
             ));
             $bodyText = EmailContentService::htmlToPlain($bodyHtml);
             if ($bodyText === '') {

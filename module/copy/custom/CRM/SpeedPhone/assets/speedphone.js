@@ -241,8 +241,34 @@
             const dialog = document.getElementById('speedphone-email-compose-dialog');
             const subject = dialog?.querySelector('[data-email-compose-subject]')?.value.trim() || '';
             const body = dialog?.speedPhoneEditor?.getHtml() || '';
-            if (!pendingEmailSubmission || !subject || !dialog?.speedPhoneEditor?.getText()) {
+            const visibleText = dialog?.speedPhoneEditor?.getText() || '';
+            if (!pendingEmailSubmission || !subject || !visibleText) {
                 showMessage('Betreff und E-Mail-Text dürfen nicht leer sein.', true);
+                return;
+            }
+            if (/^\s*<(?:!doctype\s+html|html|body|div|p|table)\b/i.test(visibleText)
+                && /<(?:br\b[^>]*|\/(?:html|body|div|p|table)\s*)>/i.test(visibleText)) {
+                composeSendButton.disabled = true;
+                composeSendButton.textContent = 'Entwurf wird aufbereitet …';
+                try {
+                    const data = new FormData();
+                    data.set('operation', 'normalize_email_html');
+                    data.set('email_body_html', body);
+                    data.set('csrf', root.dataset.csrf);
+                    const payload = await request(data);
+                    dialog.speedPhoneEditor.setHtml(payload.data.body_html);
+                    const status = dialog.querySelector('[data-email-compose-status]');
+                    status.textContent = 'HTML-Quelltext wurde in eine lesbare E-Mail umgewandelt. Bitte Entwurf prüfen und danach erneut auf „E-Mail jetzt versenden“ klicken.';
+                    status.hidden = false;
+                    status.scrollIntoView({behavior: 'smooth', block: 'nearest'});
+                } catch (error) {
+                    const status = dialog.querySelector('[data-email-compose-status]');
+                    status.textContent = error.message || String(error);
+                    status.hidden = false;
+                } finally {
+                    composeSendButton.disabled = false;
+                    composeSendButton.textContent = 'E-Mail jetzt versenden';
+                }
                 return;
             }
             const pending = pendingEmailSubmission;
@@ -659,6 +685,7 @@
         sendButton.disabled = true;
         attachments.hidden = true;
         attachments.textContent = '';
+        dialog.querySelector('[data-email-compose-status]').hidden = true;
         if (typeof dialog.showModal === 'function') {
             dialog.showModal();
         } else {
