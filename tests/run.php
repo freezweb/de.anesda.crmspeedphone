@@ -289,7 +289,8 @@ check(str_contains($workspace, 'Erika Beispiel'), 'Ein gefundener LinkedIn-Anspr
 check(str_contains($workspace, '90 % Treffer'), 'Die Zuordnungssicherheit eines LinkedIn-Profils fehlt.');
 check(str_contains($workspace, 'info@example.org'), 'Empfängeradresse fehlt in der E-Mail-Historie.');
 check(str_contains($workspace, 'data-speedphone-email-preview'), 'E-Mail-Inhalte lassen sich in der Historie nicht öffnen.');
-check(str_contains($workspace, 'value="send_flyers"'), 'Aktion zum Versand ausgewählter Produktunterlagen mit Wiedervorlage fehlt.');
+check(str_contains($workspace, 'value="send_flyers"'), 'Aktion zum E-Mail-Versand mit automatischer Wiedervorlage fehlt.');
+check(str_contains($workspace, 'value="email_callback"'), 'E-Mail mit Rückruf am gewählten Datum fehlt.');
 check(str_contains($workspace, 'name="flyers[]"'), 'Auswahl der Produktbroschüren fehlt.');
 check(str_contains($workspace, 'ProduktionsBuddy'), 'ProduktionsBuddy fehlt in der Broschürenauswahl.');
 check(str_contains($workspace, 'SystemService vor Ort'), 'SystemService vor Ort fehlt in der Broschürenauswahl.');
@@ -303,7 +304,8 @@ check(preg_match('/name="callback_date"[^>]*value="\d{4}-\d{2}-\d{2}"/', $worksp
 check(preg_match('/name="callback_date"[^>]*min="\d{4}-\d{2}-\d{2}"/', $workspace) === 1, 'Rückrufdatum verhindert keine vergangenen Tage.');
 check(str_contains($workspace, 'name="callback_time"'), 'Optionale Uhrzeit für einen festen Rückruftermin fehlt.');
 check(str_contains($workspace, 'Ohne Uhrzeit:'), 'Unterschied zwischen Tagesliste und festem Termin wird nicht erklärt.');
-check(str_contains($workspace, 'Flyer senden + automatisch nachfassen'), 'Der selektive Broschürenversand ist nicht eindeutig beschriftet.');
+check(str_contains($workspace, 'E-Mail senden + automatisch nachfassen') && str_contains($workspace, 'E-Mail senden + Rückruf am Datum'), 'Beide E-Mail-Aktionen müssen unabhängig von Flyern erkennbar sein.');
+check(str_contains($workspace, 'Ohne Auswahl erhält die E-Mail keinen Anhang.'), 'Die Flyer-Auswahl muss sichtbar optional sein.');
 check(str_contains($workspace, 'name="email_address_confirmed"'), 'Bestätigung für eine ausdrücklich angeforderte Einzelmail fehlt.');
 check(str_contains($workspace, 'data-speedphone-email-retry'), 'Wiederholungsaktion für fehlgeschlagene E-Mails fehlt.');
 check(str_contains($workspace, 'Jessica Wendt'), 'Zugeordneter externer Mitarbeiter fehlt am Kontakt.');
@@ -321,6 +323,8 @@ check(
 $emailServiceSource = file_get_contents(__DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/EmailService.php');
 $emailApiSource = file_get_contents(__DIR__ . '/../module/copy/custom/CRM/SpeedPhone/api.php');
 $speedPhoneJsSource = file_get_contents(__DIR__ . '/../module/copy/custom/CRM/SpeedPhone/assets/speedphone.js');
+check(!str_contains($speedPhoneJsSource, 'Bitte wählen Sie mindestens einen passenden Produktflyer aus.'), 'Browser darf E-Mail ohne Flyer nicht blockieren, auch nicht beim erneuten Versuch.');
+check(!str_contains(file_get_contents(__DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/ActionService.php'), 'Bitte wählen Sie mindestens einen passenden Produktflyer aus.'), 'Server darf E-Mail ohne Flyer nicht blockieren.');
 check(str_contains($emailApiSource, "operation'] ?? '') === 'email_preview'"), 'API-Endpunkt für die E-Mail-Vorschau fehlt.');
 check(str_contains($emailApiSource, 'assertOwned($prospectId'), 'Die E-Mail-Vorschau muss die aktuelle Kontaktreservierung prüfen.');
 check(str_contains($speedPhoneJsSource, 'body.textContent = payload.data.body'), 'E-Mail-Inhalte dürfen nicht als aktives HTML in die Oberfläche gelangen.');

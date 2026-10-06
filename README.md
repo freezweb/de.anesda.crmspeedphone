@@ -31,6 +31,10 @@ Für große oder regelmäßige Läufe einen eigenen Routingdienst einsetzen.
 
 CRM SpeedPhone ist eine schnelle, abarbeitbare Telefonakquise-Warteschlange für SuiteCRM 8. Die Erweiterung verwendet ausschließlich vorhandene Zielkontakt-UUIDs (`Prospects.id`) und legt keine Kontaktkopien an.
 
+## Veröffentlichung 1.26.0
+
+Eine ausdrücklich angeforderte E-Mail kann jetzt auch ohne Flyer versendet werden. Die vorhandene Auswahl bleibt optional; der WYSIWYG-Entwurf zeigt nur tatsächlich ausgewählte Anhänge an. Im Anrufbereich gibt es „E-Mail senden + Rückruf am Datum“ und „E-Mail senden + automatisch nachfassen“. Auch die E-Mail zu „Erreicht · Interesse“ und ein erneuter Versand nach einem Versandfehler funktionieren ohne Flyer. Empfängerprüfung, Bestätigung der ausdrücklichen Anforderung, Kontaktberechtigung und Versandprotokoll bleiben erhalten. Der technische Ergebniswert `send_flyers` bleibt für bestehende Auswertungen erhalten; die Anzeige beschreibt nun den E-Mail-Versand mit automatischer Wiedervorlage.
+
 ## Veröffentlichung 1.25.0
 
 „Rückrufe fällig“ zeigt getrennt „Meine“ und „Alle“. Beide Zahlen öffnen per AJAX eine durchsuchbare Rückrufliste mit Termin, Kontakt, Telefon, Zuständigkeit, letzter Gesprächsnotiz und gezielter Öffnung in SpeedPhone. „Meine“ richtet sich nach dem aktuellen Besitzer, bei Altbeständen nach dem letzten SpeedPhone-Telefonierer und anschließend der CRM-Zuweisung. Intern ist die Gesamtübersicht teamweit; externe Mitarbeiter sehen nur ihre freigegebenen Kontakte. Zahlen und Liste verwenden dieselbe Auswahl, einschließlich Anfahrtsgebiet, fälliger Termine und Anrufverbote, unabhängig vom persönlichen Branchenfilter.
@@ -141,9 +145,9 @@ Die vorhandenen OSM-Zielkontakte besitzen bisher keine Branchenzuordnung. SpeedP
 - der Kopplungscode liegt ausschließlich im URL-Fragment und wird dadurch nicht an den Webserver oder dessen Access-Log übertragen
 - Android startet den Anruf nach erteilter Telefonberechtigung direkt; iOS zeigt die systembedingt vorgeschriebene Anrufbestätigung
 - Schnellaktionen für „nicht erreicht“, „Rückruf“, „kein Interesse“, „Interesse“, „falsche Nummer“ und „nicht mehr kontaktieren“
-- eigene Aktion „E-Mail jetzt senden + wieder anrufen“, die den Kontakt offen lässt und keinen Interessentenstatus setzt
+- eigene Aktion „E-Mail senden + Rückruf am Datum“, die den Kontakt offen lässt und keinen Interessentenstatus setzt
 - zehn mehrseitige Anesda-Produktbroschüren direkt im Gespräch auswählbar: ProfiPOS, ReservierFix, Transparent Laden, Druckfluss, ProduktionsBuddy, Kundenportal, SystemService vor Ort, individuelle Software- und Hardwareentwicklung, E-Paper Displays und digitale Beschilderung sowie Maschinenvernetzung und Automatisierung
-- Aktion „Flyer senden + automatisch nachfassen“: hängt ausschließlich die angekreuzten Broschüren an, protokolliert Empfänger, Betreff und ausgewählte Unterlagen als reguläre SuiteCRM-E-Mail und legt den Kontakt automatisch nach der konfigurierten Zahl von Werktagen erneut vor
+- Aktion „E-Mail senden + automatisch nachfassen“: versendet eine E-Mail auch ohne Anhang, hängt gegebenenfalls ausschließlich die angekreuzten Broschüren an, protokolliert Empfänger, Betreff und ausgewählte Unterlagen als reguläre SuiteCRM-E-Mail und legt den Kontakt automatisch nach der konfigurierten Zahl von Werktagen erneut vor
 - jeder Kontaktversuch wird als regulärer SuiteCRM-Anruf protokolliert
 - automatische Wiedervorlage mit zunehmenden Abständen
 - Tageswiedervorlagen werden ohne Uhrzeit wieder in die Liste eingereiht; nur ausdrücklich vereinbarte Uhrzeiten erzeugen zusätzlich einen geplanten SuiteCRM-Anruf

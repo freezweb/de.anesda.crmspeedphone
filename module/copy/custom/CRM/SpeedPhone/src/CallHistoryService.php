@@ -105,7 +105,8 @@ final class CallHistoryService
         $result = (string) ($row['result'] ?? '');
         if ($result === '') {
             $result = ['SpeedPhone: Nicht erreicht'=>'not_reached','SpeedPhone: Wiedervorlage oder Rückruf'=>'callback',
-                'SpeedPhone: E-Mail gewünscht mit Wiedervorlage'=>'email_callback','SpeedPhone: Interesse'=>'interested',
+                'SpeedPhone: E-Mail gewünscht mit Wiedervorlage'=>'email_callback',
+                'SpeedPhone: E-Mail gewünscht mit automatischer Wiedervorlage'=>'send_flyers','SpeedPhone: Interesse'=>'interested',
                 'SpeedPhone: Kein Interesse'=>'no_interest','SpeedPhone: Falsche Nummer'=>'wrong_number',
                 'SpeedPhone: Nicht mehr kontaktieren'=>'blocked'][(string) ($row['call_name'] ?? '')] ?? 'legacy';
             if (str_starts_with((string) ($row['call_name'] ?? ''), 'SpeedPhone: Produktflyer versendet mit automatisch')) { $result = 'send_flyers'; }

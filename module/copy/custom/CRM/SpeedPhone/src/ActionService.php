@@ -37,10 +37,6 @@ final class ActionService
         $customEmailHtml = array_key_exists('email_body_html', $input)
             ? $validator->emailBodyHtml((string) $input['email_body_html']) : null;
 
-        if (($action === 'send_flyers' || ($action === 'interested' && $emailRequested)) && $flyerKeys === []) {
-            throw new \InvalidArgumentException('Bitte wählen Sie mindestens einen passenden Produktflyer aus.');
-        }
-
         if (!$this->queue->canEditProspect($prospectId) || !\ACLController::checkAccess('Prospects', 'edit', true)) {
             throw new \RuntimeException('Kein Zugriff auf diesen Zielkontakt.');
         }
@@ -125,7 +121,7 @@ final class ActionService
                 $days = max(1, min(30, (int) $this->config->get('flyer_followup_business_days', 3)));
                 $nextCall = $this->businessDays->addBusinessDays($now, $days)->setTime(9, 0);
                 $message = sprintf(
-                    'Produktunterlagen werden versendet; automatische Wiedervorlage am %s.',
+                    'E-Mail wird versendet; automatische Wiedervorlage am %s.',
                     $nextCall->format('d.m.Y')
                 );
                 break;
@@ -215,7 +211,7 @@ final class ActionService
             'not_reached' => 'Nicht erreicht',
             'callback' => 'Wiedervorlage oder Rückruf',
             'email_callback' => 'E-Mail gewünscht mit Wiedervorlage',
-            'send_flyers' => 'Produktflyer versendet mit automatischer Wiedervorlage',
+            'send_flyers' => 'E-Mail gewünscht mit automatischer Wiedervorlage',
             'interested' => 'Interesse',
             'no_interest' => 'Kein Interesse',
             'wrong_number' => 'Falsche Nummer',

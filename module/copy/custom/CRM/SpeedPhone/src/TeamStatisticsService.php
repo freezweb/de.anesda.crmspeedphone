@@ -69,6 +69,7 @@ final class TeamStatisticsService
                       WHEN c.name='SpeedPhone: Nicht erreicht' THEN 'not_reached'
                       WHEN c.name='SpeedPhone: Wiedervorlage oder Rückruf' THEN 'callback'
                       WHEN c.name='SpeedPhone: E-Mail gewünscht mit Wiedervorlage' THEN 'email_callback'
+                      WHEN c.name='SpeedPhone: E-Mail gewünscht mit automatischer Wiedervorlage' THEN 'send_flyers'
                       WHEN c.name LIKE 'SpeedPhone: Produktflyer versendet mit automatisch%' THEN 'send_flyers'
                       WHEN c.name='SpeedPhone: Interesse' THEN 'interested'
                       WHEN c.name='SpeedPhone: Kein Interesse' THEN 'no_interest'
