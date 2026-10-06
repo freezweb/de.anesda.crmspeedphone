@@ -44,6 +44,11 @@ try {
     $lockService = new LockService($config, $db, $current_user);
     $queue = new QueueService($config, $db, $current_user, $lockService, $accessService, $assignmentService);
     $queue->assertUserAllowed();
+    if ((string) ($_POST['operation'] ?? '') === 'normalize_email_html') {
+        $html = (new InputValidator())->emailBodyHtml((string) ($_POST['email_body_html'] ?? ''));
+        echo json_encode(['success' => true, 'data' => ['body_html' => $html]], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        exit;
+    }
     if ((string) ($_POST['operation'] ?? '') === 'callbacks') {
         $callbacks = (new Anesda\CRM\SpeedPhone\CallbackService($config, $db, $current_user, $accessService, $assignmentService))->list($_POST);
         $userTimezone = (string) ($current_user->getPreference('timezone') ?: 'Europe/Berlin');

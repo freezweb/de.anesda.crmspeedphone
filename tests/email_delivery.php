@@ -3,7 +3,7 @@
 // Isolierter Ende-zu-Ende-Test von Entwurf, Bearbeitung, Versandübergabe und CRM-Protokoll.
 define('sugarEntry', true);
 require __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/bootstrap.php';
-use Anesda\CRM\SpeedPhone\{Config, EmailService, EmailTemplateBrandService, EmailContentService, ProductFlyerService};
+use Anesda\CRM\SpeedPhone\{Config, EmailService, EmailTemplateBrandService, EmailContentService, InputValidator, ProductFlyerService};
 
 class DBManager
 {
@@ -81,4 +81,14 @@ $logWithoutFlyer = TestEmailBean::$saved[2];
 assertMail($mailWithoutFlyer->Subject === 'Rückfrage zum Gespräch' && str_contains($mailWithoutFlyer->Body, 'Individuelle Rückfrage'), 'Bearbeiteter Betreff und persönliche Nachricht ohne Flyer müssen versendet werden.');
 assertMail(count($mailWithoutFlyer->attachments) === 0 && !str_contains($mailWithoutFlyer->Body, 'Im Anhang finden Sie'), 'Eine E-Mail ohne Flyer darf keinen PDF-Anhang oder Anhanghinweis enthalten.');
 assertMail($logWithoutFlyer->parent_id === $prospect->id && $logWithoutFlyer->description_html === $mailWithoutFlyer->Body, 'E-Mail ohne Flyer muss am vorhandenen CRM-Kontakt protokolliert werden.');
-echo "HTML-Mailübergabe mit und ohne PDF-Anhang, Textalternative, Tracking und CRM-Protokoll erfolgreich geprüft.\n";
+$sourceHtml = '<div style="max-width:640px">Guten Tag,<br><br>wir möchten einen Termin vereinbaren.</div>';
+$pastedSource = '<p>' . htmlspecialchars($sourceHtml, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>';
+$normalized = (new InputValidator())->emailBodyHtml($pastedSource);
+assertMail(str_contains($normalized, '<div style="max-width:640px">') && !str_contains($normalized, '&lt;div'), 'Als Text eingefügter HTML-Quelltext muss vor dem Versand umgewandelt werden.');
+assertMail(EmailContentService::normalizeHtmlSource('<p>Bitte den Ausdruck &lt;div&gt; erklären.</p>') === '<p>Bitte den Ausdruck &lt;div&gt; erklären.</p>', 'Normale Erwähnungen eines HTML-Tags dürfen nicht umgewandelt werden.');
+$service->sendRequestedInformation($prospect, true, [], 'Termin zum Kennenlernen', null, $pastedSource);
+$sourceMail = SugarPHPMailer::$messages[3];
+assertMail(str_contains($sourceMail->Body, '<div style="max-width:640px">') && !str_contains($sourceMail->Body, '&lt;div'), 'Die HTML-Mail darf keinen sichtbaren Quelltext enthalten.');
+assertMail(str_contains($sourceMail->AltBody, "Guten Tag,\n\nwir möchten") && !str_contains($sourceMail->AltBody, '<div'), 'Die Textalternative darf keine HTML-Tags enthalten.');
+assertMail(!str_contains(EmailContentService::normalizeHtmlSource('<p>&lt;div&gt;&lt;script&gt;alert(1)&lt;/script&gt;Sicher&lt;/div&gt;</p>'), '<script'), 'Eingefügter Quelltext muss auch nach dem Dekodieren bereinigt werden.');
+echo "HTML-Mailübergabe mit und ohne PDF-Anhang, Quelltext-Normalisierung, Textalternative, Tracking und CRM-Protokoll erfolgreich geprüft.\n";
