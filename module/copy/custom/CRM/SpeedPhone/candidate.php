@@ -260,8 +260,8 @@
 
                 <div class="flyer-picker" role="group" aria-labelledby="speedphone-flyer-title">
                     <div class="flyer-picker__heading">
-                        <strong id="speedphone-flyer-title">Passende Produktflyer auswählen</strong>
-                        <span>Nur diese PDFs werden an diesen Kunden angehängt.</span>
+                        <strong id="speedphone-flyer-title">Flyer optional anhängen</strong>
+                        <span>Ohne Auswahl erhält die E-Mail keinen Anhang.</span>
                     </div>
                     <div class="flyer-picker__grid">
                         <?php foreach ($productFlyers as $productFlyer): ?>
@@ -275,9 +275,9 @@
                         <?php endforeach; ?>
                     </div>
                     <?php if ($productFlyers === []): ?>
-                        <p class="field-hint field-hint--error">Die Produktflyer sind derzeit nicht verfügbar.</p>
+                        <p class="field-hint">Flyer sind derzeit nicht verfügbar. E-Mails ohne Anhang können weiterhin versendet werden.</p>
                     <?php else: ?>
-                        <p class="field-hint">Nach dem Versand erscheint der Kontakt automatisch in <?= (int) $flyerFollowupBusinessDays ?> Werktagen wieder zur Nachfassung.</p>
+                        <p class="field-hint">Bei „automatisch nachfassen“ erscheint der Kontakt in <?= (int) $flyerFollowupBusinessDays ?> Werktagen wieder – auch ohne Flyer.</p>
                     <?php endif; ?>
                 </div>
 
@@ -288,11 +288,11 @@
 
                 <label class="check-row">
                     <input type="checkbox" name="email_requested" value="1">
-                    <span>Beim Klick auf „Erreicht · Interesse“ die ausgewählten Produktflyer jetzt mitsenden</span>
+                    <span>Beim Klick auf „Erreicht · Interesse“ die angeforderte E-Mail jetzt senden; ausgewählte Flyer optional anhängen.</span>
                 </label>
             </fieldset>
 
-            <p class="action-help"><strong>Unterlagen gewünscht?</strong> Passende Flyer auswählen und „Flyer senden + automatisch nachfassen“ verwenden.</p>
+            <p class="action-help"><strong>E-Mail gewünscht?</strong> E-Mail-Adresse und ausdrückliche Anforderung bestätigen. Flyer können optional angehängt werden. Wähle danach Rückruf am Datum oder automatische Nachfassung.</p>
 
             <div id="speedphone-email-retry" class="email-retry" hidden>
                 <button type="button" class="button button--mail" data-speedphone-email-retry>Informationsmail erneut versuchen</button>
@@ -302,7 +302,8 @@
             <div class="actions">
                 <button type="submit" name="result" value="not_reached" class="button button--warning" title="Anruf protokollieren und automatisch weiter hinten erneut einplanen">Nicht erreicht</button>
                 <button type="submit" name="result" value="callback" class="button button--info" title="Am gewählten Tag erneut anrufen; eine Uhrzeit ist nur bei einem festen Termin nötig">Am Datum wieder anrufen</button>
-                <button type="submit" name="result" value="send_flyers" class="button button--mail" title="Ausgewählte Produktflyer senden und den Kontakt automatisch nach <?= (int) $flyerFollowupBusinessDays ?> Werktagen erneut vorlegen">Flyer senden + automatisch nachfassen</button>
+                <button type="submit" name="result" value="email_callback" class="button button--mail" title="E-Mail mit optionalen Flyern senden und am gewählten Datum erneut anrufen">E-Mail senden + Rückruf am Datum</button>
+                <button type="submit" name="result" value="send_flyers" class="button button--mail" title="E-Mail mit optionalen Flyern senden und den Kontakt automatisch nach <?= (int) $flyerFollowupBusinessDays ?> Werktagen erneut vorlegen">E-Mail senden + automatisch nachfassen</button>
                 <button type="submit" name="result" value="interested" class="button button--success">Erreicht · Interesse</button>
                 <button type="submit" name="result" value="wrong_number" class="button button--danger">Falsche Nummer</button>
                 <button type="submit" name="result" value="blocked" class="button button--danger">Dauerhaft nicht mehr kontaktieren</button>

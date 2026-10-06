@@ -72,4 +72,13 @@ assertMail($log->description_html === $mail->Body && str_contains($log->descript
 assertMail($log->parent_id === $prospect->id && $log->new_with_id, 'Die Referenz auf den vorhandenen Kontakt oder die Mail-ID fehlt.');
 $service->sendRequestedInformation($prospect, true, [], null, '[Kontakt](https://anesda-nord.de/kontakt)');
 assertMail(str_contains(SugarPHPMailer::$messages[1]->Body, '<a href="https://anesda-nord.de/kontakt"'), 'Alte Texteditoren sind nicht mehr kompatibel.');
-echo "HTML-Mailübergabe, PDF-Anhang, Textalternative, Tracking und CRM-Protokoll erfolgreich geprüft.\n";
+$draftWithoutFlyer = $service->previewRequestedInformation($prospect, []);
+assertMail($draftWithoutFlyer['flyers'] === [] && !str_contains($draftWithoutFlyer['body_html'], 'Im Anhang finden Sie'), 'Der Entwurf ohne Flyer darf keine Anhänge ankündigen.');
+$personalBody = str_replace('Hallo Antonia', '<strong>Individuelle Rückfrage</strong> an Antonia', $draftWithoutFlyer['body_html']);
+$service->sendRequestedInformation($prospect, true, [], 'Rückfrage zum Gespräch', null, $personalBody);
+$mailWithoutFlyer = SugarPHPMailer::$messages[2];
+$logWithoutFlyer = TestEmailBean::$saved[2];
+assertMail($mailWithoutFlyer->Subject === 'Rückfrage zum Gespräch' && str_contains($mailWithoutFlyer->Body, 'Individuelle Rückfrage'), 'Bearbeiteter Betreff und persönliche Nachricht ohne Flyer müssen versendet werden.');
+assertMail(count($mailWithoutFlyer->attachments) === 0 && !str_contains($mailWithoutFlyer->Body, 'Im Anhang finden Sie'), 'Eine E-Mail ohne Flyer darf keinen PDF-Anhang oder Anhanghinweis enthalten.');
+assertMail($logWithoutFlyer->parent_id === $prospect->id && $logWithoutFlyer->description_html === $mailWithoutFlyer->Body, 'E-Mail ohne Flyer muss am vorhandenen CRM-Kontakt protokolliert werden.');
+echo "HTML-Mailübergabe mit und ohne PDF-Anhang, Textalternative, Tracking und CRM-Protokoll erfolgreich geprüft.\n";

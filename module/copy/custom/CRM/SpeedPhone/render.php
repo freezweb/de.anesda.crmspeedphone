@@ -22,7 +22,7 @@ function speedPhoneResultLabel(mixed $value): string
         'not_reached' => 'Nicht erreicht',
         'callback' => 'Wiedervorlage / Rückruf',
         'email_callback' => 'E-Mail + Wiedervorlage',
-        'send_flyers' => 'Produktflyer + automatische Wiedervorlage',
+        'send_flyers' => 'E-Mail + automatische Wiedervorlage',
         'interested' => 'Interesse',
         'no_interest' => 'Kein Interesse',
         'wrong_number' => 'Falsche Nummer',

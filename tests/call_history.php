@@ -16,6 +16,7 @@ check(!CallHistoryService::normalizeRow(array_replace($historyFixture,['do_not_c
 check(!CallHistoryService::normalizeRow(array_replace($historyFixture,['current_status'=>'blocked']),'a')['can_open'],'Gesperrter Warteschlangenstatus muss die Öffnung verhindern.');
 check(!CallHistoryService::normalizeRow(array_replace($historyFixture,['phone_work'=>'']),'a')['can_open'],'Kontakte ohne Rufnummer dürfen nicht in die Anrufmaske geöffnet werden.');
 check(CallHistoryService::normalizeRow(array_replace($historyFixture,['call_name'=>'SpeedPhone: Produktflyer versendet mit automatisch']),'a')['result']==='send_flyers','Gekürzte historische Flyer-Bezeichnungen müssen verständlich zugeordnet werden.');
+check(CallHistoryService::normalizeRow(array_replace($historyFixture,['call_name'=>'SpeedPhone: E-Mail gewünscht mit automatischer Wiedervorlage']),'a')['result']==='send_flyers','E-Mails ohne Anhang müssen auch ohne technisches Ergebnisfeld in der Anrufhistorie zugeordnet werden.');
 $history=['rows'=>[$historyRow,$lockedHistoryRow],'total'=>2,'page'=>1,'pages'=>1,'page_size'=>50];
 $userTimezone='Europe/Berlin';
 ob_start();require __DIR__.'/../module/copy/custom/CRM/SpeedPhone/call_history_report.php';$historyHtml=ob_get_clean();
