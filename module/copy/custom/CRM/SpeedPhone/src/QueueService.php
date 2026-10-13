@@ -460,10 +460,11 @@ final class QueueService
     private function getSentEmails(string $prospectId): array
     {
         $quotedProspectId = $this->db->quote($prospectId);
+        $directRecipientSql = self::directRecipientSql();
         $directSql = "SELECT DISTINCT e.id,
                              COALESCE(NULLIF(e.name, ''), 'E-Mail ohne Betreff') subject,
                              COALESCE(e.date_sent_received, e.date_entered) sent_at,
-                             COALESCE(et.to_addrs, '') recipient,
+                             {$directRecipientSql} recipient,
                              'CRM-E-Mail' source,
                              0 opened,
                              0 clicked
@@ -539,9 +540,10 @@ final class QueueService
         $prospect = $this->db->quote($prospectId);
         $email = $this->db->quote($emailId);
         if ($kind === 'direct') {
+            $directRecipientSql = self::directRecipientSql();
             $sql = "SELECT COALESCE(NULLIF(e.name,''),'E-Mail ohne Betreff') subject,
                            COALESCE(e.date_sent_received,e.date_entered) sent_at,
-                           COALESCE(et.to_addrs,'') recipient,
+                           {$directRecipientSql} recipient,
                            COALESCE(NULLIF(et.description,''),et.description_html,'') body,
                            COALESCE(et.description,'') tracking_source
                     FROM emails e
@@ -742,13 +744,25 @@ final class QueueService
         return $rows;
     }
 
+    private static function directRecipientSql(): string
+    {
+        // SuiteCRM speichert den tatsächlichen Empfänger in der Adressrelation;
+        // emails_text.to_addrs bleibt auch bei erfolgreich versendeten Mails oft leer.
+        return "COALESCE(
+            (SELECT GROUP_CONCAT(DISTINCT ea.email_address ORDER BY ea.email_address SEPARATOR ', ')
+             FROM emails_email_addr_rel address_rel
+             INNER JOIN email_addresses ea ON ea.id=address_rel.email_address_id AND ea.deleted=0
+             WHERE address_rel.email_id=e.id AND address_rel.deleted=0 AND address_rel.address_type='to'),
+            NULLIF(TRIM(et.to_addrs), ''), '')";
+    }
+
     private function normalizeRecipients(string $value): string
     {
         if (preg_match_all('/[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}/iu', $value, $matches) > 0) {
             return implode(', ', array_values(array_unique(array_map('strtolower', $matches[0]))));
         }
 
-        return trim($value) !== '' ? trim($value) : 'Adresse nicht protokolliert';
+        return trim($value) !== '' ? trim($value) : 'Empfängeradresse im CRM nicht gespeichert';
     }
 
     private function extractWebsite(string $description): string
