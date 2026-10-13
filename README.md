@@ -31,6 +31,10 @@ Für große oder regelmäßige Läufe einen eigenen Routingdienst einsetzen.
 
 CRM SpeedPhone ist eine schnelle, abarbeitbare Telefonakquise-Warteschlange für SuiteCRM 8. Die Erweiterung verwendet ausschließlich vorhandene Zielkontakt-UUIDs (`Prospects.id`) und legt keine Kontaktkopien an.
 
+## Veröffentlichung 1.26.2
+
+Die Liste und die Vorschau gesendeter CRM-Mails lesen den tatsächlichen Empfänger aus der SuiteCRM-Adressrelation (`emails_email_addr_rel`) und verwenden das ältere Textfeld nur als Rückfall. Ein leeres Textfeld wird damit nicht mehr als angeblich fehlende Empfängeradresse angezeigt. Falls auch in der Adressrelation keine Adresse existiert, benennt die Oberfläche diesen Datenmangel ausdrücklich. Die Vorschau unterscheidet zwischen im CRM protokolliertem Versand und einer nicht allein daraus beweisbaren Zustellung ins Postfach. An vorhandenen Mails und Kontakten wird nichts verändert.
+
 ## Veröffentlichung 1.26.1
 
 Als Klartext eingefügter HTML-Quelltext wird vor dem E-Mail-Versand erkannt, bereinigt und in echtes HTML mit einer lesbaren Textalternative umgewandelt. Im Editor wird die korrigierte Fassung zunächst angezeigt; erst ein weiterer Klick nach der Sichtprüfung versendet sie. So erscheinen beim Empfänger weder `<div>`-Tags noch ein als Text dargestellter Footer. Bereits versendete E-Mails werden nicht automatisch erneut verschickt.

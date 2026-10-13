@@ -319,6 +319,19 @@ check(
     Anesda\CRM\SpeedPhone\QueueService::emailPreviewText('<p>Hallo&nbsp;Welt</p><script>alert(1)</script>') === "Hallo Welt\nalert(1)",
     'Die E-Mail-Vorschau muss HTML ohne aktive Darstellung in lesbaren Text umwandeln.'
 );
+$recipientSql = (new ReflectionMethod(Anesda\CRM\SpeedPhone\QueueService::class, 'directRecipientSql'))->invoke(null);
+check(str_contains($recipientSql, "address_rel.address_type='to'")
+    && str_contains($recipientSql, 'address_rel.email_id=e.id')
+    && str_contains($recipientSql, "NULLIF(TRIM(et.to_addrs), '')"),
+    'Gesendete CRM-Mails müssen die echte An-Adresse aus der SuiteCRM-Adressrelation lesen.');
+check(substr_count(file_get_contents(__DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/QueueService.php'), 'self::directRecipientSql()') === 2,
+    'Kontaktliste und E-Mail-Vorschau müssen dieselbe Empfängerabfrage verwenden.');
+$queueWithoutConstructor = (new ReflectionClass(Anesda\CRM\SpeedPhone\QueueService::class))->newInstanceWithoutConstructor();
+$normalizeRecipient = new ReflectionMethod(Anesda\CRM\SpeedPhone\QueueService::class, 'normalizeRecipients');
+check($normalizeRecipient->invoke($queueWithoutConstructor, 'Info@Example.org') === 'info@example.org',
+    'Die gespeicherte Empfängeradresse muss in Liste und Vorschau lesbar sein.');
+check($normalizeRecipient->invoke($queueWithoutConstructor, '') === 'Empfängeradresse im CRM nicht gespeichert',
+    'Ein echter Datenmangel darf nicht als bloßes Protokollierungsproblem dargestellt werden.');
 
 $emailServiceSource = file_get_contents(__DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/EmailService.php');
 $emailApiSource = file_get_contents(__DIR__ . '/../module/copy/custom/CRM/SpeedPhone/api.php');

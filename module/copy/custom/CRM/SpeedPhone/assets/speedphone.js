@@ -361,7 +361,7 @@
             try {
                 const payload = await request(data);
                 title.textContent = payload.data.subject || 'E-Mail ohne Betreff';
-                recipient.textContent = payload.data.recipient || 'Adresse nicht protokolliert';
+                recipient.textContent = payload.data.recipient || 'Empfängeradresse im CRM nicht gespeichert';
                 sentAt.textContent = formatEmailPreviewDate(payload.data.sent_at);
                 note.textContent = payload.data.content_note || '';
                 note.hidden = !note.textContent;
