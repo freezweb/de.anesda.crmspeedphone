@@ -200,16 +200,19 @@ check(
 
 $flyerService = new ProductFlyerService(__DIR__ . '/../module/copy/custom/CRM/SpeedPhone/assets/flyers');
 $availableFlyers = $flyerService->available();
-check(count($availableFlyers) === 12, 'Es müssen genau zwölf versandbereite Produktbroschüren verfügbar sein.');
+check(count($availableFlyers) === 13, 'Es müssen genau dreizehn versandbereite Produktbroschüren verfügbar sein.');
 check(in_array('systemservice', array_column($availableFlyers, 'key'), true), 'Die Produktbroschüre für SystemService vor Ort fehlt.');
 check(in_array('individualentwicklung', array_column($availableFlyers, 'key'), true), 'Die Produktbroschüre für individuelle Software- und Hardwareentwicklung fehlt.');
 check(in_array('epaper_displays', array_column($availableFlyers, 'key'), true), 'Die Produktbroschüre für E-Paper Displays fehlt.');
 check(in_array('maschinenvernetzung', array_column($availableFlyers, 'key'), true), 'Die Produktbroschüre für Maschinenvernetzung und Automatisierung fehlt.');
 check(in_array('glasfaser_telemetrie', array_column($availableFlyers, 'key'), true), 'Der Flyer für Glasfaser, Vernetzung und Telemetrie fehlt.');
 check(in_array('digitalisierung_e_rechnung', array_column($availableFlyers, 'key'), true), 'Der Flyer für Digitalisierung und E-Rechnung fehlt.');
+check(in_array('technische_problemloeser', array_column($availableFlyers, 'key'), true), 'Der Flyer „Die technischen Problemlöser“ fehlt.');
 $loadedFlyers = $flyerService->loadSelected(['profipos', 'systemservice', 'individualentwicklung', 'epaper_displays', 'maschinenvernetzung', 'glasfaser_telemetrie']);
 check(count($loadedFlyers) === 6, 'Die ausgewählten Produktbroschüren werden nicht vollständig geladen.');
 check(str_starts_with($loadedFlyers[0]['content'], '%PDF-'), 'Eine Produktbroschüre ist keine gültige PDF-Datei.');
+$problemSolversAttachments = $flyerService->loadSelected(['technische_problemloeser']);
+check(count($problemSolversAttachments) === 1 && $problemSolversAttachments[0]['filename'] === 'Anesda-Nord-Die-Technischen-Problemloeser-Kundenflyer.pdf', 'Der neue Flyer wird nicht als E-Mail-Anhang geladen.');
 try {
     $flyerService->validateSelection(['../fremde-datei']);
     check(false, 'Unbekannte oder unsichere Broschürenauswahl wurde akzeptiert.');
@@ -711,6 +714,10 @@ $invoiceFlyerPath = __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/assets/flye
 check(str_contains($flyerServiceSource, "'digitalisierung_e_rechnung'"), 'Digitalisierung- und E-Rechnungs-Flyer fehlt im Katalog.');
 check(is_file($invoiceFlyerPath) && filesize($invoiceFlyerPath) > 5, 'Digitalisierung- und E-Rechnungs-Flyer fehlt im Modul.');
 check(str_starts_with((string) file_get_contents($invoiceFlyerPath, false, null, 0, 5), '%PDF-'), 'Der Digitalisierung- und E-Rechnungs-Flyer ist keine gültige PDF-Datei.');
+$problemSolversFlyerPath = __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/assets/flyers/Anesda-Nord-Die-Technischen-Problemloeser-Kundenflyer.pdf';
+check(str_contains($flyerServiceSource, "'technische_problemloeser'"), 'Der Flyer „Die technischen Problemlöser“ fehlt im Katalog.');
+check(is_file($problemSolversFlyerPath) && filesize($problemSolversFlyerPath) > 5, 'Der Problemlöser-Flyer fehlt im Modul.');
+check(str_starts_with((string) file_get_contents($problemSolversFlyerPath, false, null, 0, 5), '%PDF-'), 'Der Problemlöser-Flyer ist keine gültige PDF-Datei.');
 check(
     str_contains($installerSource, 'crm_speedphone_pbx_incoming_events')
         && str_contains($installerSource, 'crm_speedphone_pbx_incoming_matches'),
