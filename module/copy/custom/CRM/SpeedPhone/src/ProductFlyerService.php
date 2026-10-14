@@ -67,6 +67,11 @@ final class ProductFlyerService
             'filename' => 'Anesda-Nord-Digitalisierung-und-E-Rechnung-Kundenflyer.pdf',
             'description' => 'E-Rechnungsfristen, strukturierte Formate und digitale Rechnungsprozesse',
         ],
+        'technische_problemloeser' => [
+            'label' => 'Die technischen Problemlöser',
+            'filename' => 'Anesda-Nord-Die-Technischen-Problemloeser-Kundenflyer.pdf',
+            'description' => 'Ein Ansprechpartner für IT, Netzwerke, Maschinen, Sensorik und ungewöhnliche technische Probleme',
+        ],
     ];
 
     public function __construct(private readonly string $directory)

@@ -31,6 +31,10 @@ Für große oder regelmäßige Läufe einen eigenen Routingdienst einsetzen.
 
 CRM SpeedPhone ist eine schnelle, abarbeitbare Telefonakquise-Warteschlange für SuiteCRM 8. Die Erweiterung verwendet ausschließlich vorhandene Zielkontakt-UUIDs (`Prospects.id`) und legt keine Kontaktkopien an.
 
+## Veröffentlichung 1.26.3
+
+Der einseitige A4-Flyer „Die technischen Problemlöser“ ist als optionaler Anhang in SpeedPhone verfügbar. Er beschreibt Anesda Nord als Ansprechpartner für ungewöhnliche technische Herausforderungen über IT, Netzwerke, Maschinen, Sensorik und Software hinweg. Das neue Bildmotiv wurde eigens für diesen Flyer erstellt; Text und Layout werden mit `tools/generate-technical-problem-solvers-flyer.py` erzeugt. Es werden dadurch keine E-Mails automatisch versendet.
+
 ## Veröffentlichung 1.26.2
 
 Die Liste und die Vorschau gesendeter CRM-Mails lesen den tatsächlichen Empfänger aus der SuiteCRM-Adressrelation (`emails_email_addr_rel`) und verwenden das ältere Textfeld nur als Rückfall. Ein leeres Textfeld wird damit nicht mehr als angeblich fehlende Empfängeradresse angezeigt. Falls auch in der Adressrelation keine Adresse existiert, benennt die Oberfläche diesen Datenmangel ausdrücklich. Die Vorschau unterscheidet zwischen im CRM protokolliertem Versand und einer nicht allein daraus beweisbaren Zustellung ins Postfach. An vorhandenen Mails und Kontakten wird nichts verändert.
