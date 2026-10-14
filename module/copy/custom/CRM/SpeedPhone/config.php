@@ -51,4 +51,8 @@ return [
     'pbx_ami_context' => 'from-internal',
     'pbx_ami_timeout_seconds' => 10,
     'pbx_incoming_webhook_secret' => '',
+    'telegram_call_enabled' => false,
+    'telegram_call_bot_token' => '',
+    'telegram_call_chat_id' => 0,
+    'telegram_call_thread_id' => 0,
 ];

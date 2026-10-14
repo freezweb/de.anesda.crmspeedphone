@@ -57,6 +57,7 @@ final class IncomingCallService
               AND COALESCE(settings.pbx_extension,'')<>''{$extensionCondition}");
         $eventCount = 0;
         $matchCount = 0;
+        $uniqueMatches = [];
         while ($userRow = $this->db->fetchByAssoc($users)) {
             $user = \BeanFactory::getBean('Users', (string) $userRow['id']);
             if (!$user || empty($user->id) || (int) $user->deleted === 1) {
@@ -80,6 +81,7 @@ final class IncomingCallService
                 $eventCount++;
             }
             foreach ($matches as $match) {
+                $uniqueMatches[(string) $match['id']] = (string) $match['display_name'];
                 $this->db->query("INSERT INTO " . self::PBX_MATCHES_TABLE . "
                     (event_id,prospect_id,match_type,match_score)
                     VALUES ('" . $this->db->quote($eventId) . "','" . $this->db->quote((string) $match['id']) . "','"
@@ -87,6 +89,12 @@ final class IncomingCallService
                     ON DUPLICATE KEY UPDATE match_type=VALUES(match_type),match_score=VALUES(match_score)");
                 $matchCount++;
             }
+        }
+
+        if (count($uniqueMatches) === 1) {
+            $prospectId = (string) array_key_first($uniqueMatches);
+            TelegramCallService::safely(fn () => (new TelegramCallService($this->config, $this->db))
+                ->queuePbxIncoming($sourceEventId, null, $prospectId, $uniqueMatches[$prospectId]));
         }
 
         return ['accepted' => true, 'events' => $eventCount, 'matches' => $matchCount];
@@ -135,7 +143,7 @@ final class IncomingCallService
 
     public function openPbxMatch(\User $currentUser, QueueService $queue, string $eventId, string $prospectId): array
     {
-        $match = $this->db->fetchByAssoc($this->db->query("SELECT events.id
+        $match = $this->db->fetchByAssoc($this->db->query("SELECT events.id,events.source_event_id
             FROM " . self::PBX_EVENTS_TABLE . " events
             INNER JOIN " . self::PBX_MATCHES_TABLE . " matches ON matches.event_id=events.id
             WHERE events.id='" . $this->db->quote($eventId) . "'
@@ -151,6 +159,9 @@ final class IncomingCallService
             throw new \RuntimeException('Dieser Kontakt ist inzwischen bei einem anderen Mitarbeiter geöffnet. Bitte wähle einen anderen Treffer.');
         }
         $this->acknowledgePbxEvent($eventId, (string) $currentUser->id);
+        TelegramCallService::safely(fn () => (new TelegramCallService($this->config, $this->db))
+            ->queuePbxIncoming((string) $match['source_event_id'], (string) $currentUser->id,
+                $prospectId, (string) ($candidate['name'] ?? 'Zielkontakt')));
 
         return $candidate;
     }
@@ -224,6 +235,10 @@ final class IncomingCallService
                     NULL
                 )");
         }
+
+        TelegramCallService::safely(fn () => (new TelegramCallService($this->config, $this->db))
+            ->queueAppIncoming($eventId, (string) $user->id, (string) $prospect['id'],
+                (string) $prospect['display_name']));
 
         return [
             'matched' => true,

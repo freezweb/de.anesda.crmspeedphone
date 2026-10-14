@@ -40,5 +40,12 @@ $mailWebhookTable = (int) $db->getOne(
 if ($mailWebhookTable !== 1) {
     throw new RuntimeException('Die Mail-Webhook-Ereignistabelle fehlt nach der Installation.');
 }
+$telegramCallsTable = (int) $db->getOne(
+    "SELECT COUNT(*) FROM information_schema.tables
+     WHERE table_schema=DATABASE() AND table_name='crm_speedphone_telegram_calls'"
+);
+if ($telegramCallsTable !== 1) {
+    throw new RuntimeException('Die Telegram-Anruftabelle fehlt nach der Installation.');
+}
 
-echo "CRM SpeedPhone wurde installiert; Mail-Webhook-Tabelle ist vorhanden.\n";
+echo "CRM SpeedPhone wurde installiert; Mail-Webhook- und Telegram-Anruftabellen sind vorhanden.\n";

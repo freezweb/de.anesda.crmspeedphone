@@ -9,6 +9,7 @@ require_once __DIR__ . '/bootstrap.php';
 use Anesda\CRM\SpeedPhone\DialerService;
 use Anesda\CRM\SpeedPhone\Config;
 use Anesda\CRM\SpeedPhone\IncomingCallService;
+use Anesda\CRM\SpeedPhone\TelegramCallService;
 
 global $db;
 
@@ -40,6 +41,10 @@ try {
             (string) ($_POST['status'] ?? ''),
             (string) ($_POST['error'] ?? '')
         );
+        if ((string) ($_POST['status'] ?? '') === 'dialed') {
+            TelegramCallService::safely(fn () => (new TelegramCallService(Config::load(__DIR__), $db))
+                ->queueDialerCommand((string) ($_POST['command_id'] ?? '')));
+        }
         $result = ['acknowledged' => true];
     } elseif ($operation === 'disconnect') {
         $service->disconnect((string) ($_POST['device_id'] ?? ''), (string) ($_POST['device_token'] ?? ''));

@@ -18,6 +18,7 @@ use Anesda\CRM\SpeedPhone\IncomingCallService;
 use Anesda\CRM\SpeedPhone\LockService;
 use Anesda\CRM\SpeedPhone\PbxService;
 use Anesda\CRM\SpeedPhone\ProductFlyerService;
+use Anesda\CRM\SpeedPhone\TelegramCallService;
 use Anesda\CRM\SpeedPhone\QueueService;
 use Anesda\CRM\SpeedPhone\UserAccessService;
 
@@ -151,6 +152,8 @@ try {
             throw new RuntimeException('Dieser Kontakt ist durch den Anfahrtsfilter von ausgehenden Anrufen ausgeschlossen.');
         }
         $result = $pbxService->queueCall($prospectId, (string) ($_POST['phone_kind'] ?? 'work'));
+        TelegramCallService::safely(fn () => (new TelegramCallService($config, $db))
+            ->queuePbxCall((string) $result['call_id']));
         echo json_encode(['success' => true, 'data' => $result], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         exit;
     }

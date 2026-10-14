@@ -22,12 +22,14 @@ final class Config
         $pbxLocal = is_file($pbxLocalFile) ? require $pbxLocalFile : [];
         $travelFile = $baseDirectory . '/travel.local.php';
         $travelLocal = is_file($travelFile) ? require $travelFile : [];
+        $telegramFile = $baseDirectory . '/telegram.local.php';
+        $telegramLocal = is_file($telegramFile) ? require $telegramFile : [];
 
-        if (!is_array($defaults) || !is_array($local) || !is_array($mailLocal) || !is_array($pbxLocal) || !is_array($travelLocal)) {
+        if (!is_array($defaults) || !is_array($local) || !is_array($mailLocal) || !is_array($pbxLocal) || !is_array($travelLocal) || !is_array($telegramLocal)) {
             throw new \RuntimeException('Die SpeedPhone-Konfiguration ist ungültig.');
         }
 
-        return new self(array_replace_recursive($defaults, $local, $mailLocal, $pbxLocal, $travelLocal));
+        return new self(array_replace_recursive($defaults, $local, $mailLocal, $pbxLocal, $travelLocal, $telegramLocal));
     }
 
     public function get(string $key, mixed $default = null): mixed

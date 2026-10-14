@@ -30,6 +30,7 @@ foreach ([
     'DialerService',
     'PbxService',
     'IncomingCallService',
+    'TelegramCallService',
     'MailWebhookService',
 ] as $className) {
     require_once $speedPhoneBase . '/src/' . $className . '.php';
