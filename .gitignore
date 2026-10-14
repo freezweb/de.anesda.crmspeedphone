@@ -2,6 +2,7 @@
 /build/
 /.phpunit.result.cache
 /module/copy/custom/CRM/SpeedPhone/config.local.php
+/module/copy/custom/CRM/SpeedPhone/telegram.local.php
 __pycache__/
 *.pyc
 /tmp/

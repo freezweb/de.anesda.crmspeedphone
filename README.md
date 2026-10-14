@@ -31,6 +31,12 @@ Für große oder regelmäßige Läufe einen eigenen Routingdienst einsetzen.
 
 CRM SpeedPhone ist eine schnelle, abarbeitbare Telefonakquise-Warteschlange für SuiteCRM 8. Die Erweiterung verwendet ausschließlich vorhandene Zielkontakt-UUIDs (`Prospects.id`) und legt keine Kontaktkopien an.
 
+## Veröffentlichung 1.27.0
+
+CRM-gestartete Anrufe können zusätzlich in einem eigenen Telegram-Forum-Thread erscheinen. Die Handy-App meldet erst nach der bestätigten Übergabe an die Telefonfunktion, die Telefonanlage erst nach Annahme des Wählauftrags. Eingehende App-Anrufe werden nur bei einem freigegebenen CRM-Treffer gemeldet. Bei der Telefonanlage wird ein eindeutiger Kontakt automatisch gemeldet; bei mehreren möglichen Treffern erst der im CRM ausgewählte Kontakt. Unbekannte Nummern, normale Anrufe außerhalb von SpeedPhone und bloß angeklingelte, nicht angenommene Wählaufträge werden nicht als CRM-Anruf gemeldet. Eine Benachrichtigung bestätigt ausdrücklich **keine** aufgebaute Gesprächsverbindung.
+
+Die Ereignisse landen mit eindeutigem Quellschlüssel in der zentralen MariaDB-Tabelle `crm_speedphone_telegram_calls`. Ein CLI-Arbeiter versendet sie im Minutenrhythmus über den konfigurierten Bot; Fehler werden protokolliert und begrenzt erneut versucht. Telefonate bleiben auch bei Telegram-Störungen bedienbar. Die Funktion ist standardmäßig aus und erfordert eine nicht mitgelieferte `custom/CRM/SpeedPhone/telegram.local.php` mit `telegram_call_enabled`, `telegram_call_bot_token`, `telegram_call_chat_id` und `telegram_call_thread_id`. Dieser lokale Schlüssel gehört weder ins Git-Repository noch ins Modulpaket. Der Arbeiter lässt sich mit `php custom/CRM/SpeedPhone/telegram_worker.php --check` ohne Versand prüfen und mit `--run` ausführen. Die Einrichtung des Minutentakts erfolgt beim Betreiber, nicht beim Modulinstallieren.
+
 ## Veröffentlichung 1.26.3
 
 Der einseitige A4-Flyer „Die technischen Problemlöser“ ist als optionaler Anhang in SpeedPhone verfügbar. Er beschreibt Anesda Nord als Ansprechpartner für ungewöhnliche technische Herausforderungen über IT, Netzwerke, Maschinen, Sensorik und Software hinweg. Das neue Bildmotiv wurde eigens für diesen Flyer erstellt; Text und Layout werden mit `tools/generate-technical-problem-solvers-flyer.py` erzeugt. Es werden dadurch keine E-Mails automatisch versendet.

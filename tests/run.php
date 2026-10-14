@@ -619,6 +619,25 @@ $pbxServiceSource = file_get_contents(__DIR__ . '/../module/copy/custom/CRM/Spee
 check(str_contains($pbxServiceSource, "'Action' => 'Originate'"), 'Asterisk-AMI-Auftrag startet keinen nativen Originate-Ablauf.');
 check(str_contains($pbxServiceSource, "'Channel' => 'Local/'"), 'Festnetz-Wahl klingelt nicht zuerst die Mitarbeiter-Durchwahl an.');
 check(str_contains($pbxServiceSource, 'crm_speedphone_pbx_calls'), 'Festnetz-Wahlaufträge werden nicht nachvollziehbar protokolliert.');
+$telegramServiceSource = file_get_contents(__DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/TelegramCallService.php');
+$incomingServiceSource = file_get_contents(__DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/IncomingCallService.php');
+$dialerApiSource = file_get_contents(__DIR__ . '/../module/copy/custom/CRM/SpeedPhone/dialer_api.php');
+$speedPhoneApiSource = file_get_contents(__DIR__ . '/../module/copy/custom/CRM/SpeedPhone/api.php');
+$installerSource = file_get_contents(__DIR__ . '/../module/scripts/post_install.php');
+check(str_contains($telegramServiceSource, "status='dialed'") && str_contains($dialerApiSource, "=== 'dialed'")
+    && str_contains($dialerApiSource, 'queueDialerCommand'), 'Nur bestätigte App-Wahlaufträge dürfen Telegram-Meldungen erzeugen.');
+check(str_contains($telegramServiceSource, "status='accepted'") && str_contains($speedPhoneApiSource, 'queuePbxCall'),
+    'Nur angenommene CRM-Festnetzaufträge dürfen Telegram-Meldungen erzeugen.');
+check(str_contains($incomingServiceSource, 'count($uniqueMatches) === 1')
+    && str_contains($incomingServiceSource, 'queuePbxIncoming')
+    && str_contains($incomingServiceSource, 'queueAppIncoming'),
+    'Nur eindeutige oder im CRM ausgewählte eingehende Kontakte dürfen Telegram-Meldungen erzeugen.');
+check(str_contains($installerSource, 'crm_speedphone_telegram_calls')
+    && str_contains($installerSource, 'UNIQUE KEY `idx_speedphone_telegram_event`'),
+    'Der deduplizierte MariaDB-Postausgang für Anrufmeldungen fehlt.');
+check(is_file(__DIR__ . '/../module/copy/custom/CRM/SpeedPhone/telegram_worker.php')
+    && str_contains($telegramServiceSource, 'message_thread_id'),
+    'Telegram-Arbeiter oder dediziertes Thread-Ziel fehlt.');
 
 $manifestSource = file_get_contents(__DIR__ . '/../module/manifest.php');
 $pageSource = file_get_contents(__DIR__ . '/../module/copy/custom/CRM/SpeedPhone/page.php');
@@ -861,6 +880,11 @@ $countTestOutput = [];
 $countTestExit = 0;
 exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(__DIR__ . '/industry_counts.php') . ' 2>&1', $countTestOutput, $countTestExit);
 check($countTestExit === 0, 'Isolierte Branchenzählung fehlgeschlagen: ' . implode("\n", $countTestOutput));
+
+$telegramTestOutput = [];
+$telegramTestExit = 0;
+exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(__DIR__ . '/telegram_calls.php') . ' 2>&1', $telegramTestOutput, $telegramTestExit);
+check($telegramTestExit === 0, 'Isolierte Telegram-Anrufprüfung fehlgeschlagen: ' . implode("\n", $telegramTestOutput));
 
 if ($failures !== []) {
     fwrite(STDERR, implode(PHP_EOL, $failures) . PHP_EOL);
