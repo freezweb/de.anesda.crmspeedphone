@@ -1,0 +1,15 @@
+[Unit]
+Description=CRM SpeedPhone Mitschnittkopien an Telegram
+After=network-online.target mariadb.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=asterisk
+Group=asterisk
+SupplementaryGroups=crm-speedphone-incoming
+EnvironmentFile=-/etc/crm-speedphone-recording-copy.env
+ExecStart=/usr/local/sbin/crm-speedphone-recording-copy --scan
+NoNewPrivileges=true
+PrivateTmp=false
+

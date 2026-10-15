@@ -341,6 +341,22 @@ $db->query("CREATE TABLE IF NOT EXISTS `crm_speedphone_telegram_calls` (
     KEY `idx_speedphone_telegram_prospect` (`prospect_id`,`created_at`)
 ) ENGINE=InnoDB");
 
+$db->query("CREATE TABLE IF NOT EXISTS `crm_speedphone_recording_copies` (
+    `recording_key` char(64) NOT NULL,
+    `prospect_id` char(36) NOT NULL,
+    `source_id` varchar(100) NOT NULL,
+    `direction` varchar(10) NOT NULL,
+    `status` varchar(20) NOT NULL,
+    `attempts` smallint unsigned NOT NULL DEFAULT 0,
+    `telegram_message_id` bigint unsigned NULL,
+    `created_at` datetime NOT NULL,
+    `updated_at` datetime NOT NULL,
+    `last_error` varchar(500) NULL,
+    PRIMARY KEY (`recording_key`),
+    KEY `idx_speedphone_recording_prospect` (`prospect_id`,`created_at`),
+    KEY `idx_speedphone_recording_status` (`status`,`updated_at`)
+) ENGINE=InnoDB");
+
 $db->query("CREATE TABLE IF NOT EXISTS `crm_speedphone_mail_webhook_events` (
     `event_id` char(36) NOT NULL,
     `event_type` varchar(40) NOT NULL,

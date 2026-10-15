@@ -1,0 +1,10 @@
+[Unit]
+Description=CRM SpeedPhone Mitschnitte jede Minute abgleichen
+
+[Timer]
+OnCalendar=*-*-* *:*:00
+Persistent=true
+Unit=crm-speedphone-recording-copy.service
+
+[Install]
+WantedBy=timers.target
