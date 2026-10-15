@@ -27,14 +27,17 @@
     let callbackPage = 1;
     let callbacksInFlight = false;
     let callbacksRequest = 0;
+    let ownedContactsInFlight = false;
     startTeamStatisticsUpdates();
     window.addEventListener('pagehide', stopTeamStatisticsUpdates);
     window.addEventListener('pageshow', startTeamStatisticsUpdates);
     startLiveUpdates();
+    window.setInterval(refreshOwnedContacts, 30000);
 
     document.addEventListener('visibilitychange', function () {
         if (document.visibilityState === 'visible') {
             refreshCurrent();
+            refreshOwnedContacts();
         }
     });
     window.addEventListener('online', refreshCurrent);
@@ -42,6 +45,39 @@
     window.addEventListener('pageshow', startLiveUpdates);
 
     root.addEventListener('submit', async function (event) {
+        const transferForm = event.target.closest('[data-speedphone-transfer]');
+        if (transferForm) {
+            event.preventDefault();
+            const target = transferForm.elements.target_user_id;
+            const targetName = target.options[target.selectedIndex]?.textContent || 'diesen Telefonisten';
+            if (!target.value || !window.confirm('Kontakt verbindlich an ' + targetName + ' übergeben?')) {
+                return;
+            }
+            const data = new FormData(transferForm);
+            data.set('operation', 'transfer_contact');
+            data.set('csrf', root.dataset.csrf);
+            stopLiveUpdates();
+            setBusy(transferForm, true);
+            try {
+                const payload = await request(data);
+                updateOwnedContacts(payload.data);
+                if (payload.data.transferred_current) {
+                    workspace.innerHTML = payload.data.workspace_html;
+                    updateStatistics(payload.data.statistics || {});
+                    updateLiveStatus(payload.data.expires_at);
+                    workspace.querySelector('.candidate-name')?.focus({preventScroll: true});
+                }
+                showMessage(payload.data.message, false);
+            } catch (error) {
+                if (document.body.contains(transferForm)) {
+                    setBusy(transferForm, false);
+                }
+                showMessage(error.message || String(error), true);
+            } finally {
+                startLiveUpdates();
+            }
+            return;
+        }
         if (event.target.id === 'speedphone-callback-filter') {
             event.preventDefault();
             callbackPage = 1;
@@ -568,6 +604,7 @@
 
         const ownedToggle = event.target.closest('[data-speedphone-owned-toggle]');
         if (ownedToggle) {
+            refreshOwnedContacts();
             const panel = document.getElementById('speedphone-owned-contacts');
             if (panel) {
                 panel.hidden = !panel.hidden;
@@ -866,6 +903,43 @@
         }
 
         return payload;
+    }
+
+    function updateOwnedContacts(data) {
+        const container = document.getElementById('speedphone-owned-container');
+        if (container && typeof data.owned_html === 'string') {
+            const wasOpen = !document.getElementById('speedphone-owned-contacts')?.hidden;
+            container.innerHTML = data.owned_html;
+            const panel = document.getElementById('speedphone-owned-contacts');
+            if (panel) {
+                panel.hidden = !wasOpen;
+            }
+        }
+        root.querySelectorAll('.speedphone__header-actions [data-speedphone-owned-toggle]').forEach(function (button) {
+            button.textContent = 'Meine Kontakte (' + data.owned_count + ')';
+        });
+    }
+
+    async function refreshOwnedContacts() {
+        const panel = document.getElementById('speedphone-owned-contacts');
+        if (ownedContactsInFlight || (panel && (panel.querySelector('.is-busy') || panel.contains(document.activeElement)))) {
+            return;
+        }
+        ownedContactsInFlight = true;
+        const data = new FormData();
+        data.set('operation', 'owned_contacts');
+        data.set('csrf', root.dataset.csrf);
+        try {
+            const payload = await request(data);
+            const currentPanel = document.getElementById('speedphone-owned-contacts');
+            if (!currentPanel || (!currentPanel.querySelector('.is-busy') && !currentPanel.contains(document.activeElement))) {
+                updateOwnedContacts(payload.data);
+            }
+        } catch (error) {
+            // Die Hauptwarteschlange bleibt auch bei einem kurzzeitig fehlgeschlagenen Listenabruf nutzbar.
+        } finally {
+            ownedContactsInFlight = false;
+        }
     }
 
     function formatEmailPreviewDate(value) {

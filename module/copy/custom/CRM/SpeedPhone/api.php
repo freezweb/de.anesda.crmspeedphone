@@ -45,6 +45,62 @@ try {
     $lockService = new LockService($config, $db, $current_user);
     $queue = new QueueService($config, $db, $current_user, $lockService, $accessService, $assignmentService);
     $queue->assertUserAllowed();
+    if ((string) ($_POST['operation'] ?? '') === 'owned_contacts') {
+        $ownedContacts = $assignmentService->listOwnedByCurrentUser();
+        $userTimezone = (string) ($current_user->getPreference('timezone') ?: 'Europe/Berlin');
+        echo json_encode(['success' => true, 'data' => [
+            'owned_html' => speedPhoneRenderOwnedContacts(
+                $ownedContacts,
+                $accessService->listTransferTargets(),
+                $accessService->currentProfile(),
+                $userTimezone
+            ),
+            'owned_count' => count($ownedContacts),
+        ]], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        exit;
+    }
+    if ((string) ($_POST['operation'] ?? '') === 'transfer_contact') {
+        $validator = new InputValidator();
+        $prospectId = $validator->uuid((string) ($_POST['prospect_id'] ?? ''));
+        $targetUserId = $validator->uuid((string) ($_POST['target_user_id'] ?? ''));
+        $lockToken = trim((string) ($_POST['lock_token'] ?? ''));
+        if ($assignmentService->getAssignment($prospectId) === null && !$queue->canEditProspect($prospectId)) {
+            throw new RuntimeException('Dieser Zielkontakt ist für dich nicht zur Übergabe freigegeben.');
+        }
+        if ($lockToken !== '') {
+            $lockService->assertOwned($prospectId, $lockToken);
+        }
+        $transfer = $assignmentService->transfer($prospectId, $targetUserId, $lockToken !== '' ? $lockToken : null);
+        $ownedContacts = $assignmentService->listOwnedByCurrentUser();
+        $userTimezone = (string) ($current_user->getPreference('timezone') ?: 'Europe/Berlin');
+        $data = [
+            'message' => 'Kontakt an ' . $transfer['target_name'] . ' übergeben. Rückruf und Provisionshistorie bleiben erhalten.',
+            'owned_html' => speedPhoneRenderOwnedContacts(
+                $ownedContacts,
+                $accessService->listTransferTargets(),
+                $accessService->currentProfile(),
+                $userTimezone
+            ),
+            'owned_count' => count($ownedContacts),
+            'transferred_current' => $lockToken !== '',
+        ];
+        if ($lockToken !== '') {
+            $nextCandidate = $queue->getNextCandidate();
+            $data['workspace_html'] = speedPhoneRenderWorkspace(
+                $nextCandidate,
+                $userTimezone,
+                (int) $config->get('default_callback_days', 7),
+                (new DialerService($db, $current_user))->listDevices(),
+                (new PbxService($config, $db, $current_user, $accessService))->status(),
+                (new ProductFlyerService(__DIR__ . '/assets/flyers'))->available(),
+                (int) $config->get('flyer_followup_business_days', 3)
+            );
+            $data['statistics'] = $queue->getStatistics();
+            $data['expires_at'] = $nextCandidate['lock_expires_at'] ?? null;
+        }
+        echo json_encode(['success' => true, 'data' => $data], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        exit;
+    }
     if ((string) ($_POST['operation'] ?? '') === 'normalize_email_html') {
         $html = (new InputValidator())->emailBodyHtml((string) ($_POST['email_body_html'] ?? ''));
         echo json_encode(['success' => true, 'data' => ['body_html' => $html]], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);

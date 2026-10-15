@@ -76,8 +76,9 @@ final class AssignmentService
                 {$assignmentAlias}.owner_type='disabled'
                 OR ({$assignmentAlias}.owner_type='external' AND (
                 ({$customAlias}.speedphone_status_c='callback'
-                    AND {$customAlias}.speedphone_next_call_c<=DATE_SUB(UTC_TIMESTAMP(), INTERVAL {$callbackDays} DAY))
-                OR COALESCE({$assignmentAlias}.last_contact_at, {$assignmentAlias}.assigned_at)
+                    AND {$customAlias}.speedphone_next_call_c<=DATE_SUB(UTC_TIMESTAMP(), INTERVAL {$callbackDays} DAY)
+                    AND {$assignmentAlias}.assigned_at<=DATE_SUB(UTC_TIMESTAMP(), INTERVAL {$callbackDays} DAY))
+                OR GREATEST(COALESCE({$assignmentAlias}.last_contact_at, {$assignmentAlias}.assigned_at), {$assignmentAlias}.assigned_at)
                     <=DATE_SUB(UTC_TIMESTAMP(), INTERVAL {$staleDays} DAY)
                 ))
             ))";
@@ -153,6 +154,118 @@ final class AssignmentService
     public static function actionAssignsOwner(string $action): bool
     {
         return in_array($action, self::REACHED_ACTIONS, true);
+    }
+
+    /**
+     * Übergibt nur die aktuelle Betreuung. Bereits verdiente Provisionen und
+     * protokollierte Anrufe werden nicht verändert.
+     *
+     * @return array{target_name:string}
+     */
+    public function transfer(string $prospectId, string $targetUserId, ?string $lockToken = null): array
+    {
+        $targets = $this->access->listTransferTargets();
+        $target = null;
+        foreach ($targets as $user) {
+            if (hash_equals($user['id'], $targetUserId)) {
+                $target = $user;
+                break;
+            }
+        }
+        if ($target === null) {
+            throw new \InvalidArgumentException('Der ausgewählte Telefonist ist nicht für SpeedPhone freigeschaltet.');
+        }
+        $currentUserId = (string) $this->currentUser->id;
+        if (hash_equals($currentUserId, $targetUserId)) {
+            throw new \InvalidArgumentException('Der Kontakt ist dir bereits zugeordnet.');
+        }
+        $quotedProspectId = $this->db->quote($prospectId);
+        $quotedCurrentId = $this->db->quote($currentUserId);
+        $this->db->query('START TRANSACTION');
+        try {
+            $prospect = $this->db->fetchByAssoc($this->db->query("SELECT id FROM prospects
+                WHERE id='{$quotedProspectId}' AND deleted=0 FOR UPDATE"));
+            if (empty($prospect['id'])) {
+                throw new \RuntimeException('Der Zielkontakt existiert nicht mehr.');
+            }
+            $assignment = $this->db->fetchByAssoc($this->db->query("SELECT owner_user_id
+                FROM " . self::TABLE . " WHERE prospect_id='{$quotedProspectId}' FOR UPDATE"));
+            $ownerId = (string) ($assignment['owner_user_id'] ?? '');
+            if ($ownerId === $targetUserId) {
+                throw new \InvalidArgumentException('Der Kontakt ist diesem Telefonisten bereits zugeordnet.');
+            }
+            $lock = $this->db->fetchByAssoc($this->db->query("SELECT user_id, lock_token
+                FROM crm_speedphone_locks WHERE prospect_id='{$quotedProspectId}'
+                  AND expires_at>UTC_TIMESTAMP() FOR UPDATE"));
+            if (!empty($lock['user_id'])) {
+                if ((string) $lock['user_id'] !== $currentUserId) {
+                    throw new \RuntimeException('Der Kontakt wird gerade von einem anderen Telefonisten bearbeitet.');
+                }
+                if ($lockToken === null || !hash_equals((string) $lock['lock_token'], $lockToken)) {
+                    throw new \RuntimeException('Bitte öffne den Kontakt in SpeedPhone, bevor du ihn übergibst.');
+                }
+            } elseif ($lockToken !== null) {
+                throw new \RuntimeException('Die Reservierung ist abgelaufen. Bitte öffne den Kontakt erneut.');
+            }
+            $ownsUnassignedLock = $ownerId === '' && !empty($lock['user_id'])
+                && (string) $lock['user_id'] === $currentUserId;
+            if ($ownerId !== $currentUserId && !$ownsUnassignedLock && !$this->access->canManageTeam()) {
+                throw new \RuntimeException('Nur die zuständige Person oder die interne Teamleitung darf diesen Kontakt übergeben.');
+            }
+
+            $targetId = $this->db->quote($targetUserId);
+            $role = $this->db->quote($target['user_type']);
+            $commission = number_format($target['commission_percent'], 2, '.', '');
+            if ($ownerId === '') {
+                $this->db->query("INSERT INTO " . self::TABLE . "
+                    (prospect_id, owner_user_id, owner_type, owner_commission_percent,
+                     assigned_at, last_activity_at)
+                    VALUES ('{$quotedProspectId}', '{$targetId}', '{$role}', {$commission},
+                            UTC_TIMESTAMP(), UTC_TIMESTAMP())");
+            } else {
+                $this->db->query("UPDATE " . self::TABLE . " SET
+                    owner_user_id='{$targetId}', owner_type='{$role}',
+                    owner_commission_percent={$commission}, assigned_at=UTC_TIMESTAMP(),
+                    last_activity_at=UTC_TIMESTAMP()
+                    WHERE prospect_id='{$quotedProspectId}'");
+            }
+            $fromId = $ownerId === '' ? 'NULL' : "'" . $this->db->quote($ownerId) . "'";
+            $this->db->query("INSERT INTO crm_speedphone_assignment_transfers
+                (prospect_id, from_user_id, to_user_id, transferred_by_user_id, transferred_at)
+                VALUES ('{$quotedProspectId}', {$fromId}, '{$targetId}', '{$quotedCurrentId}', UTC_TIMESTAMP())");
+            if (!empty($lock['user_id'])) {
+                $this->db->query("DELETE FROM crm_speedphone_locks
+                    WHERE prospect_id='{$quotedProspectId}' AND user_id='{$quotedCurrentId}'");
+            }
+            $this->db->query('COMMIT');
+        } catch (\Throwable $exception) {
+            $this->db->query('ROLLBACK');
+            throw $exception;
+        }
+
+        return ['target_name' => $target['name']];
+    }
+
+    /** @return list<array<string, mixed>> */
+    public function getTransferHistory(string $prospectId): array
+    {
+        $sql = "SELECT t.transferred_at,
+                       COALESCE(NULLIF(TRIM(CONCAT(from_user.first_name, ' ', from_user.last_name)), ''), from_user.user_name, 'Unzugeordnet') from_name,
+                       COALESCE(NULLIF(TRIM(CONCAT(to_user.first_name, ' ', to_user.last_name)), ''), to_user.user_name) to_name,
+                       COALESCE(NULLIF(TRIM(CONCAT(actor.first_name, ' ', actor.last_name)), ''), actor.user_name) actor_name
+                FROM crm_speedphone_assignment_transfers t
+                LEFT JOIN users from_user ON from_user.id=t.from_user_id
+                INNER JOIN users to_user ON to_user.id=t.to_user_id
+                INNER JOIN users actor ON actor.id=t.transferred_by_user_id
+                WHERE t.prospect_id='" . $this->db->quote($prospectId) . "'
+                ORDER BY t.id DESC LIMIT 10";
+        $result = $this->db->query($sql);
+        $history = [];
+        while ($row = $this->db->fetchByAssoc($result)) {
+            $history[] = $row;
+        }
+
+        return $history;
     }
 
     /**

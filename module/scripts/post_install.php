@@ -267,6 +267,18 @@ $db->query("CREATE TABLE IF NOT EXISTS `crm_speedphone_incoming_calls` (
     KEY `idx_speedphone_incoming_prospect` (`prospect_id`, `received_at`)
 ) ENGINE=InnoDB");
 
+$db->query("CREATE TABLE IF NOT EXISTS `crm_speedphone_assignment_transfers` (
+    `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+    `prospect_id` char(36) NOT NULL,
+    `from_user_id` char(36) NULL,
+    `to_user_id` char(36) NOT NULL,
+    `transferred_by_user_id` char(36) NOT NULL,
+    `transferred_at` datetime NOT NULL,
+    PRIMARY KEY (`id`),
+    KEY `idx_speedphone_transfer_prospect` (`prospect_id`, `transferred_at`),
+    KEY `idx_speedphone_transfer_target` (`to_user_id`, `transferred_at`)
+) ENGINE=InnoDB");
+
 $db->query("CREATE TABLE IF NOT EXISTS `crm_speedphone_pbx_incoming_events` (
     `id` char(36) NOT NULL,
     `user_id` char(36) NOT NULL,
@@ -463,7 +475,8 @@ $db->query("UPDATE crm_speedphone_assignments
             SET won_by_user_id=owner_user_id,
                 won_at=last_contact_at,
                 won_commission_percent=IF(owner_type='external', owner_commission_percent, 0.00)
-            WHERE last_result='interested' AND won_by_user_id IS NULL");
+            WHERE last_result='interested' AND won_by_user_id IS NULL
+              AND owner_user_id=last_action_user_id");
 
 require_once 'custom/CRM/SpeedPhone/bootstrap.php';
 (new Anesda\CRM\SpeedPhone\EmailTemplateBrandService($db))->migrate(

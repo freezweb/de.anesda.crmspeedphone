@@ -87,3 +87,11 @@ function speedPhoneRenderWorkspace(
 
     return (string) ob_get_clean();
 }
+
+function speedPhoneRenderOwnedContacts(array $ownedContacts, array $transferTargets, array $currentProfile, string $userTimezone): string
+{
+    ob_start();
+    require __DIR__ . '/owned_contacts.php';
+
+    return (string) ob_get_clean();
+}
