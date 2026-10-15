@@ -894,6 +894,11 @@ $transferTestExit = 0;
 exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(__DIR__ . '/transfer.php') . ' 2>&1', $transferTestOutput, $transferTestExit);
 check($transferTestExit === 0, 'Isolierte Übergabeprüfung fehlgeschlagen: ' . implode("\n", $transferTestOutput));
 
+$recordingTestOutput = [];
+$recordingTestExit = 0;
+exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(__DIR__ . '/recording_copy.php') . ' 2>&1', $recordingTestOutput, $recordingTestExit);
+check($recordingTestExit === 0, 'Isolierte CRM-Mitschnittprüfung fehlgeschlagen: ' . implode("\n", $recordingTestOutput));
+
 if ($failures !== []) {
     fwrite(STDERR, implode(PHP_EOL, $failures) . PHP_EOL);
     exit(1);
