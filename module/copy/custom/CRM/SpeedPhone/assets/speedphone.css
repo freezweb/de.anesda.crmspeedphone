@@ -55,6 +55,13 @@
 .speedphone .assignment-banner p { flex-basis: 100%; margin: 0; color: var(--sp-brand-dark); font-size: 13px; font-weight: 700; }
 .speedphone .assignment-banner--escalated { border-color: #e5bc6f; background: #fff7e8; }
 .speedphone .assignment-banner--escalated p { color: #704600; }
+.speedphone .contact-transfer { align-items: end; background: #f6f8fa; border: 1px solid var(--sp-border); border-radius: 13px; display: flex; flex-wrap: wrap; gap: 10px; margin: 12px 0; padding: 13px 14px; }
+.speedphone .contact-transfer label { display: grid; flex: 1 1 250px; font-size: 13px; font-weight: 800; gap: 6px; }
+.speedphone .contact-transfer select, .speedphone .owned-contacts__transfer select { background: #fff !important; border: 1px solid #8295a5 !important; border-radius: 9px; color: var(--sp-ink) !important; font: inherit; min-height: 42px; padding: 8px 12px; }
+.speedphone .contact-transfer small { color: var(--sp-muted); flex-basis: 100%; }
+.speedphone .contact-transfer-history { background: #f6f8fa; border-radius: 9px; margin-bottom: 12px; padding: 8px 12px; }
+.speedphone .contact-transfer-history summary { cursor: pointer; font-weight: 700; }
+.speedphone .contact-transfer-history ul { margin: 8px 0 0; padding-left: 22px; }
 .speedphone .contact-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 22px 0; }
 .speedphone .contact-card { border: 1px solid var(--sp-border); border-radius: 14px; padding: 15px; text-decoration: none; overflow-wrap: anywhere; transition: border-color .15s, transform .15s; }
 .speedphone .contact-card:hover { border-color: var(--sp-brand); transform: translateY(-1px); }
@@ -169,6 +176,8 @@
 .speedphone .email-retry small { display: block; font-weight: 600; margin-top: 8px; }
 .speedphone .button--compact { min-height: 34px; padding: 7px 10px; }
 .speedphone .owned-contacts__actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.speedphone .owned-contacts__transfer { align-items: center; display: flex; flex-wrap: wrap; gap: 6px; }
+.speedphone .owned-contacts__transfer select { max-width: 190px; min-height: 36px; }
 .speedphone .actions { display: grid; grid-template-columns: repeat(2, 1fr); gap: 9px; margin-top: 18px; }
 .speedphone .button { border: 0; border-radius: 10px; height: auto !important; min-height: 54px; overflow: visible; padding: 12px 14px; font-family: inherit; font-size: 15px; font-weight: 750; line-height: 1.25; white-space: normal; cursor: pointer; text-decoration: none; text-align: center; background: var(--sp-brand); color: #fff; }
 .speedphone .button:hover { filter: brightness(.96); }

@@ -44,6 +44,39 @@
                 </aside>
             <?php endif; ?>
 
+            <?php if (($candidate['assignment']['owner_user_id'] ?? '') === ($candidate['current_profile']['user_id'] ?? '')
+                || !empty($candidate['current_profile']['can_manage'])
+                || empty($candidate['assignment'])): ?>
+                <form data-speedphone-transfer class="contact-transfer">
+                    <input type="hidden" name="prospect_id" value="<?= speedPhoneEscape($candidate['id']) ?>">
+                    <input type="hidden" name="lock_token" value="<?= speedPhoneEscape($candidate['lock_token']) ?>">
+                    <label>Kontakt gezielt übergeben
+                        <select name="target_user_id" required>
+                            <option value="">Telefonist auswählen</option>
+                            <?php foreach ($candidate['transfer_targets'] as $target): ?>
+                                <?php if ($target['id'] !== $candidate['current_profile']['user_id']): ?>
+                                    <option value="<?= speedPhoneEscape($target['id']) ?>"><?= speedPhoneEscape($target['name']) ?> (<?= $target['user_type'] === 'external' ? 'extern' : 'intern' ?>)</option>
+                                <?php endif; ?>
+                            <?php endforeach; ?>
+                        </select>
+                    </label>
+                    <button type="submit" class="button button--secondary">Übergeben</button>
+                    <small>Die Zuständigkeit wechselt sofort. Rückrufdatum, Anrufverlauf und bereits verdiente Provision bleiben erhalten.</small>
+                </form>
+            <?php endif; ?>
+            <?php if (!empty($candidate['transfer_history'])): ?>
+                <details class="contact-transfer-history">
+                    <summary>Frühere Übergaben (<?= count($candidate['transfer_history']) ?>)</summary>
+                    <ul>
+                        <?php foreach ($candidate['transfer_history'] as $transfer): ?>
+                            <li><?= speedPhoneEscape(speedPhoneDateTime($transfer['transferred_at'], $userTimezone)) ?>:
+                                <?= speedPhoneEscape($transfer['from_name']) ?> → <?= speedPhoneEscape($transfer['to_name']) ?>
+                                (durch <?= speedPhoneEscape($transfer['actor_name']) ?>)</li>
+                        <?php endforeach; ?>
+                    </ul>
+                </details>
+            <?php endif; ?>
+
             <form data-speedphone-contact-industry class="industry-contact">
                 <input type="hidden" name="prospect_id" value="<?= speedPhoneEscape($candidate['id']) ?>">
                 <input type="hidden" name="lock_token" value="<?= speedPhoneEscape($candidate['lock_token']) ?>">

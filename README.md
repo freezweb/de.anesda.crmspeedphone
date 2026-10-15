@@ -31,6 +31,10 @@ Für große oder regelmäßige Läufe einen eigenen Routingdienst einsetzen.
 
 CRM SpeedPhone ist eine schnelle, abarbeitbare Telefonakquise-Warteschlange für SuiteCRM 8. Die Erweiterung verwendet ausschließlich vorhandene Zielkontakt-UUIDs (`Prospects.id`) und legt keine Kontaktkopien an.
 
+## Veröffentlichung 1.28.0
+
+Ein betreuter Zielkontakt kann direkt im geöffneten SpeedPhone-Datensatz oder unter „Meine Kontakte“ gezielt an einen anderen freigeschalteten Telefonisten übergeben werden. Die Übergabe wechselt die exklusive Zuständigkeit sofort; der Kontakt erscheint beim Empfänger spätestens nach der nächsten automatischen Listenaktualisierung in „Meine Kontakte“ und gemäß seinem bestehenden Rückrufdatum in der Warteschlange. Aktive fremde Reservierungen verhindern die Übergabe. Beim geöffneten Kontakt wird die eigene Reservierung danach freigegeben und der nächste Kontakt geladen. Bereits protokollierte Anrufe, Rückruftermine und eine zuvor festgeschriebene Provision bleiben unverändert. Jede Übergabe mit alter und neuer Zuständigkeit, Zeitpunkt und ausführender Person wird in `crm_speedphone_assignment_transfers` gespeichert und im Kontakt angezeigt. Es werden weiterhin nur die bestehenden CRM-UUIDs referenziert.
+
 ## Veröffentlichung 1.27.0
 
 CRM-gestartete Anrufe können zusätzlich in einem eigenen Telegram-Forum-Thread erscheinen. Die Handy-App meldet erst nach der bestätigten Übergabe an die Telefonfunktion, die Telefonanlage erst nach Annahme des Wählauftrags. Eingehende App-Anrufe werden nur bei einem freigegebenen CRM-Treffer gemeldet. Bei der Telefonanlage wird ein eindeutiger Kontakt automatisch gemeldet; bei mehreren möglichen Treffern erst der im CRM ausgewählte Kontakt. Unbekannte Nummern, normale Anrufe außerhalb von SpeedPhone und bloß angeklingelte, nicht angenommene Wählaufträge werden nicht als CRM-Anruf gemeldet. Eine Benachrichtigung bestätigt ausdrücklich **keine** aufgebaute Gesprächsverbindung.

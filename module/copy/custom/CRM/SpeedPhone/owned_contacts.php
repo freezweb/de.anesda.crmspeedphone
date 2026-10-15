@@ -42,6 +42,20 @@ if (!defined('sugarEntry') || !sugarEntry) {
                         <td><?= !empty($contact['speedphone_next_call']) ? speedPhoneEscape(speedPhoneDateTime($contact['speedphone_next_call'], $userTimezone)) : '–' ?></td>
                         <td><?= !empty($contact['last_contact_at']) ? speedPhoneEscape(speedPhoneDateTime($contact['last_contact_at'], $userTimezone)) : 'Noch kein Gespräch' ?></td>
                         <td class="owned-contacts__actions">
+                            <?php if ($contact['record_module'] === 'Prospects'): ?>
+                                <form data-speedphone-transfer class="owned-contacts__transfer">
+                                    <input type="hidden" name="prospect_id" value="<?= speedPhoneEscape($contact['id']) ?>">
+                                    <select name="target_user_id" aria-label="Telefonist für <?= speedPhoneEscape($contact['name']) ?> auswählen" required>
+                                        <option value="">Übergeben an …</option>
+                                        <?php foreach ($transferTargets as $target): ?>
+                                            <?php if ($target['id'] !== $currentProfile['user_id']): ?>
+                                                <option value="<?= speedPhoneEscape($target['id']) ?>"><?= speedPhoneEscape($target['name']) ?> (<?= $target['user_type'] === 'external' ? 'extern' : 'intern' ?>)</option>
+                                            <?php endif; ?>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <button type="submit" class="button button--secondary button--compact">Übergeben</button>
+                                </form>
+                            <?php endif; ?>
                             <?php if ($contact['record_module'] === 'Prospects' && !empty($contact['email'])): ?>
                                 <button
                                     type="button"

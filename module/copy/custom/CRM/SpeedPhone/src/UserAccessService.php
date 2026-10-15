@@ -130,6 +130,36 @@ final class UserAccessService
         return $users;
     }
 
+    /** @return list<array{id:string,name:string,user_type:string,commission_percent:float}> */
+    public function listTransferTargets(): array
+    {
+        $sql = "SELECT u.id, u.user_name, u.first_name, u.last_name, u.is_admin,
+                       s.user_type, s.commission_percent
+                FROM users u
+                LEFT JOIN " . self::TABLE . " s ON s.user_id=u.id
+                WHERE u.deleted=0 AND u.status='Active' AND u.employee_status='Active'
+                ORDER BY u.first_name, u.last_name, u.user_name";
+        $result = $this->db->query($sql);
+        $users = [];
+        while ($row = $this->db->fetchByAssoc($result)) {
+            $role = (string) ($row['user_type'] ?? '');
+            if ($role === '') {
+                $role = (int) ($row['is_admin'] ?? 0) === 1 ? 'internal' : 'disabled';
+            }
+            if (!in_array($role, ['internal', 'external'], true)) {
+                continue;
+            }
+            $users[] = [
+                'id' => (string) $row['id'],
+                'name' => trim((string) $row['first_name'] . ' ' . (string) $row['last_name']) ?: (string) $row['user_name'],
+                'user_type' => $role,
+                'commission_percent' => $role === 'external' ? (float) ($row['commission_percent'] ?? 0) : 0.0,
+            ];
+        }
+
+        return $users;
+    }
+
     public function escalationOptions(Config $config): array
     {
         return [

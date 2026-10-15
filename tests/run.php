@@ -844,6 +844,8 @@ $ownedContacts = [[
     'ownership_source' => 'SpeedPhone-Zuordnung',
 ]];
 $userTimezone = 'Europe/Berlin';
+$currentProfile = ['user_id' => 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'];
+$transferTargets = [['id' => 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', 'name' => 'Timo Ziel', 'user_type' => 'external']];
 ob_start();
 require __DIR__ . '/../module/copy/custom/CRM/SpeedPhone/owned_contacts.php';
 $ownedContactsHtml = (string) ob_get_clean();
@@ -852,6 +854,7 @@ check(str_contains($ownedContactsHtml, 'Eigener Beispielbetrieb'), 'Zugeordneter
 check(str_contains($ownedContactsHtml, 'record=befc6200-da8e-47a5-9fc8-3b30e8451018'), 'Eigene Liste referenziert nicht die vorhandene UUID.');
 check(str_contains($ownedContactsHtml, 'data-speedphone-owned-email'), 'Einmalige Informationsmail kann aus „Meine Kontakte“ nicht versendet werden.');
 check(str_contains($ownedContactsHtml, 'data-email="info@example.org"'), 'E-Mail-Aktion verwendet nicht die vorhandene Kontaktadresse.');
+check(str_contains($ownedContactsHtml, 'data-speedphone-transfer') && str_contains($ownedContactsHtml, 'Timo Ziel'), 'Gezielte Übergabe muss auch aus „Meine Kontakte“ möglich sein.');
 
 foreach ([
     fn () => $validator->uuid('keine-uuid'),
@@ -885,6 +888,11 @@ $telegramTestOutput = [];
 $telegramTestExit = 0;
 exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(__DIR__ . '/telegram_calls.php') . ' 2>&1', $telegramTestOutput, $telegramTestExit);
 check($telegramTestExit === 0, 'Isolierte Telegram-Anrufprüfung fehlgeschlagen: ' . implode("\n", $telegramTestOutput));
+
+$transferTestOutput = [];
+$transferTestExit = 0;
+exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(__DIR__ . '/transfer.php') . ' 2>&1', $transferTestOutput, $transferTestExit);
+check($transferTestExit === 0, 'Isolierte Übergabeprüfung fehlgeschlagen: ' . implode("\n", $transferTestOutput));
 
 if ($failures !== []) {
     fwrite(STDERR, implode(PHP_EOL, $failures) . PHP_EOL);

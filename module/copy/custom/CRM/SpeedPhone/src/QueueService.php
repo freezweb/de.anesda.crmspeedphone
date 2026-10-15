@@ -429,6 +429,8 @@ final class QueueService
         $candidate['recent_calls'] = $this->getRecentCalls($candidate['id']);
         $candidate['sent_emails'] = $this->getSentEmails($candidate['id']);
         $candidate['assignment'] = $this->assignments->getAssignment((string) $candidate['id']);
+        $candidate['transfer_targets'] = $this->access->listTransferTargets();
+        $candidate['transfer_history'] = $this->assignments->getTransferHistory((string) $candidate['id']);
         $candidate['current_profile'] = $this->access->currentProfile();
         $candidate['lock_token'] = $lock['lock_token'];
         $candidate['lock_expires_at'] = $lock['expires_at'];
