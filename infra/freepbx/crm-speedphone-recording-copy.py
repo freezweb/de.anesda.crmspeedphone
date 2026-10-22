@@ -12,7 +12,6 @@ import argparse
 import datetime as dt
 import hashlib
 import hmac
-import html
 import json
 import logging
 import os
@@ -36,7 +35,7 @@ SUPPORTED_EXTENSIONS = {".wav", ".wav49", ".gsm", ".mp3", ".ogg", ".m4a"}
 
 
 class UncertainDelivery(RuntimeError):
-    """Telegram könnte die Audiodatei bereits angenommen haben."""
+    """Telegram könnte die Kopie bereits angenommen haben."""
 
 
 def sender_functions() -> dict:
@@ -123,19 +122,38 @@ def mark(mysql_query, path: Path, stat, status: str, next_attempt: int = 0,
     )
 
 
-def pending_paths(mysql_query, start_epoch: int) -> list[Path]:
+def pending_paths(mysql_query, start_epoch: int, backfill: bool = False) -> list[tuple[Path, int]]:
     now = int(time.time())
+    retry_condition = (
+        "(scans.path IS NULL OR scans.status IN ('unmatched','error') "
+        "OR (scans.status='skipped' AND scans.last_error IN "
+        "('Kein CRM-Gespräch zugeordnet.',"
+        "'Kein eindeutig aus SpeedPhone gestarteter PBX-Anruf.')))"
+        if backfill else
+        "(scans.path IS NULL OR (scans.status IN ('unmatched','error') "
+        f"AND scans.next_attempt_at<={now}))"
+    )
     rows = mysql_query(
-        "SELECT recordings.path FROM telegram_recordings recordings "
+        "SELECT recordings.path,recordings.telegram_message_id "
+        "FROM telegram_recordings recordings "
         "LEFT JOIN crm_speedphone_recording_scans scans ON scans.path=recordings.path "
-        "WHERE recordings.status='sent' "
+        "WHERE recordings.status='sent' AND recordings.telegram_message_id>0 "
         f"AND recordings.updated_at>={start_epoch} "
-        "AND (scans.path IS NULL OR (scans.status IN ('unmatched','error') "
-        f"AND scans.next_attempt_at<={now})) "
-        "ORDER BY recordings.updated_at ASC LIMIT 60",
+        f"AND {retry_condition} "
+        f"ORDER BY recordings.updated_at ASC LIMIT {1000 if backfill else 60}",
         "asterisk",
     )
-    return [Path(line) for line in rows.splitlines() if line]
+    result = []
+    for line in rows.splitlines():
+        path, separator, message_id = line.rpartition("\t")
+        if separator and message_id.isdecimal() and int(message_id) > 0:
+            result.append((Path(path), int(message_id)))
+    return result
+
+
+def originating_extension(channel: str) -> str:
+    match = re.match(r"^Local/([1-9][0-9]{2,7})@from-internal(?:/|-)", channel)
+    return match.group(1) if match else ""
 
 
 def recording_claim(path: Path, metadata: dict, settings: dict) -> tuple[str, dict]:
@@ -145,6 +163,9 @@ def recording_claim(path: Path, metadata: dict, settings: dict) -> tuple[str, di
         dt.timezone.utc
     ).strftime("%Y-%m-%d %H:%M:%S")
     direction = "incoming" if path.name.startswith("in-") else "outgoing"
+    extension = str(metadata.get("extension", ""))
+    if direction == "outgoing":
+        extension = originating_extension(str(metadata.get("channel", ""))) or extension
     stat = path.stat()
     key = hashlib.sha256(
         f"{path}:{stat.st_size}:{stat.st_mtime_ns}".encode("utf-8")
@@ -155,71 +176,51 @@ def recording_claim(path: Path, metadata: dict, settings: dict) -> tuple[str, di
         "direction": direction,
         "linkedid": metadata["linkedid"],
         "started_at_utc": started_utc,
-        "extension": str(metadata.get("extension", "")),
+        "extension": extension,
         "phone": str(metadata.get("dst", "")) if direction == "outgoing" else "",
         "channel": str(metadata.get("channel", "")),
     }
     return key, post_crm(settings, payload)
 
 
-def send_copy(sender: dict, recording: Path, metadata: dict, match: dict) -> int:
-    token = sender["load_config"]().get("telegram", "bot_token")
-    audio_path, duration = sender["convert_to_mp3"](
-        recording, metadata, Path("/var/tmp/telegram-recordings")
-    )
+def send_copy(sender: dict, source_message_id: int, match: dict) -> int:
+    config = sender["load_config"]()
+    token = config.get("telegram", "bot_token")
+    source_chat_id = config.get("telegram", "chat_id")
+    if source_message_id <= 0 or not source_chat_id:
+        raise RuntimeError("Die ursprüngliche Telegram-Nachricht fehlt.")
+    api_base = os.environ.get("CRM_SPEEDPHONE_TELEGRAM_API_BASE", "https://api.telegram.org").rstrip("/")
+    if not api_base.startswith(("https://", "http://127.0.0.1:", "http://10.")):
+        raise RuntimeError("Die Telegram-API-Adresse ist nicht freigegeben.")
     try:
-        name = html.escape(str(match["contact_name"]))
-        url = html.escape(str(match["record_url"]), quote=True)
-        date = html.escape(str(metadata["calldate"]))
-        extension = html.escape(str(metadata.get("extension", "")))
-        caption = (
-            "🎙️ <b>CRM SpeedPhone · Gesprächsmitschnitt</b>\n"
-            f"Kontakt: <b>{name}</b>\n"
-            f"Richtung: {'Eingehend' if recording.name.startswith('in-') else 'Ausgehend'}\n"
-            f"Beginn: {date}\n"
-            f"Durchwahl: {extension or 'nicht ermittelt'}\n"
-            f"<a href=\"{url}\">CRM-Kontakt öffnen</a>"
+        response = requests.post(
+            f"{api_base}/bot{token}/copyMessage",
+            data={
+                "chat_id": str(match["chat_id"]),
+                "message_thread_id": str(match["thread_id"]),
+                "from_chat_id": str(source_chat_id),
+                "message_id": str(source_message_id),
+            },
+            timeout=(5, 45),
         )
-        api_base = os.environ.get("CRM_SPEEDPHONE_TELEGRAM_API_BASE", "https://api.telegram.org").rstrip("/")
-        if not api_base.startswith(("https://", "http://127.0.0.1:", "http://10.")):
-            raise RuntimeError("Die Telegram-API-Adresse ist nicht freigegeben.")
-        try:
-            with audio_path.open("rb") as audio:
-                response = requests.post(
-                    f"{api_base}/bot{token}/sendAudio",
-                    data={
-                        "chat_id": str(match["chat_id"]),
-                        "message_thread_id": str(match["thread_id"]),
-                        "caption": caption,
-                        "parse_mode": "HTML",
-                        "duration": str(duration),
-                        "performer": "Anesda Telefonanlage",
-                        "title": "CRM-Gespräch: " + str(match["contact_name"])[:50],
-                    },
-                    files={"audio": (audio_path.name, audio, "audio/mpeg")},
-                    timeout=(15, 900),
-                )
-        except requests.RequestException as error:
-            raise UncertainDelivery("Telegram-Antwort nach Upload unklar") from error
-        try:
-            result = response.json()
-        except ValueError as error:
-            raise UncertainDelivery("Telegram-Antwort ist kein JSON") from error
-        if response.status_code >= 500:
-            raise UncertainDelivery(f"Telegram HTTP {response.status_code}")
-        if response.status_code != 200 or result.get("ok") is not True:
-            raise RuntimeError(str(result.get("description", f"Telegram HTTP {response.status_code}")))
-        message = result.get("result", {})
-        if int(message.get("chat", {}).get("id", 0)) != int(match["chat_id"]) \
-                or int(message.get("message_thread_id", 0)) != int(match["thread_id"]) \
-                or int(message.get("message_id", 0)) <= 0:
-            raise UncertainDelivery("Telegram bestätigte nicht den Marketing-Thread.")
-        return int(message["message_id"])
-    finally:
-        audio_path.unlink(missing_ok=True)
+    except requests.RequestException as error:
+        raise UncertainDelivery("Telegram-Antwort nach Kopierauftrag unklar") from error
+    try:
+        result = response.json()
+    except ValueError as error:
+        raise UncertainDelivery("Telegram-Antwort ist kein JSON") from error
+    if response.status_code >= 500:
+        raise UncertainDelivery(f"Telegram HTTP {response.status_code}")
+    if response.status_code != 200 or result.get("ok") is not True:
+        raise RuntimeError(str(result.get("description", f"Telegram HTTP {response.status_code}")))
+    message_id = int(result.get("result", {}).get("message_id", 0))
+    if message_id <= 0:
+        raise UncertainDelivery("Telegram bestätigte keine Kopie im Marketing-Thread.")
+    return message_id
 
 
-def process(path: Path, sender: dict, settings: dict, mysql_query, logger) -> None:
+def process(path: Path, source_message_id: int, sender: dict, settings: dict,
+            mysql_query, logger) -> None:
     root = MONITOR_ROOT.resolve()
     path = path.resolve()
     if root not in path.parents or path.suffix.lower() not in SUPPORTED_EXTENSIONS:
@@ -249,7 +250,7 @@ def process(path: Path, sender: dict, settings: dict, mysql_query, logger) -> No
 
     mark(mysql_query, path, stat, "processing")
     try:
-        message_id = send_copy(sender, path, metadata, claim)
+        message_id = send_copy(sender, source_message_id, claim)
     except UncertainDelivery as error:
         # Nach einem Netzwerkfehler kann Telegram die Datei bereits angenommen haben.
         mark(mysql_query, path, stat, "uncertain", error=str(error))
@@ -286,9 +287,10 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
     parser.add_argument("--scan", action="store_true")
+    parser.add_argument("--backfill", action="store_true")
     args = parser.parse_args()
-    if not args.check and not args.scan:
-        parser.error("--check oder --scan ist erforderlich")
+    if sum((args.check, args.scan, args.backfill)) != 1:
+        parser.error("Genau eine Option aus --check, --scan oder --backfill ist erforderlich")
     sender = sender_functions()
     settings = crm_settings()
     config = sender["load_config"]()
@@ -312,9 +314,12 @@ def main() -> int:
         ensure_scan_table(mysql_query)
         if not START_MARKER.exists():
             START_MARKER.touch()
-        for path in pending_paths(mysql_query, int(START_MARKER.stat().st_mtime)):
+        for path, source_message_id in pending_paths(
+                mysql_query, int(START_MARKER.stat().st_mtime), args.backfill):
             try:
-                process(path, sender, settings, mysql_query, logging)
+                process(path, source_message_id, sender, settings, mysql_query, logging)
+                if args.backfill:
+                    time.sleep(3.2)
             except Exception:
                 logging.exception("Unbehandelter Scanfehler: %s", path)
     return 0
