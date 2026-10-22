@@ -48,6 +48,7 @@ mkdir -p "$test_root"
 tar -xzf /tmp/crm-speedphone-tests.tar.gz -C "$test_root"
 cd "$test_root"
 php tests/run.php
+python3 -m unittest discover -s tests -p test_recording_copy_worker.py
 find module -type f -name '*.php' -print0 | xargs -0 -n1 php -l >/dev/null
 REMOTE
                     '''
