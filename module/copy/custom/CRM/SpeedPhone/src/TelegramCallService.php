@@ -163,6 +163,9 @@ final class TelegramCallService
         }
         $status = $incoming ? 'Die Rufnummer wurde einem CRM-Kontakt zugeordnet; ein Gespräch ist damit noch nicht bestätigt.'
             : 'Der Wählauftrag wurde über das CRM gestartet; eine Gesprächsverbindung ist damit noch nicht bestätigt.';
+        if ((string) ($row['channel'] ?? '') === 'app') {
+            $status .= "\nEine Aufnahme folgt nur, wenn die gewählte Telefon-App über die Anlage telefoniert und die SIP-Nebenstelle im CRM zugeordnet ist.";
+        }
         return "<b>{$title}</b>\nKontakt: <b>{$name}</b>\nKanal: {$channel}\nMitarbeiter: {$actor}\nZeit: {$date}\n"
             . $link . $status;
     }

@@ -77,5 +77,12 @@ verifyTelegram(str_contains($message, '14.10.2026 10:00') && str_contains($messa
     'Zeit und CRM-Link müssen zur Installation passen.');
 verifyTelegram(!str_contains($message, 'crm.anesda.de') && !str_contains($message, '<Test>'),
     'Das öffentliche Modul darf keine feste Anesda-CRM-Adresse oder unescaped Inhalte erzwingen.');
+$appMessage = TelegramCallService::formatMessage([
+    'direction' => 'outgoing', 'channel' => 'app', 'display_name' => 'Betrieb',
+    'user_name' => 'Antonia', 'created_at' => '2026-10-28 08:00:00',
+    'prospect_id' => $prospectId,
+]);
+verifyTelegram(str_contains($appMessage, 'SIP-Nebenstelle im CRM zugeordnet'),
+    'App-Meldungen müssen die Bedingung für eine spätere Anlagenaufnahme erklären.');
 
 echo "Telegram-Anrufprüfungen erfolgreich.\n";
