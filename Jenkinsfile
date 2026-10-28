@@ -108,6 +108,7 @@ chown -R www-data:www-data \
 cd "$legacy"
 sudo -u www-data php "$runner"
 apache2ctl graceful
+systemctl reload php8.2-fpm
 php -l custom/CRM/SpeedPhone/dialer_setup.php
 grep -q crmSpeedPhoneDialerSetup custom/application/Ext/EntryPointRegistry/entry_point_registry.ext.php
 curl -fsS -o /dev/null "https://crm.anesda.de/legacy/index.php?entryPoint=crmSpeedPhoneDialerSetup"
