@@ -165,7 +165,7 @@
                     <div class="call-launcher__method call-launcher__method--mobile" data-speedphone-dialer-ready="<?= $dialerReady ? '1' : '0' ?>">
                         <div class="call-launcher__heading">
                             <strong>Handy</strong>
-                            <span><?= $dialerReady ? 'App ist empfangsbereit.' : 'App öffnen oder zuerst koppeln.' ?></span>
+                            <span><?= $dialerReady ? 'App ist empfangsbereit. Zoiper-/SIP-Aufnahmen werden bei zugeordneter Nebenstelle nachgereicht; reine SIM-Anrufe haben keine Anlagenaufnahme.' : 'App öffnen oder zuerst koppeln.' ?></span>
                         </div>
                         <div class="call-launcher__buttons">
                             <?php if (!empty($candidate['phone_work'])): ?>

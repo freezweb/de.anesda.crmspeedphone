@@ -1,5 +1,9 @@
 # CRM SpeedPhone
 
+## Veröffentlichung 1.30.0
+
+Anrufe, die die SpeedPhone-App an Zoiper oder ein anderes SIP-Telefon auf der Telefonanlage übergibt, können nun ebenfalls als Originalnachricht mit Aufnahme in den Marketing-Thread kopiert werden. Dafür wird im CRM unter „Team, Rechte und Provision“ dem Mitarbeiter seine **Zoiper-/SIP-Nebenstelle** zugeordnet; sie ist unabhängig von der Festnetz-Durchwahl für Click-to-Call. Die Zuordnung verlangt einen vom gekoppelten Gerät bestätigten App-Wählauftrag, dieselbe SIP-Nebenstelle, dieselbe Zielnummer (auch in nationaler/internationaler Schreibweise) und höchstens 45 Sekunden Zeitabstand. Ohne eindeutigen Treffer wird nichts kopiert. Reine SIM-Anrufe bleiben unverändert möglich, erzeugen aber keine Aufnahme auf der Telefonanlage. Bereits ausgelassene Anlagenaufnahmen lassen sich mit dem PBX-Arbeiter und `--backfill` erneut prüfen; die zentrale MariaDB verhindert Doppelversand.
+
 ## Reversibler Anfahrtsfilter
 
 Optional schränkt `travel.local.php` die ausgehende Warteschlange auf bewertete Kontakte ein:

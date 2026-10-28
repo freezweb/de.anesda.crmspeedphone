@@ -45,16 +45,22 @@ final class RecordingCopyService
             || preg_match('/^20[0-9]{2}-[01][0-9]-[0-3][0-9] [0-2][0-9]:[0-5][0-9]:[0-5][0-9]$/', $startedAt) !== 1) {
             throw new \InvalidArgumentException('Die Gesprächsdaten sind ungültig.');
         }
-        if ($direction === 'outgoing' && (
-            preg_match('/^[1-9][0-9]{2,7}$/', $extension) !== 1
-            || preg_match('/^(?:0|00)[0-9]{4,19}$/', $phone) !== 1
-            || preg_match('~^Local/' . preg_quote($extension, '~') . '@from-internal(?:/|-)~', $channel) !== 1
-        )) {
+        $clickToCall = $direction === 'outgoing'
+            && preg_match('/^[1-9][0-9]{2,7}$/', $extension) === 1
+            && preg_match('/^(?:0|00)[0-9]{4,19}$/', $phone) === 1
+            && preg_match('~^Local/' . preg_quote($extension, '~') . '@from-internal(?:/|-)~', $channel) === 1;
+        $appViaSip = $direction === 'outgoing'
+            && preg_match('/^[1-9][0-9]{2,7}$/', $extension) === 1
+            && preg_match('/^\+?[0-9]{5,20}$/', $phone) === 1
+            && preg_match('~^(?:PJSIP|SIP)/' . preg_quote($extension, '~') . '-~', $channel) === 1;
+        if ($direction === 'outgoing' && !$clickToCall && !$appViaSip) {
             return ['send' => false, 'reason' => 'Kein eindeutig aus SpeedPhone gestarteter PBX-Anruf.'];
         }
         $matches = $direction === 'incoming'
             ? $this->incomingMatches($linkedId)
-            : $this->outgoingMatches($extension, $phone, $startedAt);
+            : ($clickToCall
+                ? $this->outgoingMatches($extension, $phone, $startedAt)
+                : $this->appOutgoingMatches($extension, $phone, $startedAt));
         if (count($matches) !== 1) {
             return ['send' => false, 'reason' => count($matches) === 0
                 ? 'Kein CRM-Gespräch zugeordnet.' : 'Mehrere mögliche CRM-Gespräche; keine automatische Kopie.'];
@@ -132,6 +138,49 @@ final class RecordingCopyService
                                        AND DATE_ADD('{$quotedTime}',INTERVAL 90 SECOND)
             LIMIT 2");
         return $this->collect($result);
+    }
+
+    /** Ein Zoiper-Gespräch gilt nur mit passendem, vom gekoppelten Gerät bestätigtem CRM-Auftrag. */
+    private function appOutgoingMatches(string $endpoint, string $phone, string $startedAt): array
+    {
+        $quotedEndpoint = $this->db->quote($endpoint);
+        $quotedTime = $this->db->quote($startedAt);
+        $phones = array_map(
+            fn (string $value): string => "'" . $this->db->quote($value) . "'",
+            self::equivalentPhoneNumbers($phone)
+        );
+        $result = $this->db->query("SELECT commands.prospect_id,commands.display_name,
+                commands.id source_id
+            FROM crm_speedphone_dialer_commands commands
+            INNER JOIN crm_speedphone_user_settings settings
+                ON settings.user_id=commands.user_id
+               AND settings.recording_sip_endpoint='{$quotedEndpoint}'
+            INNER JOIN prospects p ON p.id=commands.prospect_id AND p.deleted=0
+            WHERE commands.status='dialed' AND commands.phone IN (" . implode(',', $phones) . ")
+              AND commands.completed_at BETWEEN DATE_SUB('{$quotedTime}',INTERVAL 45 SECOND)
+                                           AND DATE_ADD('{$quotedTime}',INTERVAL 45 SECOND)
+            LIMIT 2");
+        return $this->collect($result);
+    }
+
+    /** Nationale und internationale Schreibweisen derselben deutschen Nummer. */
+    private static function equivalentPhoneNumbers(string $phone): array
+    {
+        $values = [$phone];
+        if (str_starts_with($phone, '+49')) {
+            $suffix = substr($phone, 3);
+            $values[] = '0' . $suffix;
+            $values[] = '0049' . $suffix;
+        } elseif (str_starts_with($phone, '0049')) {
+            $suffix = substr($phone, 4);
+            $values[] = '+49' . $suffix;
+            $values[] = '0' . $suffix;
+        } elseif (str_starts_with($phone, '0') && !str_starts_with($phone, '00')) {
+            $suffix = substr($phone, 1);
+            $values[] = '+49' . $suffix;
+            $values[] = '0049' . $suffix;
+        }
+        return array_values(array_unique($values));
     }
 
     private function complete(string $key, array $input): array

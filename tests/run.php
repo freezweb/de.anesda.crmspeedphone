@@ -756,7 +756,9 @@ check(
 );
 check(
     str_contains($installerSource, 'crm_speedphone_pbx_calls')
-        && str_contains($installerSource, "'pbx_extension' =>"),
+        && str_contains($installerSource, "'pbx_extension' =>")
+        && str_contains($installerSource, "'recording_sip_endpoint' =>")
+        && str_contains($installerSource, 'idx_speedphone_recording_sip_endpoint'),
     'Installer legt Durchwahl und nachvollziehbare Festnetz-Wahlaufträge nicht idempotent an.'
 );
 check(
@@ -811,6 +813,7 @@ $teamUsers = [[
     'can_receive_unassigned' => true,
     'can_manage' => false,
     'pbx_extension' => '6010',
+    'recording_sip_endpoint' => '3002',
     'assigned_count' => 4,
     'won_count' => 1,
 ]];
@@ -824,6 +827,9 @@ check(str_contains($teamSettingsHtml, 'value="20.00"'), 'Provisionssatz wird nic
 check(str_contains($teamSettingsHtml, 'external_stale_days'), 'Eskalationsfrist bei Untätigkeit fehlt.');
 check(str_contains($teamSettingsHtml, 'name="pbx_extension['), 'Mitarbeiter-Durchwahl kann nicht verwaltet werden.');
 check(str_contains($teamSettingsHtml, 'value="6010"'), 'Gespeicherte Mitarbeiter-Durchwahl wird nicht angezeigt.');
+check(str_contains($teamSettingsHtml, 'name="recording_sip_endpoint[')
+    && str_contains($teamSettingsHtml, 'value="3002"'),
+    'Zoiper-/SIP-Nebenstelle kann nicht verwaltet werden.');
 
 $aclRoleSource = file_get_contents(__DIR__ . '/../module/copy/custom/CRM/SpeedPhone/src/AclRoleService.php');
 check(str_contains($aclRoleSource, 'CRM SpeedPhone Extern'), 'Verwaltete externe SuiteCRM-Rolle fehlt.');

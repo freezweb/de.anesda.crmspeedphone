@@ -176,9 +176,11 @@ $db->query("CREATE TABLE IF NOT EXISTS `crm_speedphone_user_settings` (
     `can_receive_unassigned` tinyint(1) NOT NULL DEFAULT 0,
     `can_manage` tinyint(1) NOT NULL DEFAULT 0,
     `pbx_extension` varchar(12) NULL,
+    `recording_sip_endpoint` varchar(12) NULL,
     `date_modified` datetime NOT NULL,
     PRIMARY KEY (`user_id`),
-    KEY `idx_speedphone_user_type` (`user_type`)
+    KEY `idx_speedphone_user_type` (`user_type`),
+    UNIQUE KEY `idx_speedphone_recording_sip_endpoint` (`recording_sip_endpoint`)
 ) ENGINE=InnoDB");
 
 $db->query("CREATE TABLE IF NOT EXISTS `crm_speedphone_options` (
@@ -252,8 +254,16 @@ $db->query("CREATE TABLE IF NOT EXISTS `crm_speedphone_dialer_commands` (
     PRIMARY KEY (`id`),
     KEY `idx_speedphone_command_device` (`device_id`, `status`, `expires_at`),
     KEY `idx_speedphone_command_user` (`user_id`, `created_at`),
-    KEY `idx_speedphone_command_prospect` (`prospect_id`)
+    KEY `idx_speedphone_command_prospect` (`prospect_id`),
+    KEY `idx_speedphone_command_recording` (`status`, `completed_at`, `phone`)
 ) ENGINE=InnoDB");
+$recordingCommandIndex = (int) $db->getOne("SELECT COUNT(*) FROM information_schema.statistics
+    WHERE table_schema=DATABASE() AND table_name='crm_speedphone_dialer_commands'
+      AND index_name='idx_speedphone_command_recording'");
+if ($recordingCommandIndex === 0) {
+    $db->query("ALTER TABLE `crm_speedphone_dialer_commands`
+        ADD KEY `idx_speedphone_command_recording` (`status`, `completed_at`, `phone`)");
+}
 
 $db->query("CREATE TABLE IF NOT EXISTS `crm_speedphone_incoming_calls` (
     `id` char(36) NOT NULL,
@@ -301,7 +311,15 @@ $db->query("CREATE TABLE IF NOT EXISTS `crm_speedphone_pbx_incoming_matches` (
 ) ENGINE=InnoDB");
 speedPhoneEnsureTableColumns($db, 'crm_speedphone_user_settings', [
     'pbx_extension' => 'varchar(12) NULL AFTER `can_manage`',
+    'recording_sip_endpoint' => 'varchar(12) NULL AFTER `pbx_extension`',
 ]);
+$recordingEndpointIndex = (int) $db->getOne("SELECT COUNT(*) FROM information_schema.statistics
+    WHERE table_schema=DATABASE() AND table_name='crm_speedphone_user_settings'
+      AND index_name='idx_speedphone_recording_sip_endpoint'");
+if ($recordingEndpointIndex === 0) {
+    $db->query("ALTER TABLE `crm_speedphone_user_settings`
+        ADD UNIQUE KEY `idx_speedphone_recording_sip_endpoint` (`recording_sip_endpoint`)");
+}
 
 $db->query("CREATE TABLE IF NOT EXISTS `crm_speedphone_pbx_calls` (
     `id` char(36) NOT NULL,

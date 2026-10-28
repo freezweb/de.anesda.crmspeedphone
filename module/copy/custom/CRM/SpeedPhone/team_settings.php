@@ -3,7 +3,7 @@
         <div>
             <p class="speedphone__eyebrow">Administration</p>
             <h2>Team, Rechte und Provision</h2>
-            <p>Externe sehen eigene und noch freie Kontakte aus dem gemeinsamen Pool. Erst ein erreichtes Gespräch ordnet einen freien Kontakt exklusiv zu; erfolglose Versuche tun das nicht. Die Festnetz-Durchwahl bestimmt, welcher Apparat beim Click-to-Call zuerst klingelt.</p>
+            <p>Externe sehen eigene und noch freie Kontakte aus dem gemeinsamen Pool. Erst ein erreichtes Gespräch ordnet einen freien Kontakt exklusiv zu; erfolglose Versuche tun das nicht. Die Festnetz-Durchwahl bestimmt den Apparat beim Click-to-Call. Die separate Zoiper-/SIP-Nebenstelle ordnet Aufzeichnungen von per SpeedPhone-App gestarteten Anlagenanrufen eindeutig zu.</p>
         </div>
         <button type="button" class="button button--secondary" data-speedphone-team-toggle>Schließen</button>
     </div>
@@ -17,6 +17,7 @@
                         <th>SpeedPhone-Rolle</th>
                         <th>Provision</th>
                         <th>Festnetz-Durchwahl</th>
+                        <th>Zoiper-/SIP-Nebenstelle</th>
                         <th>Freie Kontakte</th>
                         <th>Team verwalten</th>
                         <th>Betreut / gewonnen</th>
@@ -53,6 +54,19 @@
                                 value="<?= speedPhoneEscape($teamUser['pbx_extension']) ?>"
                                 placeholder="z. B. 6010"
                                 aria-label="Festnetz-Durchwahl von <?= speedPhoneEscape($teamUser['name']) ?>"
+                            >
+                        </td>
+                        <td>
+                            <input
+                                class="team-settings__extension"
+                                type="text"
+                                inputmode="numeric"
+                                pattern="[1-9][0-9]{2,7}"
+                                maxlength="8"
+                                name="recording_sip_endpoint[<?= speedPhoneEscape($teamUser['id']) ?>]"
+                                value="<?= speedPhoneEscape($teamUser['recording_sip_endpoint'] ?? '') ?>"
+                                placeholder="z. B. 3002"
+                                aria-label="Zoiper-/SIP-Nebenstelle von <?= speedPhoneEscape($teamUser['name']) ?>"
                             >
                         </td>
                         <td class="team-settings__check">
